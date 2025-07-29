@@ -1,0 +1,24 @@
+# Nixpacks configuration for Railway deployment
+[build]
+# Set the working directory to backend
+workDir = "backend"
+
+[phases.setup]
+# Install Python dependencies
+cmds = ["pip install -r requirements.txt"]
+
+[phases.build]
+# No additional build steps needed for FastAPI
+cmds = []
+
+[start]
+# Start the FastAPI application
+cmd = "uvicorn main:app --host 0.0.0.0 --port $PORT --workers 2"
+
+[variables]
+# Python configuration
+PYTHONUNBUFFERED = "1"
+PYTHONDONTWRITEBYTECODE = "1"
+
+# Ensure Python 3.11 is used
+PYTHON_VERSION = "3.11"
