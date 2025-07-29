@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threadr - Convert Articles to Twitter Threads</title>
+    <script src="config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tweet-editor:focus { outline: none; }
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1DA1F2;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div x-data="threadrApp()" x-init="init()" class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">Threadr</h1>
+            <p class="text-lg text-gray-600">Convert any article into an engaging Twitter thread instantly</p>
+        </header>
+
+        <!-- Main Content -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <!-- Input Type Toggle -->
+            <div class="flex justify-center mb-6">
+                <div class="inline-flex rounded-lg border border-gray-200 p-1">
+                    <button 
+                        @click="inputType = 'url'"
+                        :class="inputType === 'url' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'"
+                        class="px-4 py-2 rounded-md font-medium transition-colors duration-200"
+                    >
+                        URL
+                    </button>
+                    <button 
+                        @click="inputType = 'text'"
+                        :class="inputType === 'text' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'"
+                        class="px-4 py-2 rounded-md font-medium transition-colors duration-200"
+                    >
+                        Paste Text
+                    </button>
+                </div>
+            </div>
+
+            <!-- URL Input -->
+            <div x-show="inputType === 'url'" x-transition>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Article URL</label>
+                <input 
+                    type="url" 
+                    x-model="urlInput"
+                    placeholder="https://example.com/article"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    @keyup.enter="generateThread()"
+                >
+            </div>
+
+            <!-- Text Input -->
+            <div x-show="inputType === 'text'" x-transition>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Paste your content</label>
+                <textarea 
+                    x-model="textInput"
+                    placeholder="Paste your article content here..."
+                    rows="6"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                ></textarea>
+            </div>
+
+            <!-- Generate Button -->
+            <button 
+                @click="generateThread()"
+                :disabled="loading || (!urlInput && inputType === 'url') || (!textInput && inputType === 'text')"
+                class="w-full mt-6 bg-blue-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
+            >
+                <span x-show="!loading">Generate Thread</span>
+                <span x-show="loading" class="flex items-center justify-center">
+                    <div class="loading-spinner mr-3"></div>
+                    Generating...
+                </span>
+            </button>
+
+            <!-- Error Message -->
+            <div x-show="error" x-transition class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p class="text-red-700" x-text="error"></p>
+            </div>
+        </div>
+
+        <!-- Generated Thread -->
+        <div x-show="tweets.length > 0" x-transition class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-900">Your Thread</h2>
+                <button 
+                    @click="copyAllTweets()"
+                    class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                >
+                    <span x-show="!copiedAll">Copy All</span>
+                    <span x-show="copiedAll">Copied!</span>
+                </button>
+            </div>
+
+            <!-- Tweet List -->
+            <div class="space-y-4">
+                <template x-for="(tweet, index) in tweets" :key="index">
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-sm text-gray-500 font-medium" x-text="`${index + 1}/${tweets.length}`"></span>
+                            <button 
+                                @click="copyTweet(index)"
+                                class="text-sm text-blue-500 hover:text-blue-600 font-medium"
+                            >
+                                <span x-show="!tweet.copied">Copy</span>
+                                <span x-show="tweet.copied">Copied!</span>
+                            </button>
+                        </div>
+                        <div 
+                            contenteditable="true"
+                            @input="updateTweet(index, $event)"
+                            @blur="validateTweetLength(index)"
+                            class="tweet-editor text-gray-900 leading-relaxed min-h-[60px] focus:ring-2 focus:ring-blue-100 rounded p-2"
+                            x-text="tweet.text"
+                        ></div>
+                        <div class="mt-2 text-sm" :class="tweet.text.length > 280 ? 'text-red-500' : 'text-gray-500'">
+                            <span x-text="tweet.text.length"></span>/280 characters
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Email Capture Modal -->
+        <div 
+            x-show="showEmailModal" 
+            x-transition
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            @click.self="closeEmailModal()"
+        >
+            <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">Stay Updated!</h3>
+                <p class="text-gray-600 mb-6">Get notified about new features and thread optimization tips.</p>
+                <input 
+                    type="email"
+                    x-model="email"
+                    placeholder="your@email.com"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+                    @keyup.enter="submitEmail()"
+                >
+                <div class="flex space-x-3">
+                    <button 
+                        @click="submitEmail()"
+                        class="flex-1 bg-blue-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-600 transition-colors duration-200"
+                    >
+                        Subscribe
+                    </button>
+                    <button 
+                        @click="closeEmailModal()"
+                        class="flex-1 bg-gray-100 text-gray-700 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+                    >
+                        Maybe Later
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function threadrApp() {
+            return {
+                inputType: 'url',
+                urlInput: '',
+                textInput: '',
+                tweets: [],
+                loading: false,
+                error: '',
+                showEmailModal: false,
+                email: '',
+                copiedAll: false,
+                usageCount: 0,
+                emailCaptured: false,
+
+                init() {
+                    // Check localStorage for usage count and email capture status
+                    this.usageCount = parseInt(localStorage.getItem('threadr_usage_count') || '0');
+                    this.emailCaptured = localStorage.getItem('threadr_email_captured') === 'true';
+                },
+
+                async generateThread() {
+                    this.loading = true;
+                    this.error = '';
+                    this.tweets = [];
+
+                    try {
+                        // Call the backend API
+                        const response = await fetch(`${config.API_URL}/api/generate`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(
+                                this.inputType === 'url' 
+                                    ? { url: this.urlInput }
+                                    : { text: this.textInput }
+                            )
+                        });
+
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.detail || 'Failed to generate thread. Please try again.');
+                        }
+
+                        const data = await response.json();
+                        this.tweets = data.thread.map(tweet => ({
+                            text: tweet.content,
+                            copied: false
+                        }));
+
+                        // Update usage count and show email modal if needed
+                        this.usageCount++;
+                        localStorage.setItem('threadr_usage_count', this.usageCount.toString());
+                        
+                        if (this.usageCount === 1 && !this.emailCaptured) {
+                            setTimeout(() => {
+                                this.showEmailModal = true;
+                            }, 1000);
+                        }
+
+                    } catch (error) {
+                        // For demo purposes, generate mock tweets if backend is not available
+                        this.generateMockTweets();
+                        
+                        // Show email modal after first use
+                        this.usageCount++;
+                        localStorage.setItem('threadr_usage_count', this.usageCount.toString());
+                        
+                        if (this.usageCount === 1 && !this.emailCaptured) {
+                            setTimeout(() => {
+                                this.showEmailModal = true;
+                            }, 1000);
+                        }
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                generateMockTweets() {
+                    // Demo tweets for when backend is not available
+                    const content = this.inputType === 'url' ? this.urlInput : this.textInput;
+                    this.tweets = [
+                        {
+                            text: "🧵 Here's an interesting article I found that's worth sharing. Let me break it down for you in this thread.",
+                            copied: false
+                        },
+                        {
+                            text: "The main point revolves around innovation and how it's changing our daily lives. The insights are quite compelling.",
+                            copied: false
+                        },
+                        {
+                            text: "What struck me most was the emphasis on adaptability. In today's fast-paced world, being able to pivot quickly is crucial.",
+                            copied: false
+                        },
+                        {
+                            text: "The article also highlights several case studies that demonstrate these principles in action. Real-world examples always help.",
+                            copied: false
+                        },
+                        {
+                            text: "Key takeaway: Success isn't just about having great ideas, it's about execution and timing. Both matter equally.",
+                            copied: false
+                        }
+                    ];
+                },
+
+                updateTweet(index, event) {
+                    this.tweets[index].text = event.target.innerText;
+                },
+
+                validateTweetLength(index) {
+                    if (this.tweets[index].text.length > 280) {
+                        this.error = `Tweet ${index + 1} exceeds 280 characters. Please shorten it.`;
+                    } else {
+                        this.error = '';
+                    }
+                },
+
+                async copyTweet(index) {
+                    try {
+                        await navigator.clipboard.writeText(this.tweets[index].text);
+                        this.tweets[index].copied = true;
+                        setTimeout(() => {
+                            this.tweets[index].copied = false;
+                        }, 2000);
+                    } catch (err) {
+                        this.error = 'Failed to copy tweet';
+                    }
+                },
+
+                async copyAllTweets() {
+                    try {
+                        const allTweets = this.tweets.map((tweet, index) => 
+                            `${index + 1}/${this.tweets.length}\n${tweet.text}`
+                        ).join('\n\n');
+                        
+                        await navigator.clipboard.writeText(allTweets);
+                        this.copiedAll = true;
+                        setTimeout(() => {
+                            this.copiedAll = false;
+                        }, 2000);
+                    } catch (err) {
+                        this.error = 'Failed to copy thread';
+                    }
+                },
+
+                async submitEmail() {
+                    if (!this.email || !this.email.includes('@')) {
+                        return;
+                    }
+
+                    // Send email to backend - replace with actual endpoint
+                    try {
+                        await fetch(`${window.threadrConfig.API_URL}/api/subscribe`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                email: this.email
+                            })
+                        });
+                    } catch (err) {
+                        // Handle error silently for now
+                    }
+
+                    localStorage.setItem('threadr_email_captured', 'true');
+                    this.emailCaptured = true;
+                    this.showEmailModal = false;
+                },
+
+                closeEmailModal() {
+                    this.showEmailModal = false;
+                    // Still mark as captured even if they close without subscribing
+                    localStorage.setItem('threadr_email_captured', 'true');
+                    this.emailCaptured = true;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

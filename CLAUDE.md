@@ -1,0 +1,142 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+Threadr is a SaaS tool that converts blog articles or pasted content into Twitter threads. This is a greenfield project with the specification defined in MVP.md.
+
+## Project Status
+
+This project is in its initial stage - no code has been written yet. The only existing file is MVP.md which contains the project specification.
+
+## Technology Stack (Expert-Verified Decision)
+
+Final technology decisions after expert review:
+- **Frontend**: Alpine.js + Tailwind CSS via CDN (no build process, reactive UI)
+- **Backend**: Python FastAPI (async support, better than Flask for this use case)
+- **Storage**: In-memory + Upstash Redis free tier (no database complexity for MVP)
+- **AI Integration**: OpenAI GPT-3.5-turbo API (proven reliability, extensive docs)
+- **Deployment**: 
+  - Frontend: Vercel (static hosting)
+  - Backend: Railway (excellent Python support)
+  - Protection: Cloudflare free tier (DDoS + rate limiting)
+
+## Core Features to Implement
+
+1. URL/content input interface (critical - 80% of users will paste URLs)
+2. AI-powered content summarization and tweet splitting (280 chars each)
+3. Inline editing functionality for generated tweets (users need to refine AI output)
+4. Copy individual tweets or entire thread functionality
+5. Email capture after first use (essential for future monetization)
+6. IP-based rate limiting (prevent abuse and API cost explosion)
+7. Phased monetization: Week 1 (free), Week 2 (limits), Week 3 (Stripe payment links)
+
+## Development Commands
+
+### Frontend (Alpine.js + Tailwind)
+```bash
+# No build process needed!
+# Simply open index.html in browser
+# For development server:
+python -m http.server 8000  # or
+npx serve frontend/
+```
+
+### Backend (Python FastAPI)
+```bash
+# Initial setup
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+# Development
+uvicorn main:app --reload --port 8001
+
+# Testing
+pytest
+
+# Linting
+ruff check .
+black .
+```
+
+### Deployment
+```bash
+# Frontend to Vercel
+vercel --prod
+
+# Backend to Railway
+railway up
+```
+
+## Architecture Considerations
+
+1. **Simplified File Structure**:
+   ```
+   threadr/
+   ├── frontend/
+   │   └── index.html (Alpine.js + Tailwind, ~100 lines)
+   ├── backend/
+   │   ├── main.py (FastAPI endpoints, ~150 lines)
+   │   └── requirements.txt
+   └── README.md
+   ```
+
+2. **API Endpoints**:
+   - `POST /api/generate` - Convert content/URL to thread
+   - `POST /api/capture-email` - Store user email
+   - Rate limiting via IP address (no auth needed)
+
+3. **Key Implementation Details**:
+   - Use BeautifulSoup for URL content extraction
+   - Implement IP-based rate limiting with Redis
+   - Handle OpenAI API errors gracefully
+   - Store emails in Redis for MVP (migrate to DB later)
+
+## 4-Hour Implementation Plan
+
+### Hour 1: Frontend Setup
+1. Create `frontend/index.html` with Alpine.js + Tailwind CDN
+2. Build form with URL/content input
+3. Add loading states and error handling
+4. Style with Tailwind for professional look
+
+### Hour 2: Backend Core
+1. Set up FastAPI with CORS enabled
+2. Implement `/api/generate` endpoint
+3. Add BeautifulSoup for URL scraping
+4. Integrate OpenAI API for thread generation
+
+### Hour 3: Integration & Protection
+1. Connect frontend to backend API
+2. Implement IP-based rate limiting
+3. Add email capture functionality
+4. Test end-to-end flow
+
+### Hour 4: Deployment
+1. Deploy frontend to Vercel
+2. Deploy backend to Railway
+3. Configure Cloudflare protection
+4. Test production environment
+
+## Critical Implementation Notes
+
+### Must-Have Features (Don't Skip These!)
+- **URL input**: 80% of users will paste URLs, not full content
+- **Email capture**: Essential for monetization - add after first use
+- **Rate limiting**: Prevent API cost disasters from day one
+- **Basic editing**: Users need to refine AI output for quality
+
+### Expert Warnings
+- Vanilla JS is NOT simpler for this use case - use Alpine.js
+- Vercel is NOT ideal for Python backends - use Railway
+- Don't skip the database entirely - use Redis for rate limiting
+- JSON files + multiple workers = race conditions
+
+### Quick Win Tips
+- Use GPT-3.5-turbo (cheaper and sufficient for summaries)
+- Implement "Copy All" before individual tweet copying
+- Add Cloudflare from day 1 (free DDoS protection)
+- Start with Stripe Payment Links (no code needed)
