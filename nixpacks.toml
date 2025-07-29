@@ -1,24 +1,36 @@
 # Nixpacks configuration for Railway deployment
+# Deploys FastAPI app from backend/ subdirectory
+
 [build]
-# Set the working directory to backend
+# Set working directory to backend subdirectory
 workDir = "backend"
 
 [phases.setup]
-# Install Python dependencies
-cmds = ["pip install -r requirements.txt"]
+# Install Python dependencies from requirements.txt in backend/
+cmds = ["pip install --upgrade pip", "pip install -r requirements.txt"]
 
 [phases.build]
 # No additional build steps needed for FastAPI
 cmds = []
 
 [start]
-# Start the FastAPI application
+# Start the FastAPI application with production settings
 cmd = "uvicorn main:app --host 0.0.0.0 --port $PORT --workers 2"
 
 [variables]
-# Python configuration
+# Python configuration for production
 PYTHONUNBUFFERED = "1"
 PYTHONDONTWRITEBYTECODE = "1"
-
-# Ensure Python 3.11 is used
 PYTHON_VERSION = "3.11"
+
+# FastAPI production settings
+ENVIRONMENT = "production"
+CORS_ORIGINS = "https://threadr.vercel.app,https://threadr-frontend.vercel.app,https://www.threadr.app"
+
+# Rate limiting configuration
+RATE_LIMIT_REQUESTS = "10"
+RATE_LIMIT_WINDOW_HOURS = "1"
+
+# Content limits
+MAX_TWEET_LENGTH = "280"
+MAX_CONTENT_LENGTH = "10000"
