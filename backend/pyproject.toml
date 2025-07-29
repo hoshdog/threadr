@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "threadr-backend"
+version = "1.0.0"
+description = "FastAPI backend for Threadr - Convert articles into Twitter threads"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Threadr Team"}
+]
+keywords = ["fastapi", "twitter", "threads", "openai", "api"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Framework :: FastAPI",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "fastapi==0.109.0",
+    "uvicorn[standard]==0.27.0",
+    "pydantic==2.5.3",
+    "httpx==0.26.0",
+    "beautifulsoup4==4.12.3",
+    "openai==1.10.0",
+    "python-multipart==0.0.6",
+    "python-dotenv==1.0.0",
+    "gunicorn==21.2.0",
+]
+
+[project.optional-dependencies]
+production = [
+    "email-validator==2.1.0",
+    "python-jose[cryptography]==3.3.0",
+    "passlib[bcrypt]==1.7.4",
+    "structlog==23.2.0",
+    "sentry-sdk[fastapi]==1.40.6",
+    "slowapi==0.1.9",
+    "redis==5.0.1",
+    "prometheus-client==0.19.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/threadr/threadr-backend"
+Documentation = "https://github.com/threadr/threadr-backend"
+Repository = "https://github.com/threadr/threadr-backend.git"
+Issues = "https://github.com/threadr/threadr-backend/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.txt", "*.md"]

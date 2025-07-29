@@ -1,0 +1,84 @@
+# Railway ignore file - exclude unnecessary files from deployment
+
+# Documentation files
+*.md
+README.md
+docs/
+CHANGELOG.md
+
+# Development files
+.env
+.env.local
+.env.development
+.openai_key
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Test files
+test_*.py
+*_test.py
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Frontend files (not needed for backend deployment)
+frontend/
+*.html
+*.css  
+*.js
+vercel.json
+node_modules/
+package.json
+package-lock.json
+
+# Git files
+.git/
+.gitignore
+
+# Deployment scripts (not needed in container)
+deploy.py
+deploy.sh
+deploy.ps1
