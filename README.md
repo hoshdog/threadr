@@ -1,6 +1,16 @@
 # Threadr - Twitter Thread Generator
 
-A simple SaaS tool that converts blog articles or pasted content into engaging Twitter threads.
+A secure SaaS tool that converts blog articles or pasted content into engaging Twitter threads.
+
+## Security Features
+
+- **API Key Authentication**: Header-based authentication with support for multiple API keys
+- **SSRF Protection**: Domain allowlist and private IP blocking for URL scraping  
+- **Security Headers**: Comprehensive security headers including CSP, HSTS, and XSS protection
+- **Rate Limiting**: IP-based rate limiting with Redis support
+- **Environment Isolation**: Debug endpoints disabled in production
+
+See [backend/SECURITY.md](backend/SECURITY.md) for detailed security documentation.
 
 ## Quick Start
 

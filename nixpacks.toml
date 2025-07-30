@@ -25,7 +25,7 @@ cmds = [
 # Using exec to ensure proper signal handling
 [start]
 workDir = "backend"
-cmd = "exec python -m uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --log-level debug --access-log --timeout-keep-alive 30"
+cmd = "exec python -m uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1 --log-level debug --access-log --timeout-keep-alive 30"
 
 # Environment variables to force uvicorn usage
 [variables]
@@ -43,3 +43,4 @@ RAILWAY_NO_GUNICORN = "true"
 PYTHONPATH = "/app/backend"
 # Debugging
 DEBUG = "false"
+# Let Railway set PORT dynamically (Railway provides this automatically)

@@ -185,6 +185,39 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "$PORT", "--workers",
 
 Then set Railway to use Docker builds in project settings.
 
+## Redis Configuration
+
+### Adding Redis to Railway
+
+1. **Using Upstash Redis (Recommended for Free Tier)**
+   - Sign up at [upstash.com](https://upstash.com)
+   - Create a Redis database (free tier: 10,000 commands/day)
+   - Copy the Redis URL (format: `rediss://default:password@host.upstash.io:port`)
+   - Add to Railway environment variables:
+     ```
+     REDIS_URL=rediss://default:xxx@xxx.upstash.io:xxx
+     CACHE_TTL_HOURS=24
+     ```
+
+2. **Using Railway Redis Plugin**
+   - Click "+ New" in Railway dashboard
+   - Select "Database" → "Redis"
+   - Connect to your service
+   - Railway automatically sets `REDIS_URL`
+
+3. **Environment Variables for Redis**
+   ```
+   REDIS_URL=redis://localhost:6379  # or Upstash URL
+   CACHE_TTL_HOURS=24  # Cache duration in hours
+   ```
+
+### Verifying Redis Connection
+
+After deployment, check these endpoints:
+- `https://your-app.railway.app/api/cache/stats` - Redis statistics
+- `https://your-app.railway.app/api/monitor/health` - Overall health including Redis
+- `https://your-app.railway.app/debug/startup` - Shows Redis availability
+
 ## Support
 
 If you continue having issues:
@@ -199,3 +232,5 @@ If you continue having issues:
 - Always use `exec` in start commands for proper signal handling
 - Keep nixpacks.toml minimal and explicit
 - Monitor first deployment carefully to ensure uvicorn is used
+- Redis connection is optional - app works without it
+- Redis significantly reduces API costs through caching

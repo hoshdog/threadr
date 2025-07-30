@@ -11,7 +11,9 @@ ENV/
 
 # Environment variables
 .env
+.env.production
 .openai_key
+API_KEYS.md
 
 # IDE
 .vscode/

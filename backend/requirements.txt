@@ -13,9 +13,16 @@ pydantic==2.5.3
 python-multipart==0.0.6
 
 # Essential for our app
-openai>=1.10.0
 beautifulsoup4>=4.12.3
 python-dotenv>=1.0.0
+
+# Security and validation
+ipaddress>=1.0.23
+typing-extensions>=4.8.0
+
+# Redis caching and rate limiting
+redis[hiredis]==5.0.1
+hiredis==2.3.2
 
 # ASGI server configuration handled in nixpacks.toml
 # Only uvicorn is used for this deployment

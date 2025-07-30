@@ -1,10 +1,11 @@
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel, HttpUrl, validator
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Dict, Union, Annotated
 import httpx
 from bs4 import BeautifulSoup
-from openai import OpenAI, OpenAIError
+# OpenAI imports removed - using httpx for async API calls
 from datetime import datetime, timedelta
 import os
 from collections import defaultdict
@@ -14,8 +15,11 @@ from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor
 import logging
 import sys
+from redis_manager import initialize_redis, get_redis_manager
+import ipaddress
+from urllib.parse import urlparse
 
-# Initialize rate limiter storage
+# Initialize rate limiter storage (fallback for when Redis is unavailable)
 rate_limiter_storage: Dict[str, List[datetime]] = defaultdict(list)
 rate_limiter_lock = asyncio.Lock()
 
@@ -25,6 +29,22 @@ RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "10"))
 RATE_LIMIT_WINDOW_HOURS = int(os.getenv("RATE_LIMIT_WINDOW_HOURS", "1"))
 MAX_TWEET_LENGTH = int(os.getenv("MAX_TWEET_LENGTH", "280"))
 MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", "10000"))  # Maximum characters to process
+
+# Security Configuration
+API_KEYS = os.getenv("API_KEYS", "").split(",") if os.getenv("API_KEYS") else []
+ALLOWED_DOMAINS = os.getenv("ALLOWED_DOMAINS", "").split(",") if os.getenv("ALLOWED_DOMAINS") else []
+if not ALLOWED_DOMAINS:
+    # Default allowed domains for scraping
+    ALLOWED_DOMAINS = [
+        "medium.com", "*.medium.com",
+        "dev.to", "*.dev.to",
+        "blog.*.com", "*.blog",
+        "substack.com", "*.substack.com",
+        "wordpress.com", "*.wordpress.com",
+        "github.com", "*.github.com",
+        "twitter.com", "x.com",
+        "linkedin.com", "*.linkedin.com"
+    ]
 
 # Logging Configuration
 logging.basicConfig(
@@ -58,33 +78,49 @@ def load_openai_key():
     
     return api_key
 
-# Initialize OpenAI client with error handling
-openai_client = None
+# Initialize OpenAI availability check
 openai_available = False
 
-def initialize_openai_client():
-    """Initialize OpenAI client with proper error handling"""
-    global openai_client, openai_available
+def check_openai_availability():
+    """Check if OpenAI API key is available"""
+    global openai_available
     try:
         api_key = load_openai_key()
-        openai_client = OpenAI(api_key=api_key)
-        openai_available = True
-        logger.info("OpenAI client initialized successfully")
-        return True
+        if api_key:
+            openai_available = True
+            logger.info("OpenAI API key loaded successfully")
+            return True
     except ValueError as e:
-        logger.warning(f"OpenAI initialization failed: {e}")
+        logger.warning(f"OpenAI availability check failed: {e}")
         openai_available = False
         # Don't fail in production - allow graceful degradation
         if ENVIRONMENT == "production":
             logger.warning("Running in production mode without OpenAI - using fallback methods only")
         return False
     except Exception as e:
-        logger.error(f"Unexpected error initializing OpenAI: {e}")
+        logger.error(f"Unexpected error checking OpenAI availability: {e}")
         openai_available = False
         return False
 
-# Try to initialize OpenAI on startup
-initialize_openai_client()
+# Check OpenAI availability on startup
+check_openai_availability()
+
+# Configure CORS origins early
+cors_origins = os.getenv("CORS_ORIGINS")
+if ENVIRONMENT == "production":
+    # In production, use specific origins for security
+    if cors_origins:
+        allowed_origins = [origin.strip() for origin in cors_origins.split(",")]
+    else:
+        # Default production origins
+        allowed_origins = [
+            "https://threadr.vercel.app",
+            "https://threadr-frontend.vercel.app",
+            "https://www.threadr.app"
+        ]
+else:
+    # Development allows all origins
+    allowed_origins = ["*"] if not cors_origins else [origin.strip() for origin in cors_origins.split(",")]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -103,6 +139,16 @@ async def lifespan(app: FastAPI):
         logger.info(f"FastAPI version: {fastapi.__version__}")
         logger.info(f"Uvicorn version: {uvicorn.__version__}")
         
+        # Initialize Redis
+        logger.info("Initializing Redis connection...")
+        redis_manager = initialize_redis()
+        if redis_manager and redis_manager.is_available:
+            logger.info("Redis initialized successfully - caching and distributed rate limiting enabled")
+            stats = await redis_manager.get_cache_stats()
+            logger.info(f"Redis stats: {stats}")
+        else:
+            logger.warning("Redis not available - falling back to in-memory rate limiting")
+        
         # Log OpenAI availability
         if openai_available:
             logger.info("OpenAI client is available - full functionality enabled")
@@ -111,7 +157,7 @@ async def lifespan(app: FastAPI):
         
         # Log all critical environment variables
         logger.info(f"Environment: {ENVIRONMENT}")
-        logger.info(f"CORS Origins: {os.getenv('CORS_ORIGINS', 'not set')}")
+        logger.info(f"CORS Origins configured: {allowed_origins}")
         logger.info(f"Rate limit: {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW_HOURS} hours")
         
         # Test basic functionality
@@ -129,6 +175,9 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("Shutting down Threadr backend...")
+    redis_manager = get_redis_manager()
+    if redis_manager:
+        redis_manager.close()
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -138,23 +187,32 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configure CORS for production
-cors_origins = os.getenv("CORS_ORIGINS")
+# Security Middleware
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    """Add security headers to all responses"""
+    response = await call_next(request)
+    
+    # Security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    
+    # HSTS only in production
+    if ENVIRONMENT == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    # CSP - Restrictive policy for API
+    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none';"
+    
+    # Additional security headers
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
+    
+    return response
 
-if ENVIRONMENT == "production":
-    # In production, use specific origins for security
-    if cors_origins:
-        allowed_origins = [origin.strip() for origin in cors_origins.split(",")]
-    else:
-        # Default production origins
-        allowed_origins = [
-            "https://threadr.vercel.app",
-            "https://threadr-frontend.vercel.app",
-            "https://www.threadr.app"
-        ]
-else:
-    # Development allows all origins
-    allowed_origins = ["*"] if not cors_origins else [origin.strip() for origin in cors_origins.split(",")]
+# CORS configuration already done above
 
 app.add_middleware(
     CORSMiddleware,
@@ -196,9 +254,167 @@ class GenerateThreadResponse(BaseModel):
     title: Optional[str] = None
     error: Optional[str] = None
 
+# Security Dependencies and Utilities
+
+async def verify_api_key(x_api_key: Annotated[Optional[str], Header()] = None) -> str:
+    """Verify API key for protected endpoints"""
+    # Skip API key check in development mode
+    if ENVIRONMENT == "development" and not API_KEYS:
+        return "development"
+    
+    # Check if API keys are configured
+    if not API_KEYS or (len(API_KEYS) == 1 and API_KEYS[0] == ""):
+        logger.warning("API keys not configured - authentication disabled")
+        return "no-auth-configured"
+    
+    # Verify the API key
+    if not x_api_key:
+        raise HTTPException(
+            status_code=401,
+            detail="API key required. Please provide X-API-Key header.",
+            headers={"WWW-Authenticate": "ApiKey"}
+        )
+    
+    if x_api_key not in API_KEYS:
+        logger.warning(f"Invalid API key attempt: {x_api_key[:8]}...")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API key",
+            headers={"WWW-Authenticate": "ApiKey"}
+        )
+    
+    return x_api_key
+
+def is_private_ip(ip_str: str) -> bool:
+    """Check if an IP address is private/internal"""
+    try:
+        ip = ipaddress.ip_address(ip_str)
+        return ip.is_private or ip.is_loopback or ip.is_link_local
+    except ValueError:
+        return False
+
+def is_allowed_domain(url: str) -> bool:
+    """Check if URL domain is in the allowed list"""
+    if not ALLOWED_DOMAINS:
+        return True  # If no domains configured, allow all
+    
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+        
+        # Check against allowed domains
+        for allowed in ALLOWED_DOMAINS:
+            if allowed.startswith("*."):
+                # Wildcard subdomain matching
+                base_domain = allowed[2:]
+                if hostname == base_domain or hostname.endswith(f".{base_domain}"):
+                    return True
+            elif "*" in allowed:
+                # Pattern matching (e.g., "blog.*.com")
+                import fnmatch
+                if fnmatch.fnmatch(hostname, allowed):
+                    return True
+            else:
+                # Exact match
+                if hostname == allowed:
+                    return True
+        
+        return False
+    except Exception as e:
+        logger.error(f"Error checking domain allowlist: {e}")
+        return False
+
+async def validate_url_security(url: str):
+    """Validate URL for security (SSRF protection)"""
+    # Check URL scheme
+    parsed = urlparse(url)
+    if parsed.scheme not in ["http", "https"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Only HTTP and HTTPS URLs are allowed"
+        )
+    
+    # Check if domain is allowed
+    if not is_allowed_domain(url):
+        # Format allowed domains for display
+        display_domains = []
+        for domain in ALLOWED_DOMAINS[:5]:  # Show first 5 domains
+            if domain.startswith("*."):
+                display_domains.append(f"any subdomain of {domain[2:]}")
+            elif "*" in domain:
+                display_domains.append(f"domains matching {domain}")
+            else:
+                display_domains.append(domain)
+        
+        if len(ALLOWED_DOMAINS) > 5:
+            display_domains.append(f"and {len(ALLOWED_DOMAINS) - 5} more...")
+        
+        raise HTTPException(
+            status_code=403,
+            detail=f"Domain not allowed. Allowed domains include: {', '.join(display_domains)}"
+        )
+    
+    # Resolve hostname to check for internal IPs
+    try:
+        hostname = parsed.hostname
+        if not hostname:
+            raise HTTPException(status_code=400, detail="Invalid URL: no hostname")
+        
+        # Use httpx to resolve the hostname
+        async with httpx.AsyncClient() as client:
+            # Make a HEAD request to check the resolved IP
+            response = await client.head(url, follow_redirects=False, timeout=5.0)
+            
+            # Check if resolved to internal IP
+            if hasattr(response, "_raw_stream") and hasattr(response._raw_stream, "_connection"):
+                connection = response._raw_stream._connection
+                if hasattr(connection, "_origin") and hasattr(connection._origin, "host"):
+                    resolved_ip = connection._origin.host
+                    if is_private_ip(resolved_ip):
+                        logger.warning(f"URL resolved to private IP: {url} -> {resolved_ip}")
+                        raise HTTPException(
+                            status_code=403,
+                            detail="URL resolves to internal/private IP address"
+                        )
+    except httpx.RequestError:
+        # If we can't resolve, we'll check during actual fetch
+        pass
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error validating URL security: {e}")
+        # Continue with request - will fail safely if there's an issue
+
 # Rate limiting dependency
 async def check_rate_limit(request: Request):
     client_ip = request.client.host
+    redis_manager = get_redis_manager()
+    
+    # Try Redis first
+    if redis_manager and redis_manager.is_available:
+        window_seconds = RATE_LIMIT_WINDOW_HOURS * 3600
+        result = await redis_manager.check_rate_limit(
+            client_ip=client_ip,
+            limit=RATE_LIMIT_REQUESTS,
+            window_seconds=window_seconds
+        )
+        
+        if not result["allowed"]:
+            minutes_until_reset = max(1, result["reset_in_seconds"] // 60)
+            raise HTTPException(
+                status_code=429,
+                detail=f"Rate limit exceeded. Try again in {minutes_until_reset} minutes."
+            )
+        
+        # Log if we're using Redis
+        if result.get("redis_available"):
+            logger.debug(f"Rate limit checked via Redis for {client_ip}")
+            return
+    
+    # Fallback to in-memory rate limiting
+    logger.debug(f"Using in-memory rate limiting for {client_ip}")
     current_time = datetime.now()
     
     async with rate_limiter_lock:
@@ -224,7 +440,10 @@ async def check_rate_limit(request: Request):
 
 # Utility functions
 async def scrape_article(url: str) -> Dict[str, str]:
-    """Scrape article content from URL"""
+    """Scrape article content from URL with security validation"""
+    # Validate URL security first
+    await validate_url_security(url)
+    
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(str(url), follow_redirects=True)
@@ -340,15 +559,23 @@ def split_into_tweets(text: str, include_thread_numbers: bool = True) -> List[st
     return tweets
 
 async def generate_thread_with_gpt(content: str, title: Optional[str] = None) -> List[str]:
-    """Use GPT to generate an engaging thread from content"""
-    global openai_client, openai_available
+    """Use GPT to generate an engaging thread from content using async httpx"""
+    global openai_available
     
-    if not openai_available or not openai_client:
+    # Get API key
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        try:
+            api_key = load_openai_key()
+        except:
+            logger.warning("OpenAI API key not available")
+            return None
+    
+    if not api_key:
         return None
         
-    try:
-        # Prepare the prompt
-        prompt = f"""Convert the following article into an engaging Twitter/X thread. 
+    # Prepare the prompt
+    prompt = f"""Convert the following article into an engaging Twitter/X thread. 
 
 Requirements:
 - Create a compelling thread that captures the key points
@@ -367,46 +594,108 @@ Content:
 
 Generate the thread as a list of tweets, each on a new line."""
 
-        # Call OpenAI API (synchronous call in thread pool)
-        loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(
-            None,
-            lambda: openai_client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are an expert at creating engaging Twitter/X threads from articles. You write concisely and engagingly."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=2000
-            )
-        )
-        
-        # Extract the generated thread
-        generated_text = response.choices[0].message.content.strip()
-        
-        # Split into individual tweets
-        tweets = [tweet.strip() for tweet in generated_text.split('\n') if tweet.strip()]
-        
-        # Validate tweet lengths
-        valid_tweets = []
-        for tweet in tweets:
-            if len(tweet) <= MAX_TWEET_LENGTH:
-                valid_tweets.append(tweet)
-            else:
-                # Split long tweets
-                split_tweets = split_into_tweets(tweet, include_thread_numbers=False)
-                valid_tweets.extend(split_tweets)
-        
-        return valid_tweets
-        
-    except OpenAIError as e:
-        # Fallback to basic splitting if GPT fails
-        logger.warning(f"OpenAI API error: {str(e)}")
-        return None
-    except Exception as e:
-        logger.error(f"Unexpected error in GPT generation: {str(e)}")
-        return None
+    # Prepare the request payload
+    payload = {
+        "model": "gpt-3.5-turbo",
+        "messages": [
+            {
+                "role": "system", 
+                "content": "You are an expert at creating engaging Twitter/X threads from articles. You write concisely and engagingly."
+            },
+            {
+                "role": "user", 
+                "content": prompt
+            }
+        ],
+        "temperature": 0.7,
+        "max_tokens": 2000
+    }
+    
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    # Retry configuration
+    max_retries = 3
+    retry_delay = 1.0
+    
+    async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
+        for attempt in range(max_retries):
+            try:
+                response = await client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    json=payload,
+                    headers=headers
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    
+                    # Extract the generated thread
+                    generated_text = result['choices'][0]['message']['content'].strip()
+                    
+                    # Split into individual tweets
+                    tweets = [tweet.strip() for tweet in generated_text.split('\n') if tweet.strip()]
+                    
+                    # Validate tweet lengths
+                    valid_tweets = []
+                    for tweet in tweets:
+                        if len(tweet) <= MAX_TWEET_LENGTH:
+                            valid_tweets.append(tweet)
+                        else:
+                            # Split long tweets
+                            split_tweets = split_into_tweets(tweet, include_thread_numbers=False)
+                            valid_tweets.extend(split_tweets)
+                    
+                    return valid_tweets
+                
+                elif response.status_code == 429:  # Rate limit
+                    retry_after = response.headers.get('Retry-After', retry_delay)
+                    logger.warning(f"Rate limited. Retrying after {retry_after} seconds...")
+                    await asyncio.sleep(float(retry_after))
+                    continue
+                
+                elif response.status_code >= 500:  # Server error, retry
+                    if attempt < max_retries - 1:
+                        logger.warning(f"Server error {response.status_code}. Retrying in {retry_delay} seconds...")
+                        await asyncio.sleep(retry_delay)
+                        retry_delay *= 2  # Exponential backoff
+                        continue
+                    else:
+                        logger.error(f"OpenAI API server error after {max_retries} attempts: {response.status_code}")
+                        return None
+                
+                else:  # Client error, don't retry
+                    error_data = response.json()
+                    logger.error(f"OpenAI API error: {response.status_code} - {error_data}")
+                    return None
+                    
+            except httpx.TimeoutException:
+                logger.warning(f"Request timeout on attempt {attempt + 1}/{max_retries}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2
+                    continue
+                else:
+                    logger.error("OpenAI API timeout after all retries")
+                    return None
+                    
+            except httpx.HTTPError as e:
+                logger.warning(f"HTTP error on attempt {attempt + 1}/{max_retries}: {str(e)}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2
+                    continue
+                else:
+                    logger.error(f"HTTP error after all retries: {str(e)}")
+                    return None
+                    
+            except Exception as e:
+                logger.error(f"Unexpected error in GPT generation: {str(e)}")
+                return None
+    
+    return None
 
 # API endpoints
 
@@ -450,7 +739,7 @@ async def readiness_check():
             "timestamp": datetime.now().isoformat(),
             "checks": {
                 "basic_functionality": "passed",
-                "openai_service": "configured" if openai_client is not None else "not_configured_but_ok"
+                "openai_service": "configured" if openai_available else "not_configured_but_ok"
             }
         }
     except Exception as e:
@@ -463,17 +752,33 @@ async def readiness_check():
 
 @app.get("/debug/startup")
 async def debug_startup():
-    """Debug endpoint to check startup configuration"""
+    """Debug endpoint to check startup configuration - ONLY IN DEVELOPMENT"""
+    # Block access in production
+    if ENVIRONMENT == "production":
+        raise HTTPException(
+            status_code=404,
+            detail="Not found"
+        )
+    
+    redis_manager = get_redis_manager()
+    redis_available = redis_manager.is_available if redis_manager else False
+    
     return {
         "timestamp": datetime.now().isoformat(),
         "environment": ENVIRONMENT,
         "port": os.getenv("PORT", "not_set"),
         "python_version": sys.version,
         "openai_available": openai_available,
-        "openai_client_exists": openai_client is not None,
+        "openai_api_available": openai_available,
+        "redis_available": redis_available,
         "rate_limiting": {
             "requests": RATE_LIMIT_REQUESTS,
-            "window_hours": RATE_LIMIT_WINDOW_HOURS
+            "window_hours": RATE_LIMIT_WINDOW_HOURS,
+            "using_redis": redis_available
+        },
+        "caching": {
+            "enabled": redis_available,
+            "ttl_hours": int(os.getenv("CACHE_TTL_HOURS", "24"))
         },
         "content_limits": {
             "max_tweet_length": MAX_TWEET_LENGTH,
@@ -503,13 +808,65 @@ async def test_endpoint():
         "openai_status": "available" if openai_available else "unavailable"
     }
 
+@app.get("/api/security/config")
+async def security_config():
+    """Get security configuration - ONLY IN DEVELOPMENT"""
+    # Block access in production
+    if ENVIRONMENT == "production":
+        raise HTTPException(
+            status_code=404,
+            detail="Not found"
+        )
+    
+    return {
+        "environment": ENVIRONMENT,
+        "api_authentication": {
+            "enabled": bool(API_KEYS) and API_KEYS[0] != "",
+            "configured_keys": len([k for k in API_KEYS if k]),
+            "header_name": "X-API-Key"
+        },
+        "url_security": {
+            "domain_allowlist_enabled": bool(ALLOWED_DOMAINS),
+            "allowed_domains": ALLOWED_DOMAINS,
+            "ssrf_protection": "enabled",
+            "private_ip_blocking": "enabled"
+        },
+        "security_headers": {
+            "X-Content-Type-Options": "nosniff",
+            "X-Frame-Options": "DENY",
+            "X-XSS-Protection": "1; mode=block",
+            "Strict-Transport-Security": "enabled in production",
+            "Content-Security-Policy": "restrictive"
+        },
+        "rate_limiting": {
+            "enabled": True,
+            "requests_per_window": RATE_LIMIT_REQUESTS,
+            "window_hours": RATE_LIMIT_WINDOW_HOURS
+        }
+    }
+
 @app.post("/api/generate", response_model=GenerateThreadResponse)
 async def generate_thread(
     request: GenerateThreadRequest,
-    _: None = Depends(check_rate_limit)
+    _: None = Depends(check_rate_limit),
+    api_key: str = Depends(verify_api_key)
 ):
     """Generate a Twitter/X thread from URL or text content"""
     global openai_available
+    redis_manager = get_redis_manager()
+    
+    # Check cache first
+    if redis_manager and redis_manager.is_available:
+        request_dict = request.dict()
+        cached_response = await redis_manager.get_cached_thread(request_dict)
+        
+        if cached_response:
+            logger.info("Returning cached thread response")
+            # Remove cache metadata before returning
+            cached_response.pop("_cached_at", None)
+            cached_response.pop("_ttl", None)
+            return GenerateThreadResponse(**cached_response)
+    
     try:
         # Determine source and get content
         if request.url:
@@ -526,7 +883,7 @@ async def generate_thread(
         
         # Try to generate thread with GPT if available
         tweets = None
-        if openai_available and openai_client:
+        if openai_available:
             try:
                 tweets = await generate_thread_with_gpt(content, title)
                 logger.info("Successfully generated thread using OpenAI")
@@ -553,12 +910,22 @@ async def generate_thread(
                 character_count=len(tweet_content)
             ))
         
-        return GenerateThreadResponse(
+        response = GenerateThreadResponse(
             success=True,
             thread=thread,
             source_type=source_type,
             title=title
         )
+        
+        # Cache the response
+        if redis_manager and redis_manager.is_available:
+            request_dict = request.dict()
+            response_dict = response.dict()
+            cached = await redis_manager.cache_thread_response(request_dict, response_dict)
+            if cached:
+                logger.info("Thread response cached successfully")
+        
+        return response
         
     except HTTPException:
         raise
@@ -581,6 +948,27 @@ async def generate_thread(
 async def rate_limit_status(request: Request):
     """Check current rate limit status for the client"""
     client_ip = request.client.host
+    redis_manager = get_redis_manager()
+    
+    # Try Redis first
+    if redis_manager and redis_manager.is_available:
+        window_seconds = RATE_LIMIT_WINDOW_HOURS * 3600
+        status = await redis_manager.get_rate_limit_status(
+            client_ip=client_ip,
+            limit=RATE_LIMIT_REQUESTS,
+            window_seconds=window_seconds
+        )
+        
+        return {
+            "requests_used": status["requests_used"],
+            "requests_remaining": status["requests_remaining"],
+            "total_limit": RATE_LIMIT_REQUESTS,
+            "window_hours": RATE_LIMIT_WINDOW_HOURS,
+            "minutes_until_reset": max(0, status["reset_in_seconds"] // 60),
+            "using_redis": status.get("redis_available", False)
+        }
+    
+    # Fallback to in-memory
     current_time = datetime.now()
     
     async with rate_limiter_lock:
@@ -605,7 +993,85 @@ async def rate_limit_status(request: Request):
         "requests_remaining": requests_remaining,
         "total_limit": RATE_LIMIT_REQUESTS,
         "window_hours": RATE_LIMIT_WINDOW_HOURS,
-        "minutes_until_reset": minutes_until_reset
+        "minutes_until_reset": minutes_until_reset,
+        "using_redis": False
+    }
+
+@app.get("/api/cache/stats")
+async def cache_stats():
+    """Get cache statistics"""
+    redis_manager = get_redis_manager()
+    
+    if not redis_manager or not redis_manager.is_available:
+        return {
+            "available": False,
+            "message": "Redis cache not available"
+        }
+    
+    stats = await redis_manager.get_cache_stats()
+    return stats
+
+@app.delete("/api/cache/clear")
+async def clear_cache(
+    request: GenerateThreadRequest,
+    _: Request
+):
+    """Clear cached response for a specific request"""
+    redis_manager = get_redis_manager()
+    
+    if not redis_manager or not redis_manager.is_available:
+        raise HTTPException(
+            status_code=503,
+            detail="Cache service not available"
+        )
+    
+    request_dict = request.dict()
+    cleared = await redis_manager.clear_cache_for_key(request_dict)
+    
+    if cleared:
+        return {"success": True, "message": "Cache entry cleared"}
+    else:
+        return {"success": False, "message": "Failed to clear cache or entry not found"}
+
+@app.get("/api/monitor/health")
+async def monitor_health():
+    """Comprehensive health check with all service statuses"""
+    redis_manager = get_redis_manager()
+    
+    # Test Redis
+    redis_status = "healthy"
+    redis_details = {}
+    if redis_manager and redis_manager.is_available:
+        try:
+            stats = await redis_manager.get_cache_stats()
+            redis_details = stats
+        except Exception as e:
+            redis_status = "unhealthy"
+            redis_details = {"error": str(e)}
+    else:
+        redis_status = "unavailable"
+    
+    # Test basic functionality
+    try:
+        test_tweets = split_into_tweets("Health check test")
+        basic_functionality = "healthy"
+    except:
+        basic_functionality = "unhealthy"
+    
+    return {
+        "timestamp": datetime.now().isoformat(),
+        "status": "healthy",  # Overall status
+        "services": {
+            "api": "healthy",
+            "openai": "healthy" if openai_available else "unavailable",
+            "redis": redis_status,
+            "basic_functionality": basic_functionality
+        },
+        "details": {
+            "redis": redis_details,
+            "environment": ENVIRONMENT,
+            "uptime_seconds": int((datetime.now() - datetime.fromtimestamp(os.path.getctime(__file__))).total_seconds())
+        }
     }
 
 if __name__ == "__main__":
