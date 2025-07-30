@@ -506,7 +506,7 @@ async def scrape_article(url: str) -> Dict[str, str]:
             # Transport configuration for Railway
             transport_kwargs = {
                 "retries": 1,
-                "local_address": "0.0.0.0",  # Bind to all interfaces in container
+                # Removed local_address="0.0.0.0" - causes failures in Railway containers
             }
             
             # Check for proxy configuration
@@ -520,18 +520,19 @@ async def scrape_article(url: str) -> Dict[str, str]:
                 proxies["https://"] = https_proxy
                 logger.info(f"Using HTTPS proxy: {https_proxy}")
             
-            # Enhanced httpx configuration
+            # Simplified httpx configuration for Railway compatibility
             logger.info(f"Attempt {attempt + 1}/{max_retries}: Creating httpx client (verify_ssl={verify_ssl})")
             
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(60.0, connect=30.0, read=30.0, write=30.0),
-                follow_redirects=True,
-                limits=httpx.Limits(
+            # Only add transport if we have kwargs to avoid empty transport issues
+            client_kwargs = {
+                "timeout": httpx.Timeout(60.0, connect=30.0, read=30.0, write=30.0),
+                "follow_redirects": True,
+                "limits": httpx.Limits(
                     max_keepalive_connections=5,
                     max_connections=10,
                     keepalive_expiry=30.0
                 ),
-                headers={
+                "headers": {
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
                     "Accept-Language": "en-US,en;q=0.5",
@@ -542,10 +543,18 @@ async def scrape_article(url: str) -> Dict[str, str]:
                     "Cache-Control": "no-cache",
                     "Pragma": "no-cache"
                 },
-                verify=ssl_context if verify_ssl else False,
-                proxies=proxies if proxies else None,
-                transport=httpx.AsyncHTTPTransport(**transport_kwargs)
-            ) as client:
+                "verify": ssl_context if verify_ssl else False,
+            }
+            
+            # Add proxies if configured
+            if proxies:
+                client_kwargs["proxies"] = proxies
+            
+            # Add transport with retries (no local_address for Railway compatibility)
+            if transport_kwargs:
+                client_kwargs["transport"] = httpx.AsyncHTTPTransport(**transport_kwargs)
+            
+            async with httpx.AsyncClient(**client_kwargs) as client:
                 logger.info(f"Fetching URL: {url}")
                 response = await client.get(str(url))
                 logger.info(f"Response received - Status: {response.status_code}, Content-Length: {len(response.content)}, Headers: {dict(response.headers)}")
