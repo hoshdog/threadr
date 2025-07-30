@@ -4,9 +4,9 @@
   "description": "Threadr - Convert Articles to Twitter Threads",
   "main": "index.html",
   "scripts": {
-    "dev": "npx serve . -p 3000",
+    "dev": "npx serve src -p 3000",
     "build": "echo 'Static site - no build step required'",
-    "start": "npx serve . -p 3000",
+    "start": "npx serve src -p 3000",
     "deploy": "vercel --prod",
     "deploy:preview": "vercel"
   },
