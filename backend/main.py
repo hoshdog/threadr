@@ -18,6 +18,8 @@ import sys
 from redis_manager import initialize_redis, get_redis_manager
 import ipaddress
 from urllib.parse import urlparse
+import certifi
+import ssl
 
 # Initialize rate limiter storage (fallback for when Redis is unavailable)
 rate_limiter_storage: Dict[str, List[datetime]] = defaultdict(list)
@@ -442,22 +444,86 @@ async def check_rate_limit(request: Request):
 # Utility functions
 async def scrape_article(url: str) -> Dict[str, str]:
     """Scrape article content from URL with security validation"""
+    # Enhanced logging for debugging
+    logger.info(f"Starting URL scrape for: {url}")
+    
     # Validate URL security first
-    await validate_url_security(url)
+    try:
+        await validate_url_security(url)
+        logger.info(f"URL security validation passed for: {url}")
+    except Exception as e:
+        logger.error(f"URL security validation failed for {url}: {str(e)}")
+        raise
+    
+    # Enhanced httpx configuration for Railway with proper SSL
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
     
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(str(url), follow_redirects=True)
+        logger.info(f"Creating httpx client with 60s timeout and certifi SSL context")
+        logger.info(f"Using CA bundle from: {certifi.where()}")
+        
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(60.0, connect=30.0),  # Increased timeout
+            follow_redirects=True,
+            limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Accept-Encoding": "gzip, deflate, br",
+                "DNT": "1",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1"
+            },
+            verify=ssl_context
+        ) as client:
+            logger.info(f"Fetching URL: {url}")
+            response = await client.get(str(url))
+            logger.info(f"Response received - Status: {response.status_code}, Content-Length: {len(response.content)}")
             response.raise_for_status()
+    except httpx.ConnectTimeout as e:
+        logger.error(f"Connection timeout for URL {url}: {str(e)}")
+        raise HTTPException(status_code=504, detail=f"Connection timeout - Railway may be blocking outbound connections")
+    except httpx.ReadTimeout as e:
+        logger.error(f"Read timeout for URL {url}: {str(e)}")
+        raise HTTPException(status_code=504, detail=f"Read timeout - target server took too long to respond")
     except httpx.RequestError as e:
-        logger.warning(f"Failed to fetch URL: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Failed to fetch URL: {str(e)}")
+        logger.error(f"Request error for URL {url}: {type(e).__name__}: {str(e)}")
+        
+        # If SSL error, try without verification as fallback
+        if "SSL" in str(e) or "certificate" in str(e).lower():
+            logger.warning(f"SSL error detected, retrying without verification for {url}")
+            try:
+                async with httpx.AsyncClient(
+                    timeout=httpx.Timeout(60.0, connect=30.0),
+                    follow_redirects=True,
+                    verify=False,  # Disable SSL verification
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                    }
+                ) as fallback_client:
+                    logger.warning("Attempting fetch without SSL verification")
+                    response = await fallback_client.get(str(url))
+                    logger.info(f"Fallback successful - Status: {response.status_code}")
+                    response.raise_for_status()
+                    # Continue with the response processing below
+            except Exception as fallback_e:
+                logger.error(f"Fallback also failed: {fallback_e}")
+                raise HTTPException(status_code=502, detail=f"Network error (SSL and fallback failed): {str(e)}")
+        else:
+            raise HTTPException(status_code=502, detail=f"Network error: {type(e).__name__} - {str(e)}")
     except httpx.HTTPStatusError as e:
-        logger.warning(f"HTTP error {e.response.status_code} when fetching URL")
-        raise HTTPException(status_code=400, detail=f"HTTP error {e.response.status_code} when fetching URL")
+        logger.error(f"HTTP error {e.response.status_code} for URL {url}")
+        raise HTTPException(status_code=e.response.status_code, detail=f"Target server returned error: {e.response.status_code}")
     
-    # Parse HTML
-    soup = BeautifulSoup(response.text, 'html.parser')
+    # Parse HTML with error handling
+    try:
+        logger.info(f"Parsing HTML content (length: {len(response.text)} chars)")
+        soup = BeautifulSoup(response.text, 'html.parser')
+        logger.info("HTML parsing completed successfully")
+    except Exception as e:
+        logger.error(f"BeautifulSoup parsing error: {type(e).__name__}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"HTML parsing error: {str(e)}")
     
     # Extract title
     title = None
@@ -809,6 +875,117 @@ async def test_endpoint():
         "openai_status": "available" if openai_available else "unavailable"
     }
 
+@app.post("/api/test/url-check")
+async def test_url_check(url: str):
+    """Test URL accessibility and domain allowlist - DEVELOPMENT ONLY"""
+    if ENVIRONMENT == "production":
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    result = {
+        "url": url,
+        "timestamp": datetime.now().isoformat(),
+        "checks": {}
+    }
+    
+    # Check domain allowlist
+    try:
+        is_allowed = is_allowed_domain(url)
+        result["checks"]["domain_allowed"] = is_allowed
+        if not is_allowed:
+            result["checks"]["allowed_domains_sample"] = ALLOWED_DOMAINS[:5]
+    except Exception as e:
+        result["checks"]["domain_check_error"] = str(e)
+    
+    # Try to fetch the URL
+    if result["checks"].get("domain_allowed", False):
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(url, follow_redirects=True)
+                result["checks"]["http_status"] = response.status_code
+                result["checks"]["content_type"] = response.headers.get("content-type", "unknown")
+                result["checks"]["content_length"] = len(response.text)
+                
+                # Try to parse with BeautifulSoup
+                soup = BeautifulSoup(response.text, 'html.parser')
+                result["checks"]["title"] = soup.title.string if soup.title else "No title found"
+                result["checks"]["paragraphs_found"] = len(soup.find_all('p'))
+                
+        except httpx.TimeoutException:
+            result["checks"]["fetch_error"] = "Timeout after 10 seconds"
+        except Exception as e:
+            result["checks"]["fetch_error"] = f"{type(e).__name__}: {str(e)}"
+    
+    return result
+
+@app.get("/api/test/railway-network")
+async def test_railway_network():
+    """Test Railway network connectivity - checks common issues"""
+    results = {
+        "timestamp": datetime.now().isoformat(),
+        "environment": ENVIRONMENT,
+        "tests": {}
+    }
+    
+    # Test 1: DNS Resolution
+    test_domains = ["google.com", "medium.com", "api.openai.com"]
+    for domain in test_domains:
+        try:
+            import socket
+            ip = socket.gethostbyname(domain)
+            results["tests"][f"dns_{domain}"] = {"success": True, "ip": ip}
+        except Exception as e:
+            results["tests"][f"dns_{domain}"] = {"success": False, "error": str(e)}
+    
+    # Test 2: Basic HTTP connectivity
+    test_urls = [
+        ("https://httpbin.org/get", "httpbin"),
+        ("https://api.github.com", "github"),
+        ("https://medium.com", "medium")
+    ]
+    
+    for url, name in test_urls:
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(10.0),
+                verify=False,  # Disable SSL verification for testing
+                headers={"User-Agent": "Threadr/1.0 Railway Network Test"}
+            ) as client:
+                start_time = datetime.now()
+                response = await client.get(url)
+                elapsed = (datetime.now() - start_time).total_seconds()
+                
+                results["tests"][f"http_{name}"] = {
+                    "success": True,
+                    "status_code": response.status_code,
+                    "elapsed_seconds": elapsed,
+                    "content_length": len(response.content)
+                }
+        except Exception as e:
+            results["tests"][f"http_{name}"] = {
+                "success": False,
+                "error_type": type(e).__name__,
+                "error": str(e)
+            }
+    
+    # Test 3: SSL Certificate validation
+    try:
+        async with httpx.AsyncClient(verify=True) as client:
+            response = await client.get("https://github.com")
+            results["tests"]["ssl_verification"] = {"success": True}
+    except Exception as e:
+        results["tests"]["ssl_verification"] = {"success": False, "error": str(e)}
+    
+    # Test 4: Railway-specific environment
+    results["railway_env"] = {
+        "RAILWAY_ENVIRONMENT": os.getenv("RAILWAY_ENVIRONMENT"),
+        "RAILWAY_PROJECT_ID": os.getenv("RAILWAY_PROJECT_ID"),
+        "RAILWAY_SERVICE_ID": os.getenv("RAILWAY_SERVICE_ID"),
+        "PORT": os.getenv("PORT"),
+        "has_ca_bundle": os.path.exists("/etc/ssl/certs/ca-certificates.crt")
+    }
+    
+    return results
+
 @app.get("/api/security/config")
 async def security_config():
     """Get security configuration - ONLY IN DEVELOPMENT"""
@@ -928,12 +1105,19 @@ async def generate_thread(
         
         return response
         
-    except HTTPException:
+    except HTTPException as he:
+        # Re-raise HTTP exceptions with their original status codes
         raise
     except Exception as e:
         # Log the error with more details in production
         error_id = datetime.now().isoformat()
-        logger.error(f"Unexpected error [{error_id}]: {str(e)}", exc_info=True)
+        error_type = type(e).__name__
+        
+        # Determine if it's a known error type
+        if "seasonsincolour.com" in str(request.url) if request.url else "":
+            logger.error(f"Error processing seasonsincolour.com [{error_id}]: {str(e)}", exc_info=True)
+        else:
+            logger.error(f"Unexpected error [{error_id}] - Type: {error_type}: {str(e)}", exc_info=True)
         
         if ENVIRONMENT == "production":
             # Don't expose internal errors in production
@@ -943,7 +1127,10 @@ async def generate_thread(
             )
         else:
             # Show detailed errors in development
-            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Internal server error ({error_type}): {str(e)}"
+            )
 
 @app.get("/api/rate-limit-status")
 async def rate_limit_status(request: Request):

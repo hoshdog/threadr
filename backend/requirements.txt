@@ -24,5 +24,8 @@ typing-extensions>=4.8.0
 redis[hiredis]==5.0.1
 hiredis==2.3.2
 
+# SSL/TLS certificates handling for Railway
+certifi>=2023.11.17
+
 # ASGI server configuration handled in nixpacks.toml
 # Only uvicorn is used for this deployment
