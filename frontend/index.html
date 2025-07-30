@@ -203,29 +203,63 @@
                     this.tweets = [];
 
                     try {
-                        // Call the backend API
+                        // Call the backend API with timeout and retry logic
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
                         const response = await fetch(`${config.API_URL}/api/generate`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
+                                'Accept': 'application/json',
                             },
+                            mode: 'cors',
+                            credentials: 'omit',
                             body: JSON.stringify(
                                 this.inputType === 'url' 
                                     ? { url: this.urlInput }
                                     : { text: this.textInput }
-                            )
+                            ),
+                            signal: controller.signal
                         });
 
+                        clearTimeout(timeoutId);
+
                         if (!response.ok) {
-                            const errorData = await response.json();
-                            throw new Error(errorData.detail || 'Failed to generate thread. Please try again.');
+                            let errorMessage = 'Failed to generate thread. Please try again.';
+                            
+                            try {
+                                const errorData = await response.json();
+                                errorMessage = errorData.detail || errorData.message || errorMessage;
+                            } catch (parseError) {
+                                // If we can't parse the error response, use status-based messages
+                                if (response.status === 429) {
+                                    errorMessage = 'Rate limit exceeded. Please try again later.';
+                                } else if (response.status >= 500) {
+                                    errorMessage = 'Server error. Please try again in a moment.';
+                                } else if (response.status === 400) {
+                                    errorMessage = 'Invalid request. Please check your input and try again.';
+                                }
+                            }
+                            
+                            throw new Error(errorMessage);
                         }
 
                         const data = await response.json();
+                        
+                        // Validate response structure
+                        if (!data || !data.thread || !Array.isArray(data.thread)) {
+                            throw new Error('Invalid response format from server.');
+                        }
+
                         this.tweets = data.thread.map(tweet => ({
-                            text: tweet.content,
+                            text: tweet.content || tweet.text || '',
                             copied: false
                         }));
+
+                        if (this.tweets.length === 0) {
+                            throw new Error('No tweets were generated. Please try with different content.');
+                        }
 
                         // Update usage count and show email modal if needed
                         this.usageCount++;
@@ -238,17 +272,29 @@
                         }
 
                     } catch (error) {
-                        // For demo purposes, generate mock tweets if backend is not available
-                        this.generateMockTweets();
+                        console.error('Thread generation error:', error);
                         
-                        // Show email modal after first use
-                        this.usageCount++;
-                        localStorage.setItem('threadr_usage_count', this.usageCount.toString());
+                        // Handle different types of errors
+                        if (error.name === 'AbortError') {
+                            this.error = 'Request timeout. Please try again with shorter content.';
+                        } else if (error.message.includes('CORS') || error.message.includes('Cross-Origin')) {
+                            this.error = 'Connection blocked by browser security. This may be a temporary issue.';
+                        } else if (error.message.includes('fetch') || error.message.includes('NetworkError')) {
+                            this.error = 'Network error. Please check your connection and try again.';
+                        } else if (error.message.includes('Failed to fetch')) {
+                            this.error = 'Unable to connect to server. Please try again in a moment.';
+                        } else {
+                            this.error = error.message || 'An unexpected error occurred. Please try again.';
+                        }
+
+                        // In development or if explicitly requested, fall back to mock tweets
+                        const isDevelopment = window.location.hostname === 'localhost';
+                        const allowFallback = localStorage.getItem('threadr_allow_fallback') === 'true';
                         
-                        if (this.usageCount === 1 && !this.emailCaptured) {
-                            setTimeout(() => {
-                                this.showEmailModal = true;
-                            }, 1000);
+                        if (isDevelopment || allowFallback) {
+                            console.log('Falling back to mock tweets');
+                            this.generateMockTweets();
+                            this.error = 'Using demo mode. ' + this.error;
                         }
                     } finally {
                         this.loading = false;
@@ -327,19 +373,27 @@
                         return;
                     }
 
-                    // Send email to backend - replace with actual endpoint
+                    // Send email to backend with proper error handling
                     try {
-                        await fetch(`${window.threadrConfig.API_URL}/api/subscribe`, {
+                        const response = await fetch(`${config.API_URL}/api/subscribe`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
+                                'Accept': 'application/json',
                             },
+                            mode: 'cors',
+                            credentials: 'omit',
                             body: JSON.stringify({
                                 email: this.email
                             })
                         });
+
+                        if (!response.ok) {
+                            console.warn('Email subscription failed:', response.status);
+                        }
                     } catch (err) {
-                        // Handle error silently for now
+                        console.warn('Email subscription error:', err);
+                        // Don't block the UI for email subscription failures
                     }
 
                     localStorage.setItem('threadr_email_captured', 'true');

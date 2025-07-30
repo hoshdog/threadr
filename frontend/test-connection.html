@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threadr Connection Test</title>
+    <script src="config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-2xl font-bold mb-6">Threadr Backend Connection Test</h1>
+        
+        <div class="space-y-4">
+            <div class="p-4 bg-blue-50 rounded-lg">
+                <h3 class="font-semibold">Configuration</h3>
+                <p><strong>Environment:</strong> <span id="env"></span></p>
+                <p><strong>API URL:</strong> <span id="api-url"></span></p>
+                <p><strong>Current Domain:</strong> <span id="current-domain"></span></p>
+            </div>
+
+            <div class="p-4 bg-yellow-50 rounded-lg">
+                <h3 class="font-semibold">Backend Status</h3>
+                <p><strong>Health Check:</strong> <span id="health-status" class="text-gray-500">Testing...</span></p>
+                <p><strong>CORS Test:</strong> <span id="cors-status" class="text-gray-500">Testing...</span></p>
+                <p><strong>Response Time:</strong> <span id="response-time" class="text-gray-500">-</span></p>
+            </div>
+
+            <div class="p-4 bg-green-50 rounded-lg">
+                <h3 class="font-semibold">Test API Call</h3>
+                <button id="test-generate" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Test Generate Endpoint
+                </button>
+                <div id="test-result" class="mt-2 text-sm"></div>
+            </div>
+
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <h3 class="font-semibold">Console Logs</h3>
+                <div id="logs" class="text-xs font-mono bg-black text-green-400 p-2 rounded h-32 overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Display configuration
+        document.getElementById('env').textContent = config.ENV;
+        document.getElementById('api-url').textContent = config.API_URL;
+        document.getElementById('current-domain').textContent = window.location.hostname;
+
+        // Logging function
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('logs');
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        // Test backend health
+        async function testHealth() {
+            const startTime = Date.now();
+            try {
+                const response = await fetch(`${config.API_URL}/api/health`, {
+                    method: 'GET',
+                    mode: 'cors',
+                    credentials: 'omit'
+                });
+                
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                
+                document.getElementById('response-time').textContent = `${responseTime}ms`;
+                
+                if (response.ok) {
+                    document.getElementById('health-status').innerHTML = '<span class="text-green-600">✓ Online</span>';
+                    log('Health check: PASSED');
+                } else {
+                    document.getElementById('health-status').innerHTML = `<span class="text-red-600">✗ Error (${response.status})</span>`;
+                    log(`Health check: FAILED (${response.status})`);
+                }
+            } catch (error) {
+                document.getElementById('health-status').innerHTML = '<span class="text-red-600">✗ Failed</span>';
+                log(`Health check: ERROR - ${error.message}`);
+            }
+        }
+
+        // Test CORS
+        async function testCORS() {
+            try {
+                const response = await fetch(`${config.API_URL}/api/health`, {
+                    method: 'OPTIONS',
+                    mode: 'cors'
+                });
+                
+                if (response.ok || response.status === 200 || response.status === 204) {
+                    document.getElementById('cors-status').innerHTML = '<span class="text-green-600">✓ Enabled</span>';
+                    log('CORS check: PASSED');
+                } else {
+                    document.getElementById('cors-status').innerHTML = '<span class="text-yellow-600">⚠ Unknown</span>';
+                    log(`CORS check: UNKNOWN (${response.status})`);
+                }
+            } catch (error) {
+                if (error.message.includes('CORS')) {
+                    document.getElementById('cors-status').innerHTML = '<span class="text-red-600">✗ Blocked</span>';
+                    log(`CORS check: BLOCKED - ${error.message}`);
+                } else {
+                    document.getElementById('cors-status').innerHTML = '<span class="text-yellow-600">⚠ Unknown</span>';
+                    log(`CORS check: ERROR - ${error.message}`);
+                }
+            }
+        }
+
+        // Test generate endpoint
+        document.getElementById('test-generate').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('test-result');
+            resultDiv.innerHTML = '<span class="text-blue-600">Testing...</span>';
+            
+            try {
+                const response = await fetch(`${config.API_URL}/api/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    mode: 'cors',
+                    credentials: 'omit',
+                    body: JSON.stringify({
+                        text: "This is a test article to check if the API is working correctly."
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = '<span class="text-green-600">✓ Success!</span>';
+                    log(`Generate test: SUCCESS - ${data.thread?.length || 0} tweets generated`);
+                } else {
+                    resultDiv.innerHTML = `<span class="text-red-600">✗ Failed (${response.status})</span>`;
+                    log(`Generate test: FAILED (${response.status})`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<span class="text-red-600">✗ Error</span>';
+                log(`Generate test: ERROR - ${error.message}`);
+            }
+        });
+
+        // Run initial tests
+        log('Starting connection tests...');
+        testHealth();
+        testCORS();
+    </script>
+</body>
+</html>

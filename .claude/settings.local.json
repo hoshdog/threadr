@@ -18,7 +18,9 @@
       "Bash(git push:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "WebFetch(domain:threadr-production.up.railway.app)",
+      "Bash(chmod:*)"
     ],
     "deny": []
   }

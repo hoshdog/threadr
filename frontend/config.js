@@ -1,22 +1,38 @@
 // Configuration for Threadr frontend
 const config = {
+    // Environment detection
+    ENV: (() => {
+        const hostname = window.location.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
+            return 'development';
+        } else if (hostname.includes('vercel.app') || hostname.includes('--')) {
+            return 'preview';
+        } else {
+            return 'production';
+        }
+    })(),
+
     // API URL configuration - auto-detects environment
     API_URL: (() => {
+        const hostname = window.location.hostname;
+        
         // Check if we're in development
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
             return 'http://localhost:8000';
         }
         
-        // Production environment - auto-detect from environment or use default
-        // This can be overridden by setting VITE_API_URL in Vercel environment variables
-        const envApiUrl = window.THREADR_API_URL || process?.env?.VITE_API_URL;
+        // Check for explicit environment variable override
+        // This supports both Vercel environment variables and manual overrides
+        const envApiUrl = window.THREADR_API_URL || 
+                         (typeof process !== 'undefined' ? process.env?.VITE_API_URL : null) ||
+                         (typeof process !== 'undefined' ? process.env?.REACT_APP_API_URL : null);
+        
         if (envApiUrl) {
             return envApiUrl;
         }
         
-        // Default production API URL
-        // Update this to match your Railway deployment URL
-        return 'https://threadr-backend-production.up.railway.app';
+        // Default production API URL - Railway deployment
+        return 'https://threadr-production.up.railway.app';
     })(),
     
     // Rate limiting configuration (should match backend)
@@ -29,10 +45,17 @@ const config = {
     MAX_TWEET_LENGTH: 280,
     MAX_TEXT_INPUT_LENGTH: 10000,
     
-    // Feature flags
+    // Feature flags based on environment
     FEATURES: {
         EMAIL_CAPTURE: true,
-        ANALYTICS: window.location.hostname !== 'localhost'
+        ANALYTICS: (() => {
+            const hostname = window.location.hostname;
+            return !(hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.'));
+        })(),
+        DEBUG_MODE: (() => {
+            const hostname = window.location.hostname;
+            return hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+        })()
     }
 };
 
@@ -40,6 +63,8 @@ const config = {
 Object.freeze(config);
 
 // Log configuration in development
-if (window.location.hostname === 'localhost') {
+if (config.FEATURES.DEBUG_MODE) {
     console.log('Threadr Config:', config);
+    console.log('Environment:', config.ENV);
+    console.log('API URL:', config.API_URL);
 }

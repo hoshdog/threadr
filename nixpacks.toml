@@ -21,11 +21,11 @@ cmds = [
   "echo 'Dependencies installed successfully'"
 ]
 
-# Start command - EXPLICIT uvicorn with full path
+# Start command - EXPLICIT uvicorn with full path and error handling
 # Using exec to ensure proper signal handling
 [start]
 workDir = "backend"
-cmd = "exec uvicorn main:app --host 0.0.0.0 --port $PORT --workers 2 --log-level info --access-log"
+cmd = "exec python -m uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --log-level debug --access-log --timeout-keep-alive 30"
 
 # Environment variables to force uvicorn usage
 [variables]
@@ -35,7 +35,11 @@ ENVIRONMENT = "production"
 NIXPACKS_PYTHON_WSGI_MODULE = ""
 # Disable auto-detection of production servers
 DISABLE_COLLECTSTATIC = "1"
-# Force uvicorn as the server
-WEB_CONCURRENCY = "2"
+# Force uvicorn as the server - reduced for stability
+WEB_CONCURRENCY = "1"
 # Explicitly disable alternative servers
 RAILWAY_NO_GUNICORN = "true"
+# Python path to ensure imports work
+PYTHONPATH = "/app/backend"
+# Debugging
+DEBUG = "false"

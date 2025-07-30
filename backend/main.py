@@ -89,23 +89,41 @@ initialize_openai_client()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    logger.info(f"Starting Threadr backend in {ENVIRONMENT} mode...")
-    logger.info(f"Python version: {sys.version}")
-    logger.info(f"Port from ENV: {os.getenv('PORT', 'not set')}")
-    logger.info(f"Host binding: 0.0.0.0")
-    
-    # Log OpenAI availability
-    if openai_available:
-        logger.info("OpenAI client is available - full functionality enabled")
-    else:
-        logger.warning("OpenAI client not available - using fallback methods only")
-    
-    # Log all critical environment variables
-    logger.info(f"Environment: {ENVIRONMENT}")
-    logger.info(f"CORS Origins: {os.getenv('CORS_ORIGINS', 'not set')}")
-    logger.info(f"Rate limit: {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW_HOURS} hours")
-    
-    logger.info("Threadr backend startup completed successfully")
+    try:
+        logger.info(f"Starting Threadr backend in {ENVIRONMENT} mode...")
+        logger.info(f"Python version: {sys.version}")
+        logger.info(f"Current working directory: {os.getcwd()}")
+        logger.info(f"Port from ENV: {os.getenv('PORT', 'not set')}")
+        logger.info(f"Host binding: 0.0.0.0")
+        
+        # Test critical imports
+        logger.info("Testing critical imports...")
+        import fastapi
+        import uvicorn
+        logger.info(f"FastAPI version: {fastapi.__version__}")
+        logger.info(f"Uvicorn version: {uvicorn.__version__}")
+        
+        # Log OpenAI availability
+        if openai_available:
+            logger.info("OpenAI client is available - full functionality enabled")
+        else:
+            logger.warning("OpenAI client not available - using fallback methods only")
+        
+        # Log all critical environment variables
+        logger.info(f"Environment: {ENVIRONMENT}")
+        logger.info(f"CORS Origins: {os.getenv('CORS_ORIGINS', 'not set')}")
+        logger.info(f"Rate limit: {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW_HOURS} hours")
+        
+        # Test basic functionality
+        test_split = split_into_tweets("Test startup functionality")
+        logger.info(f"Basic functionality test: {len(test_split)} tweets generated")
+        
+        logger.info("Threadr backend startup completed successfully")
+        
+    except Exception as e:
+        logger.error(f"CRITICAL STARTUP ERROR: {e}", exc_info=True)
+        # Don't raise - allow graceful degradation
+        logger.warning("Continuing startup despite errors...")
     
     yield
     
@@ -391,35 +409,20 @@ Generate the thread as a list of tweets, each on a new line."""
         return None
 
 # API endpoints
-@app.get("/")
-async def root():
-    """Root endpoint"""
-    return {
-        "message": "Welcome to Threadr API",
-        "version": "1.0.0",
-        "endpoints": {
-            "POST /api/generate": "Generate a thread from URL or text"
-        }
-    }
 
 @app.get("/health")
+@app.get("/")  # Railway sometimes checks root path
 async def health_check():
     """Health check endpoint - always returns healthy if app is running"""
     try:
-        health_status = {
+        # Quick response for Railway health checks
+        return {
             "status": "healthy",
             "timestamp": datetime.now().isoformat(),
             "version": "1.0.0",
             "environment": ENVIRONMENT,
-            "port": os.getenv("PORT", "not_set"),
-            "services": {
-                "api": "healthy",
-                "openai": "configured" if openai_client is not None else "not_configured"
-            }
+            "message": "Threadr API is running"
         }
-        
-        logger.info(f"Health check passed: {health_status}")
-        return health_status
         
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
@@ -428,7 +431,7 @@ async def health_check():
             "status": "healthy", 
             "timestamp": datetime.now().isoformat(),
             "error": str(e),
-            "note": "API is responding despite internal error"
+            "message": "API is responding despite internal error"
         }
 
 @app.get("/readiness")
@@ -609,17 +612,24 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     
+    logger.info(f"Starting server directly with port: {port}")
+    logger.info(f"Environment mode: {ENVIRONMENT}")
+    
     if ENVIRONMENT == "production":
-        # Production server configuration
+        # Production server configuration - single worker for Railway
+        logger.info("Using production configuration with single worker")
         uvicorn.run(
             "main:app",
             host="0.0.0.0",
             port=port,
             log_level="info",
-            access_log=True
+            access_log=True,
+            workers=1,
+            timeout_keep_alive=30
         )
     else:
         # Development server configuration
+        logger.info("Using development configuration")
         uvicorn.run(
             app,
             host="0.0.0.0",

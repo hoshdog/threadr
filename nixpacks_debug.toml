@@ -1,0 +1,20 @@
+# MINIMAL Railway Nixpacks Configuration for debugging
+# Use this for testing if main nixpacks.toml fails
+
+[providers]
+python = "3.11"
+
+[phases.setup]
+workDir = "backend"
+cmds = [
+  "pip install --upgrade pip",
+  "pip install -r requirements.txt"
+]
+
+[start]
+workDir = "backend"
+cmd = "python -c 'import os; print(f\"PORT={os.getenv(\"PORT\", \"not_set\")}\"); print(f\"CWD={os.getcwd()}\")' && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --log-level debug"
+
+[variables]
+PYTHONUNBUFFERED = "1"
+ENVIRONMENT = "production"
