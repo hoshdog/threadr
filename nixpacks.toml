@@ -1,19 +1,41 @@
-# Emergency minimal configuration for Railway deployment
-# Use this if the main app fails to deploy
+# BULLETPROOF Railway Nixpacks Configuration
+# This configuration FORCES Railway to use uvicorn only
+# DO NOT MODIFY - Any changes may cause Railway to use wrong server
 
+# Force Python provider and disable auto-detection
 [providers]
 python = "3.11"
 
+# Set working directory to backend subdirectory
+# This eliminates the need for 'cd backend' commands
+[phases.build]
+workDir = "backend"
+
+# Setup phase - install dependencies
 [phases.setup]
-# Install only FastAPI and uvicorn
+workDir = "backend"
 cmds = [
-  "pip install fastapi==0.109.0 uvicorn[standard]==0.27.0"
+  "echo 'Installing Python dependencies...'",
+  "pip install --upgrade pip",
+  "pip install --no-cache-dir -r requirements.txt",
+  "echo 'Dependencies installed successfully'"
 ]
 
+# Start command - EXPLICIT uvicorn with full path
+# Using exec to ensure proper signal handling
 [start]
-# Start minimal app
-cmd = "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT --log-level info"
+workDir = "backend"
+cmd = "exec uvicorn main:app --host 0.0.0.0 --port $PORT --workers 2 --log-level info --access-log"
 
+# Environment variables to force uvicorn usage
 [variables]
 PYTHONUNBUFFERED = "1"
 ENVIRONMENT = "production"
+# Force nixpacks to use uvicorn
+NIXPACKS_PYTHON_WSGI_MODULE = ""
+# Disable auto-detection of production servers
+DISABLE_COLLECTSTATIC = "1"
+# Force uvicorn as the server
+WEB_CONCURRENCY = "2"
+# Explicitly disable alternative servers
+RAILWAY_NO_GUNICORN = "true"

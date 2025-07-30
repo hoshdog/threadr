@@ -1,5 +1,5 @@
-# Minimal requirements.txt for Railway FastAPI deployment testing
-# Use this to isolate deployment issues by reducing dependencies to absolute minimum
+# Production requirements.txt for Railway FastAPI deployment
+# IMPORTANT: This app uses uvicorn only as the ASGI server
 
 # Core FastAPI requirements
 fastapi==0.109.0
@@ -9,10 +9,13 @@ uvicorn[standard]==0.27.0
 httpx==0.26.0
 pydantic==2.5.3
 
-# Only if you need CORS (remove if causing issues)
+# Request handling
 python-multipart==0.0.6
 
 # Essential for our app
 openai>=1.10.0
 beautifulsoup4>=4.12.3
 python-dotenv>=1.0.0
+
+# ASGI server configuration handled in nixpacks.toml
+# Only uvicorn is used for this deployment

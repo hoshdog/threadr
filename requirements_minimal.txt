@@ -13,8 +13,8 @@ beautifulsoup4==4.12.3
 # OpenAI (optional - app works without it)
 openai==1.10.0
 
-# Production server
-gunicorn==21.2.0
+# Production server - using uvicorn only per nixpacks.toml
+# ASGI server handled by nixpacks configuration
 
 # Basic utilities
 python-multipart==0.0.6

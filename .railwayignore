@@ -1,84 +1,23 @@
-# Railway ignore file - exclude unnecessary files from deployment
+# Railway deployment ignore file
+# Prevent Railway from using these files for deployment decisions
 
-# Documentation files
-*.md
-README.md
-docs/
-CHANGELOG.md
+# Backup files that might contain conflicting configurations
+*_backup*
+*_minimal*
+nixpacks_backup.toml
+requirements_backup.txt
 
-# Development files
-.env
-.env.local
-.env.development
-.openai_key
-venv/
-.venv/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Development and debugging files
+railway_debug.py
+verify_railway_config.py
+fix_railway_deployment.py
 
 # Test files
 test_*.py
 *_test.py
-tests/
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
 
-# Frontend files (not needed for backend deployment)
-frontend/
-*.html
-*.css  
-*.js
-vercel.json
-node_modules/
-package.json
-package-lock.json
-
-# Git files
-.git/
-.gitignore
-
-# Deployment scripts (not needed in container)
-deploy.py
-deploy.sh
-deploy.ps1
+# Logs and temporary files
+*.log
+.DS_Store
+__pycache__/
+*.pyc

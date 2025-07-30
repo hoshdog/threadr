@@ -33,7 +33,6 @@ dependencies = [
     "openai==1.10.0",
     "python-multipart==0.0.6",
     "python-dotenv==1.0.0",
-    "gunicorn==21.2.0",
 ]
 
 [project.optional-dependencies]

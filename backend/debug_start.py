@@ -53,7 +53,7 @@ def check_dependencies():
     
     required_packages = [
         "fastapi", "uvicorn", "pydantic", "httpx", 
-        "beautifulsoup4", "openai", "gunicorn"
+        "beautifulsoup4", "openai"
     ]
     
     for package in required_packages:
