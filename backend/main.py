@@ -1514,6 +1514,75 @@ async def minimal_scrape_debug(url: str):
         }
         return debug_info
 
+@app.get("/api/debug/scrape-steps")
+async def debug_scrape_steps(url: str):
+    """Debug endpoint to test each step of the scraping process"""
+    result = {
+        "url": url,
+        "steps": {},
+        "success": False
+    }
+    
+    try:
+        # Step 1: URL Security Validation
+        try:
+            await validate_url_security(url)
+            result["steps"]["security_validation"] = {"success": True}
+        except Exception as e:
+            result["steps"]["security_validation"] = {"success": False, "error": str(e)}
+            return result
+        
+        # Step 2: DNS Resolution
+        try:
+            import socket
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            hostname = parsed.hostname
+            if hostname:
+                ips = socket.gethostbyname_ex(hostname)[2]
+                result["steps"]["dns_resolution"] = {"success": True, "ips": ips}
+            else:
+                result["steps"]["dns_resolution"] = {"success": False, "error": "No hostname"}
+        except Exception as e:
+            result["steps"]["dns_resolution"] = {"success": False, "error": str(e)}
+        
+        # Step 3: Basic HTTP Request
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(url)
+                result["steps"]["basic_http"] = {
+                    "success": True,
+                    "status_code": response.status_code,
+                    "content_length": len(response.content)
+                }
+        except Exception as e:
+            result["steps"]["basic_http"] = {"success": False, "error": str(e)}
+            return result
+        
+        # Step 4: BeautifulSoup Parsing
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(response.text, 'html.parser')
+            title = soup.title.string if soup.title else None
+            paragraphs = soup.find_all('p')
+            result["steps"]["html_parsing"] = {
+                "success": True,
+                "title": title,
+                "paragraph_count": len(paragraphs),
+                "content_sample": paragraphs[0].get_text()[:100] if paragraphs else None
+            }
+        except Exception as e:
+            result["steps"]["html_parsing"] = {"success": False, "error": str(e)}
+            return result
+        
+        result["success"] = True
+        return result
+        
+    except Exception as e:
+        result["error"] = str(e)
+        result["error_type"] = type(e).__name__
+        return result
+
 @app.get("/api/security/config")
 async def security_config():
     """Get security configuration - ONLY IN DEVELOPMENT"""
