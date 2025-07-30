@@ -443,31 +443,255 @@ async def check_rate_limit(request: Request):
         rate_limiter_storage[client_ip].append(current_time)
 
 # Utility functions
-async def scrape_article(url: str) -> Dict[str, str]:
-    """Scrape article content from URL with enhanced Railway compatibility"""
+def extract_content_with_readability(html_content: str) -> Optional[Dict[str, str]]:
+    """
+    Alternative content extraction using readability heuristics.
+    Returns extracted content or None if extraction fails.
+    """
+    try:
+        soup = BeautifulSoup(html_content, 'html.parser')
+        
+        # Remove script, style, and other non-content elements
+        for tag in soup(['script', 'style', 'nav', 'header', 'footer', 'aside', 'form', 'button']):
+            tag.decompose()
+        
+        # Score paragraphs based on various heuristics
+        scored_elements = []
+        
+        for elem in soup.find_all(['p', 'div']):
+            text = elem.get_text().strip()
+            if not text or len(text) < 20:
+                continue
+                
+            score = 0
+            
+            # Length bonus
+            score += min(len(text) / 100, 3)
+            
+            # Punctuation bonus (indicates real sentences)
+            score += text.count('.') * 0.5
+            score += text.count(',') * 0.3
+            
+            # Penalty for too many links
+            link_density = len(elem.find_all('a')) / max(len(text.split()), 1)
+            if link_density > 0.3:
+                score *= 0.5
+            
+            # Bonus for being inside article-like containers
+            parent_tags = [p.name for p in elem.parents][:5]
+            if 'article' in parent_tags or 'main' in parent_tags:
+                score *= 1.5
+            
+            # Check for common non-content indicators
+            text_lower = text.lower()
+            non_content_indicators = [
+                'cookie', 'privacy policy', 'terms of service', 'subscribe',
+                'follow us', 'share this', 'advertisement', 'sponsored'
+            ]
+            if any(indicator in text_lower for indicator in non_content_indicators):
+                score *= 0.3
+            
+            scored_elements.append((elem, score, text))
+        
+        # Sort by score and extract top elements
+        scored_elements.sort(key=lambda x: x[1], reverse=True)
+        
+        # Extract content from top-scoring elements
+        content_parts = []
+        seen_texts = set()
+        
+        for elem, score, text in scored_elements[:30]:  # Top 30 elements
+            if score < 1.0:  # Minimum score threshold
+                break
+            if text not in seen_texts:
+                content_parts.append(text)
+                seen_texts.add(text)
+        
+        if content_parts:
+            content = '\n\n'.join(content_parts)
+            
+            # Try to find title
+            title = None
+            if soup.title:
+                title = soup.title.string
+            elif soup.find('h1'):
+                title = soup.find('h1').get_text().strip()
+            
+            return {
+                "title": title,
+                "content": content,
+                "method": "readability-heuristics"
+            }
+            
+    except Exception as e:
+        logger.error(f"Readability extraction failed: {e}")
+        
+    return None
+
+
+def extract_json_ld_article(html_content: str) -> Optional[Dict[str, str]]:
+    """
+    Extract article content from JSON-LD structured data.
+    Many modern sites include article data in JSON-LD format.
+    """
+    try:
+        soup = BeautifulSoup(html_content, 'html.parser')
+        
+        # Find JSON-LD script tags
+        json_ld_scripts = soup.find_all('script', type='application/ld+json')
+        
+        for script in json_ld_scripts:
+            try:
+                data = json.loads(script.string)
+                
+                # Handle both single objects and arrays
+                items = [data] if isinstance(data, dict) else data
+                
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                        
+                    # Check if it's an article or blog post
+                    if item.get('@type') in ['Article', 'NewsArticle', 'BlogPosting', 'WebPage']:
+                        title = item.get('headline') or item.get('name')
+                        
+                        # Try different content fields
+                        content = (
+                            item.get('articleBody') or 
+                            item.get('text') or 
+                            item.get('description', '')
+                        )
+                        
+                        if content and len(content) > 100:
+                            return {
+                                "title": title,
+                                "content": content,
+                                "method": "json-ld"
+                            }
+                            
+            except json.JSONDecodeError:
+                continue
+            except Exception as e:
+                logger.debug(f"Error parsing JSON-LD: {e}")
+                
+    except Exception as e:
+        logger.error(f"JSON-LD extraction failed: {e}")
+        
+    return None
+
+
+def extract_opengraph_content(html_content: str, url: str) -> Optional[Dict[str, str]]:
+    """
+    Extract content using OpenGraph meta tags as hints.
+    This won't get full article content but can help identify the main content area.
+    """
+    try:
+        soup = BeautifulSoup(html_content, 'html.parser')
+        
+        # Get OpenGraph data
+        og_title = None
+        og_description = None
+        
+        for meta in soup.find_all('meta'):
+            prop = meta.get('property', '')
+            content = meta.get('content', '')
+            
+            if prop == 'og:title':
+                og_title = content
+            elif prop == 'og:description':
+                og_description = content
+        
+        # If we have OG data, use it to help find the main content
+        if og_title:
+            # Look for the title in h1/h2 tags to identify article area
+            for heading in soup.find_all(['h1', 'h2']):
+                if og_title in heading.get_text():
+                    # Found the article area, extract content from parent
+                    article_container = heading.parent
+                    
+                    # Go up a few levels to get more content
+                    for _ in range(3):
+                        if article_container.parent:
+                            article_container = article_container.parent
+                    
+                    # Extract text from this container
+                    paragraphs = article_container.find_all(['p', 'h2', 'h3', 'h4'])
+                    content = '\n\n'.join([p.get_text().strip() for p in paragraphs if p.get_text().strip()])
+                    
+                    if content and len(content) > 200:
+                        return {
+                            "title": og_title,
+                            "content": content,
+                            "method": "opengraph-guided"
+                        }
+        
+        # Fallback: if we have OG description but couldn't find content
+        if og_description and len(og_description) > 100:
+            logger.warning(f"Using OG description as fallback for {url}")
+            return {
+                "title": og_title,
+                "content": og_description,
+                "method": "opengraph-description-only"
+            }
+                
+    except Exception as e:
+        logger.error(f"OpenGraph extraction failed: {e}")
+        
+    return None
+
+
+async def scrape_article(url: Union[str, HttpUrl]) -> Dict[str, str]:
+    """Scrape article content from URL with enhanced Railway compatibility and error handling"""
+    # Convert HttpUrl to string if needed
+    url_str = str(url) if isinstance(url, HttpUrl) else url
+    
     # Enhanced logging for debugging
-    logger.info(f"Starting URL scrape for: {url}")
+    logger.info(f"Starting URL scrape for: {url_str}")
     logger.info(f"Environment: {ENVIRONMENT}, SSL verification override: {os.getenv('HTTPX_VERIFY_SSL', 'true')}")
+    
+    # Track error context for better reporting
+    error_context = {
+        "url": url_str,
+        "timestamp": datetime.now().isoformat(),
+        "step": "initialization"
+    }
     
     # Validate URL security first
     try:
-        await validate_url_security(url)
-        logger.info(f"URL security validation passed for: {url}")
-    except Exception as e:
-        logger.error(f"URL security validation failed for {url}: {str(e)}")
+        error_context["step"] = "security_validation"
+        await validate_url_security(url_str)
+        logger.info(f"URL security validation passed for: {url_str}")
+    except HTTPException as e:
+        # Re-raise HTTP exceptions as they already have user-friendly messages
+        logger.error(f"URL security validation failed for {url_str}: {str(e.detail)}")
         raise
+    except Exception as e:
+        logger.error(f"Unexpected error in URL security validation for {url_str}: {str(e)}")
+        raise HTTPException(
+            status_code=400,
+            detail="Unable to validate URL. Please ensure it's a valid web address."
+        )
     
     # DNS pre-resolution for debugging
     try:
+        error_context["step"] = "dns_resolution"
         import socket
         from urllib.parse import urlparse
-        parsed = urlparse(url)
+        parsed = urlparse(url_str)
         hostname = parsed.hostname
         if hostname:
             ips = socket.gethostbyname_ex(hostname)[2]
             logger.info(f"DNS resolution for {hostname}: {ips}")
+            error_context["hostname"] = hostname
+            error_context["resolved_ips"] = ips
+    except socket.gaierror as dns_e:
+        logger.error(f"DNS resolution failed for {hostname}: {dns_e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unable to find the website '{hostname}'. Please check the URL is correct."
+        )
     except Exception as dns_e:
-        logger.warning(f"DNS pre-resolution failed: {dns_e}")
+        logger.warning(f"DNS pre-resolution warning: {dns_e}")
     
     # Simplified SSL configuration
     verify_ssl = os.getenv("HTTPX_VERIFY_SSL", "true").lower() != "false"
@@ -520,28 +744,51 @@ async def scrape_article(url: str) -> Dict[str, str]:
                 logger.info(f"Using proxies: {proxies}")
             
             async with httpx.AsyncClient(**client_kwargs) as client:
-                logger.info(f"Fetching URL: {url}")
-                response = await client.get(str(url))
+                logger.info(f"Fetching URL: {url_str}")
+                response = await client.get(url_str)
                 logger.info(f"Response received - Status: {response.status_code}, Content-Length: {len(response.content)}, Headers: {dict(response.headers)}")
                 response.raise_for_status()
+                
+                # Check for common issues in the response
+                content_type = response.headers.get("content-type", "").lower()
+                
+                # Check for JavaScript-heavy responses
+                if "application/json" in content_type and "text/html" not in content_type:
+                    logger.warning(f"Got JSON response instead of HTML for {url_str}")
+                    raise HTTPException(
+                        status_code=400,
+                        detail="This appears to be an API endpoint, not a webpage. Please provide a direct link to the article."
+                    )
+                
+                # Check response size for potential issues
+                if len(response.content) < 1000:
+                    logger.warning(f"Suspiciously small response: {len(response.content)} bytes")
+                    # Don't fail yet, but log for debugging
                 
                 # Success - break out of retry loop
                 break
                 
         except httpx.ConnectTimeout as e:
+            error_context["step"] = "connection"
+            error_context["error_type"] = "timeout"
             logger.error(f"Connection timeout (attempt {attempt + 1}): {str(e)}")
             if attempt == max_retries - 1:
                 raise HTTPException(
                     status_code=504,
-                    detail="Connection timeout - Railway network may be blocking outbound connections. Check Railway logs for network restrictions."
+                    detail="Unable to connect to the website. The site may be down or taking too long to respond. Please try again later."
                 )
             await asyncio.sleep(retry_delay)
             retry_delay *= 2
             
         except httpx.ReadTimeout as e:
+            error_context["step"] = "reading_content"
+            error_context["error_type"] = "timeout"
             logger.error(f"Read timeout (attempt {attempt + 1}): {str(e)}")
             if attempt == max_retries - 1:
-                raise HTTPException(status_code=504, detail="Read timeout - target server took too long to respond")
+                raise HTTPException(
+                    status_code=504, 
+                    detail="The website took too long to send the content. This might be due to a slow server or large page size. Please try a different article."
+                )
             await asyncio.sleep(retry_delay)
             retry_delay *= 2
             
@@ -549,7 +796,7 @@ async def scrape_article(url: str) -> Dict[str, str]:
             error_details = {
                 "type": type(e).__name__,
                 "message": str(e),
-                "url": url,
+                "url": url_str,
                 "attempt": attempt + 1,
                 "verify_ssl": verify_ssl
             }
@@ -590,21 +837,57 @@ async def scrape_article(url: str) -> Dict[str, str]:
             retry_delay *= 2
             
         except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error {e.response.status_code} for URL {url}")
+            error_context["step"] = "http_response"
+            error_context["status_code"] = e.response.status_code
+            logger.error(f"HTTP error {e.response.status_code} for URL {url_str}")
+            
+            # Check for Cloudflare/protection pages
             if e.response.status_code == 403:
-                raise HTTPException(
-                    status_code=403,
-                    detail="Access forbidden - the website may be blocking automated requests"
-                )
+                # Try to detect Cloudflare or other protection services
+                cf_ray = e.response.headers.get("cf-ray")
+                server = e.response.headers.get("server", "").lower()
+                
+                if cf_ray or "cloudflare" in server:
+                    raise HTTPException(
+                        status_code=403,
+                        detail="This website is protected by Cloudflare and requires human verification. Please visit the article directly in your browser and copy the text instead."
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Access denied. The website may be blocking automated access or requiring login. Try copying the article text directly instead of using the URL."
+                    )
             elif e.response.status_code == 429:
+                retry_after = e.response.headers.get("retry-after")
+                if retry_after:
+                    raise HTTPException(
+                        status_code=429,
+                        detail=f"The website is temporarily blocking us due to too many requests. Please try again in {retry_after} seconds."
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=429,
+                        detail="The website is temporarily blocking us due to too many requests. Please wait a few minutes before trying again."
+                    )
+            elif e.response.status_code == 404:
                 raise HTTPException(
-                    status_code=429,
-                    detail="Too many requests - the website is rate limiting us"
+                    status_code=404,
+                    detail="Article not found. Please check the URL is correct and the article still exists."
+                )
+            elif e.response.status_code == 401:
+                raise HTTPException(
+                    status_code=401,
+                    detail="This article requires login to access. Please copy the article text directly instead of using the URL."
+                )
+            elif e.response.status_code >= 500:
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"The website is experiencing technical difficulties (error {e.response.status_code}). Please try again later."
                 )
             else:
                 raise HTTPException(
                     status_code=e.response.status_code,
-                    detail=f"Target server returned error: {e.response.status_code}"
+                    detail=f"Unable to access the article (error {e.response.status_code}). Please try copying the text directly."
                 )
         
         except Exception as e:
@@ -619,12 +902,73 @@ async def scrape_article(url: str) -> Dict[str, str]:
     
     # Parse HTML with error handling
     try:
+        error_context["step"] = "html_parsing"
         logger.info(f"Parsing HTML content (length: {len(response.text)} chars)")
+        
+        # Check if we got a JavaScript-heavy page
+        if len(response.text) < 1000 and "<noscript>" in response.text:
+            logger.warning("Detected possible JavaScript-required page")
+            raise HTTPException(
+                status_code=400,
+                detail="This website requires JavaScript to display content. Please open the article in your browser and copy the text instead."
+            )
+        
         soup = BeautifulSoup(response.text, 'html.parser')
         logger.info("HTML parsing completed successfully")
+        
+        # Check for common login/paywall indicators
+        login_indicators = [
+            "sign in", "log in", "create account", "subscribe", 
+            "premium content", "members only", "paywall", "sign up to read",
+            "create a free account", "members-only story", "read the rest of this story"
+        ]
+        page_text_lower = soup.get_text().lower()
+        
+        # Special handling for known problematic sites
+        if "medium.com" in url_str.lower():
+            # Medium-specific checks
+            medium_wall_indicators = [
+                "read the rest of this story with a free account",
+                "sign up to read",
+                "members-only story",
+                "create a free account"
+            ]
+            for indicator in medium_wall_indicators:
+                if indicator in page_text_lower:
+                    logger.warning(f"Detected Medium paywall: '{indicator}' found")
+                    raise HTTPException(
+                        status_code=403,
+                        detail="This Medium article requires login or membership. Please open it in your browser (you may need to use incognito mode) and copy the full text."
+                    )
+        
+        # Check for minimal content with login prompts
+        visible_text_length = len(page_text_lower)
+        login_prompt_ratio = sum(1 for indicator in login_indicators if indicator in page_text_lower)
+        
+        if visible_text_length < 1000 and login_prompt_ratio >= 2:
+            logger.warning(f"Multiple login indicators found with minimal content")
+            raise HTTPException(
+                status_code=403,
+                detail="This article appears to be behind a login wall. The page shows mostly login prompts instead of article content. Please copy the article text directly."
+            )
+        
+        # General paywall check for any site
+        for indicator in login_indicators:
+            if indicator in page_text_lower and visible_text_length < 500:
+                logger.warning(f"Detected possible login/paywall page: '{indicator}' found with only {visible_text_length} chars")
+                raise HTTPException(
+                    status_code=403,
+                    detail="This article appears to be behind a login or paywall. Please copy the article text directly instead."
+                )
+                
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"BeautifulSoup parsing error: {type(e).__name__}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"HTML parsing error: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail="Unable to process the webpage content. The page format may not be supported."
+        )
     
     # Extract title
     title = None
@@ -639,8 +983,9 @@ async def scrape_article(url: str) -> Dict[str, str]:
     
     # Try to find main content
     content = ""
+    error_context["step"] = "content_extraction"
     
-    # Common article containers
+    # Common article containers (expanded list)
     article_selectors = [
         'article',
         'main',
@@ -649,37 +994,149 @@ async def scrape_article(url: str) -> Dict[str, str]:
         '.post-content',
         '.entry-content',
         '.content',
-        '#content'
+        '#content',
+        # Additional selectors for popular platforms
+        '.story-body',  # BBC
+        '.article-body',  # Various news sites
+        '.post-body',  # Blogger
+        'div[data-testid="article-body"]',  # Modern React sites
+        '.prose',  # Tailwind-based blogs
+        'div.markdown-body',  # GitHub
+        '.article__content',  # Medium-style
+        '.blog-post-content',  # Common blog pattern
+        'section.content',  # Generic section
+        'div[itemprop="articleBody"]',  # Schema.org markup
     ]
     
+    # Track which selector worked for debugging
+    successful_selector = None
+    
     for selector in article_selectors:
-        element = soup.select_one(selector)
-        if element:
-            # Extract paragraphs
-            paragraphs = element.find_all(['p', 'h2', 'h3', 'h4'])
-            if paragraphs:
-                content = '\n\n'.join([p.get_text().strip() for p in paragraphs if p.get_text().strip()])
-                break
+        try:
+            element = soup.select_one(selector)
+            if element:
+                # Extract paragraphs and headers
+                text_elements = element.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li'])
+                if text_elements and len(text_elements) > 2:  # Ensure we have substantial content
+                    content = '\n\n'.join([elem.get_text().strip() for elem in text_elements if elem.get_text().strip()])
+                    if len(content) > 100:  # Minimum content threshold
+                        successful_selector = selector
+                        logger.info(f"Successfully extracted content using selector: {selector}")
+                        break
+        except Exception as e:
+            logger.debug(f"Selector {selector} failed: {e}")
+            continue
     
     # Fallback: get all paragraphs
     if not content:
+        logger.warning("No article container found, falling back to all paragraphs")
         paragraphs = soup.find_all('p')
-        content = '\n\n'.join([p.get_text().strip() for p in paragraphs if p.get_text().strip()])
+        if paragraphs:
+            content = '\n\n'.join([p.get_text().strip() for p in paragraphs if p.get_text().strip()])
+            successful_selector = "fallback-all-paragraphs"
+    
+    # Additional fallback: check for divs with substantial text
+    if not content or len(content) < 100:
+        logger.warning("Insufficient content from paragraphs, checking text-heavy divs")
+        text_divs = soup.find_all('div')
+        for div in text_divs:
+            div_text = div.get_text().strip()
+            if len(div_text) > 500 and div_text.count(' ') > 50:  # Substantial text content
+                content = div_text
+                successful_selector = "fallback-text-divs"
+                break
+    
+    error_context["extraction_method"] = successful_selector or "none"
     
     # Clean up content
     content = re.sub(r'\s+', ' ', content)
     content = content.strip()
     
+    # If primary extraction failed, try fallback methods
+    if not content or len(content) < 100:
+        logger.info("Primary extraction failed or insufficient content, trying fallback methods")
+        
+        # Try JSON-LD extraction first (most reliable if available)
+        json_ld_result = extract_json_ld_article(response.text)
+        if json_ld_result and json_ld_result.get("content"):
+            logger.info(f"Successfully extracted content using JSON-LD for {url_str}")
+            content = json_ld_result["content"]
+            title = json_ld_result.get("title") or title
+            successful_selector = "json-ld"
+        else:
+            # Try readability heuristics
+            readability_result = extract_content_with_readability(response.text)
+            if readability_result and readability_result.get("content") and len(readability_result["content"]) > len(content):
+                logger.info(f"Successfully extracted content using readability heuristics for {url_str}")
+                content = readability_result["content"]
+                title = readability_result.get("title") or title
+                successful_selector = "readability-heuristics"
+            else:
+                # Try OpenGraph-guided extraction
+                og_result = extract_opengraph_content(response.text, url_str)
+                if og_result and og_result.get("content") and len(og_result["content"]) > len(content):
+                    logger.info(f"Successfully extracted content using OpenGraph data for {url_str}")
+                    content = og_result["content"]
+                    title = og_result.get("title") or title
+                    successful_selector = og_result["method"]
+    
+    # Final check if we still don't have content
     if not content:
-        raise HTTPException(status_code=400, detail="Could not extract article content from URL")
+        error_context["page_title"] = title
+        error_context["page_length"] = len(response.text)
+        
+        # Provide more helpful error messages based on what we found
+        if "robot" in page_text_lower or "captcha" in page_text_lower:
+            logger.error(f"Robot/CAPTCHA detection on {url_str}")
+            raise HTTPException(
+                status_code=403,
+                detail="The website is showing a CAPTCHA or robot check. Please visit the article in your browser and copy the text manually."
+            )
+        elif len(response.text) < 500:
+            logger.error(f"Very short response from {url_str}: {len(response.text)} chars")
+            raise HTTPException(
+                status_code=400,
+                detail="The webpage appears to be empty or failed to load properly. Please verify the URL or try copying the text directly."
+            )
+        else:
+            logger.error(f"Content extraction failed for {url_str}. Context: {json.dumps(error_context)}")
+            raise HTTPException(
+                status_code=400,
+                detail="Unable to extract article content from this webpage. The site may use a format we don't support. Please copy and paste the article text instead."
+            )
+    
+    # Clean and validate content
+    if len(content) < 50:
+        logger.error(f"Extracted content too short ({len(content)} chars) for {url_str}")
+        raise HTTPException(
+            status_code=400,
+            detail="The extracted content is too short to create a meaningful thread. Please ensure you're linking to a full article, not a preview or summary."
+        )
+    
+    # Log successful extraction
+    logger.info(f"Successfully extracted {len(content)} characters from {url_str} using {successful_selector}")
     
     # Truncate if too long
+    truncated = False
     if len(content) > MAX_CONTENT_LENGTH:
         content = content[:MAX_CONTENT_LENGTH] + "..."
+        truncated = True
+        logger.info(f"Content truncated from {len(content)} to {MAX_CONTENT_LENGTH} characters")
     
-    return {
+    result = {
         "title": title.strip() if title else None,
-        "content": content
+        "content": content,
+        "metadata": {
+            "extraction_method": successful_selector,
+            "content_length": len(content),
+            "truncated": truncated
+        }
+    }
+    
+    # Don't include metadata in the actual response
+    return {
+        "title": result["title"],
+        "content": result["content"]
     }
 
 def split_into_tweets(text: str, include_thread_numbers: bool = True) -> List[str]:
@@ -1794,6 +2251,87 @@ async def debug_simple_scrape(url: str):
             "error": str(e),
             "error_type": type(e).__name__
         }
+
+@app.get("/api/debug/scrape-enhanced")
+async def debug_scrape_enhanced(url: str):
+    """Test the enhanced scraping with detailed error reporting"""
+    if ENVIRONMENT == "production":
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    result = {
+        "url": url,
+        "timestamp": datetime.now().isoformat(),
+        "extraction_attempts": [],
+        "final_result": None,
+        "error": None
+    }
+    
+    try:
+        # Try the main scrape_article function
+        scraped = await scrape_article(url)
+        result["final_result"] = {
+            "success": True,
+            "title": scraped.get("title"),
+            "content_length": len(scraped.get("content", "")),
+            "content_preview": scraped.get("content", "")[:200] + "..."
+        }
+        return result
+        
+    except HTTPException as e:
+        result["error"] = {
+            "type": "HTTPException",
+            "status_code": e.status_code,
+            "detail": e.detail,
+            "user_friendly": True
+        }
+        
+        # Try to get more details about what failed
+        try:
+            async with httpx.AsyncClient(timeout=10.0, verify=False) as client:
+                response = await client.get(url)
+                
+                result["response_info"] = {
+                    "status_code": response.status_code,
+                    "content_type": response.headers.get("content-type"),
+                    "content_length": len(response.content),
+                    "headers": dict(list(response.headers.items())[:10])
+                }
+                
+                # Try each extraction method individually
+                extraction_methods = [
+                    ("json-ld", extract_json_ld_article),
+                    ("readability", extract_content_with_readability),
+                    ("opengraph", lambda html: extract_opengraph_content(html, url))
+                ]
+                
+                for method_name, method_func in extraction_methods:
+                    try:
+                        extracted = method_func(response.text)
+                        result["extraction_attempts"].append({
+                            "method": method_name,
+                            "success": bool(extracted),
+                            "content_length": len(extracted.get("content", "")) if extracted else 0,
+                            "title": extracted.get("title") if extracted else None
+                        })
+                    except Exception as method_e:
+                        result["extraction_attempts"].append({
+                            "method": method_name,
+                            "success": False,
+                            "error": str(method_e)
+                        })
+                        
+        except Exception as debug_e:
+            result["debug_error"] = str(debug_e)
+            
+    except Exception as e:
+        result["error"] = {
+            "type": type(e).__name__,
+            "message": str(e),
+            "user_friendly": False
+        }
+    
+    return result
+
 
 @app.get("/api/debug/scrape-steps")
 async def debug_scrape_steps(url: str):
