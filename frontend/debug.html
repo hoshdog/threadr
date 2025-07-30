@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threadr Debug - API Authentication Test</title>
+    <script src="config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div x-data="debugApp()" x-init="init()" class="container mx-auto px-4 py-8 max-w-4xl">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">Threadr Debug Panel</h1>
+            <p class="text-lg text-gray-600">API Authentication Diagnostic Tool</p>
+        </header>
+
+        <!-- Environment Info -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">Environment Information</h2>
+            <div class="space-y-2 font-mono text-sm">
+                <div><span class="font-semibold">Current URL:</span> <span x-text="currentUrl"></span></div>
+                <div><span class="font-semibold">Hostname:</span> <span x-text="hostname"></span></div>
+                <div><span class="font-semibold">Config Loaded:</span> <span x-text="configLoaded ? 'Yes' : 'No'"></span></div>
+                <div><span class="font-semibold">Config ENV:</span> <span x-text="configEnv"></span></div>
+                <div><span class="font-semibold">API URL:</span> <span x-text="apiUrl"></span></div>
+                <div><span class="font-semibold">API Key Present:</span> <span x-text="apiKeyPresent ? 'Yes' : 'No'"></span></div>
+                <div><span class="font-semibold">API Key Value:</span> <span x-text="apiKeyValue"></span></div>
+            </div>
+        </div>
+
+        <!-- Test API Connection -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">API Connection Test</h2>
+            
+            <button 
+                @click="testHealthCheck()"
+                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mb-4"
+            >
+                Test Health Endpoint
+            </button>
+
+            <button 
+                @click="testGenerateEndpoint()"
+                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mb-4 ml-2"
+            >
+                Test Generate Endpoint
+            </button>
+
+            <div x-show="testResult" class="mt-4 p-4 bg-gray-100 rounded">
+                <pre x-text="testResult" class="text-xs overflow-x-auto"></pre>
+            </div>
+        </div>
+
+        <!-- Request Headers Debug -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-bold mb-4">Request Headers Debug</h2>
+            <div x-show="requestHeaders" class="font-mono text-sm">
+                <pre x-text="requestHeaders" class="bg-gray-100 p-4 rounded overflow-x-auto"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function debugApp() {
+            return {
+                currentUrl: '',
+                hostname: '',
+                configLoaded: false,
+                configEnv: '',
+                apiUrl: '',
+                apiKeyPresent: false,
+                apiKeyValue: '',
+                testResult: '',
+                requestHeaders: '',
+
+                init() {
+                    // Capture environment info
+                    this.currentUrl = window.location.href;
+                    this.hostname = window.location.hostname;
+                    
+                    // Check if config is loaded
+                    this.configLoaded = typeof config !== 'undefined';
+                    
+                    if (this.configLoaded) {
+                        this.configEnv = config.ENV || 'undefined';
+                        this.apiUrl = config.API_URL || 'undefined';
+                        this.apiKeyPresent = !!config.API_KEY;
+                        this.apiKeyValue = config.API_KEY ? config.API_KEY.substring(0, 10) + '...' : 'null';
+                        
+                        // Log full config for debugging
+                        console.log('Full config object:', config);
+                    } else {
+                        this.testResult = 'ERROR: config.js not loaded!';
+                    }
+                },
+
+                async testHealthCheck() {
+                    this.testResult = 'Testing health endpoint...';
+                    
+                    try {
+                        const headers = {
+                            'Accept': 'application/json'
+                        };
+                        
+                        // Log what we're sending
+                        this.requestHeaders = `Health Check Request Headers:\n${JSON.stringify(headers, null, 2)}`;
+                        
+                        const response = await fetch(`${config.API_URL}/health`, {
+                            method: 'GET',
+                            headers: headers,
+                            mode: 'cors'
+                        });
+                        
+                        const data = await response.text();
+                        this.testResult = `Health Check Response:\nStatus: ${response.status}\nBody: ${data}`;
+                    } catch (error) {
+                        this.testResult = `Health Check Error: ${error.message}`;
+                    }
+                },
+
+                async testGenerateEndpoint() {
+                    this.testResult = 'Testing generate endpoint with API key...';
+                    
+                    try {
+                        const headers = {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        };
+                        
+                        // Add API key if present
+                        if (config.API_KEY) {
+                            headers['X-API-Key'] = config.API_KEY;
+                        }
+                        
+                        // Log what we're sending
+                        this.requestHeaders = `Generate Endpoint Request Headers:\n${JSON.stringify(headers, null, 2)}\n\nAPI Key in config: ${config.API_KEY ? 'Present' : 'Missing'}`;
+                        
+                        const testBody = {
+                            text: "This is a test article to check API authentication."
+                        };
+                        
+                        const response = await fetch(`${config.API_URL}/api/generate`, {
+                            method: 'POST',
+                            headers: headers,
+                            mode: 'cors',
+                            credentials: 'omit',
+                            body: JSON.stringify(testBody)
+                        });
+                        
+                        let responseBody;
+                        const contentType = response.headers.get('content-type');
+                        
+                        if (contentType && contentType.includes('application/json')) {
+                            responseBody = await response.json();
+                        } else {
+                            responseBody = await response.text();
+                        }
+                        
+                        this.testResult = `Generate Endpoint Response:\nStatus: ${response.status}\nHeaders: ${JSON.stringify([...response.headers.entries()], null, 2)}\nBody: ${JSON.stringify(responseBody, null, 2)}`;
+                    } catch (error) {
+                        this.testResult = `Generate Endpoint Error: ${error.message}\n${error.stack}`;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
