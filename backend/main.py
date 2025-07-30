@@ -469,69 +469,32 @@ async def scrape_article(url: str) -> Dict[str, str]:
     except Exception as dns_e:
         logger.warning(f"DNS pre-resolution failed: {dns_e}")
     
-    # SSL configuration with environment variable override
+    # Simplified SSL configuration
     verify_ssl = os.getenv("HTTPX_VERIFY_SSL", "true").lower() != "false"
     ssl_context = None
     
     if verify_ssl:
         try:
-            # Try multiple CA bundle locations for Railway compatibility
-            ca_locations = [
-                certifi.where(),  # certifi bundle
-                os.getenv("SSL_CERT_FILE"),  # Environment variable
-                "/etc/ssl/certs/ca-certificates.crt",  # Debian/Ubuntu
-                "/etc/pki/tls/certs/ca-bundle.crt",  # RHEL/CentOS
-            ]
-            
-            for ca_path in ca_locations:
-                if ca_path and os.path.exists(ca_path):
-                    ssl_context = ssl.create_default_context(cafile=ca_path)
-                    logger.info(f"Using CA bundle from: {ca_path}")
-                    break
-            
-            if not ssl_context:
-                ssl_context = ssl.create_default_context()
-                logger.info("Using system default SSL context")
-                
+            # Use default SSL context - let httpx handle certificates
+            ssl_context = ssl.create_default_context()
+            logger.info("Using default SSL context")
         except Exception as ssl_e:
-            logger.warning(f"SSL context creation failed: {ssl_e}, will retry without verification")
+            logger.warning(f"SSL context creation failed: {ssl_e}, disabling SSL verification")
             verify_ssl = False
     
-    # Retry configuration
-    max_retries = 3
+    # Simplified retry configuration
+    max_retries = 2
     retry_delay = 1.0
     
     for attempt in range(max_retries):
         try:
-            # Transport configuration for Railway
-            transport_kwargs = {
-                "retries": 1,
-                # Removed local_address="0.0.0.0" - causes failures in Railway containers
-            }
-            
-            # Check for proxy configuration
-            http_proxy = os.getenv("HTTP_PROXY") or os.getenv("http_proxy")
-            https_proxy = os.getenv("HTTPS_PROXY") or os.getenv("https_proxy")
-            proxies = {}
-            if http_proxy:
-                proxies["http://"] = http_proxy
-                logger.info(f"Using HTTP proxy: {http_proxy}")
-            if https_proxy:
-                proxies["https://"] = https_proxy
-                logger.info(f"Using HTTPS proxy: {https_proxy}")
-            
-            # Simplified httpx configuration for Railway compatibility
+            # Railway-compatible httpx configuration (based on working simple version)
             logger.info(f"Attempt {attempt + 1}/{max_retries}: Creating httpx client (verify_ssl={verify_ssl})")
             
-            # Only add transport if we have kwargs to avoid empty transport issues
+            # Create client kwargs
             client_kwargs = {
-                "timeout": httpx.Timeout(60.0, connect=30.0, read=30.0, write=30.0),
+                "timeout": 30.0,  # Simplified timeout like working version
                 "follow_redirects": True,
-                "limits": httpx.Limits(
-                    max_keepalive_connections=5,
-                    max_connections=10,
-                    keepalive_expiry=30.0
-                ),
                 "headers": {
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -539,20 +502,22 @@ async def scrape_article(url: str) -> Dict[str, str]:
                     "Accept-Encoding": "gzip, deflate, br",
                     "DNT": "1",
                     "Connection": "keep-alive",
-                    "Upgrade-Insecure-Requests": "1",
-                    "Cache-Control": "no-cache",
-                    "Pragma": "no-cache"
+                    "Upgrade-Insecure-Requests": "1"
                 },
-                "verify": ssl_context if verify_ssl else False,
+                "verify": ssl_context if verify_ssl else False
             }
             
-            # Add proxies if configured
-            if proxies:
+            # Check for proxy configuration (only if needed)
+            http_proxy = os.getenv("HTTP_PROXY") or os.getenv("http_proxy")
+            https_proxy = os.getenv("HTTPS_PROXY") or os.getenv("https_proxy")
+            if http_proxy or https_proxy:
+                proxies = {}
+                if http_proxy:
+                    proxies["http://"] = http_proxy
+                if https_proxy:
+                    proxies["https://"] = https_proxy
                 client_kwargs["proxies"] = proxies
-            
-            # Add transport with retries (no local_address for Railway compatibility)
-            if transport_kwargs:
-                client_kwargs["transport"] = httpx.AsyncHTTPTransport(**transport_kwargs)
+                logger.info(f"Using proxies: {proxies}")
             
             async with httpx.AsyncClient(**client_kwargs) as client:
                 logger.info(f"Fetching URL: {url}")
@@ -1226,26 +1191,45 @@ async def test_railway_network():
 
 @app.get("/api/debug/scrape-test")
 async def debug_scrape_test():
-    """Debug endpoint to test URL scraping step by step"""
+    """Debug endpoint to test URL scraping - compares simple vs complex approaches"""
+    results = {}
+    
+    # Test 1: Simple approach (like working version)
     try:
-        test_url = "https://example.com"
-        
-        # Test just the network request part
+        test_url = "https://blog.medium.com/test"
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(test_url)
+            response = await client.get(test_url, follow_redirects=True)
             
-        return {
+        results["simple_approach"] = {
             "success": True,
             "status_code": response.status_code,
             "content_length": len(response.content),
-            "headers": dict(response.headers)
+            "url": str(response.url)
         }
     except Exception as e:
-        return {
+        results["simple_approach"] = {
             "success": False,
             "error": str(e),
             "error_type": type(e).__name__
         }
+    
+    # Test 2: Complex approach (scrape_article function)
+    try:
+        result = await scrape_article("https://blog.medium.com/test")
+        results["complex_approach"] = {
+            "success": True,
+            "title": result.get("title"),
+            "content_length": len(result.get("content", "")),
+            "content_preview": result.get("content", "")[:100] + "..."
+        }
+    except Exception as e:
+        results["complex_approach"] = {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+    
+    return results
 
 @app.get("/api/debug/domain-check")
 async def debug_domain_check(url: str):
