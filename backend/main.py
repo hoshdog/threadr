@@ -1215,6 +1215,29 @@ async def test_railway_network():
     
     return results
 
+@app.get("/api/debug/scrape-test")
+async def debug_scrape_test():
+    """Debug endpoint to test URL scraping step by step"""
+    try:
+        test_url = "https://example.com"
+        
+        # Test just the network request part
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(test_url)
+            
+        return {
+            "success": True,
+            "status_code": response.status_code,
+            "content_length": len(response.content),
+            "headers": dict(response.headers)
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+
 @app.get("/api/security/config")
 async def security_config():
     """Get security configuration - ONLY IN DEVELOPMENT"""
