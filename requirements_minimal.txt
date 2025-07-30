@@ -1,0 +1,20 @@
+# Minimal requirements for Railway deployment
+# Only essential dependencies to reduce build time and potential conflicts
+
+# Core FastAPI dependencies
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+
+# HTTP client and parsing
+httpx==0.26.0
+beautifulsoup4==4.12.3
+
+# OpenAI (optional - app works without it)
+openai==1.10.0
+
+# Production server
+gunicorn==21.2.0
+
+# Basic utilities
+python-multipart==0.0.6

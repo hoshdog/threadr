@@ -1,0 +1,4 @@
+# Minimal Procfile for Railway deployment testing
+# Use pure uvicorn without gunicorn complexity
+
+web: uvicorn main:app --host 0.0.0.0 --port $PORT

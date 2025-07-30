@@ -11,8 +11,3 @@ pydantic==2.5.3
 
 # Only if you need CORS (remove if causing issues)
 python-multipart==0.0.6
-
-# Essential for our app
-openai>=1.10.0
-beautifulsoup4>=4.12.3
-python-dotenv>=1.0.0

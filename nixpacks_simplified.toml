@@ -1,0 +1,30 @@
+# Simplified Railway configuration for debugging
+# Minimal setup with better error handling
+
+[providers]
+python = "3.11"
+
+[phases.setup]
+# Install only essential dependencies
+cmds = [
+  "pip install --upgrade pip",
+  "pip install -r requirements_minimal.txt"
+]
+
+[phases.build]
+# Change to backend directory and validate
+cmds = [
+  "cd backend",
+  "python -m py_compile main.py",
+  "python -c 'from main import app; print(\"FastAPI app validated\")'",
+  "cd .."
+]
+
+[start]
+# Simplified start command with better error handling
+cmd = "cd backend && python -c 'import os; print(f\"Starting on port {os.getenv(\"PORT\", \"8000\")}\")'  && gunicorn main:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 120 --log-level debug --preload"
+
+[variables]
+# Essential environment variables only
+PYTHONUNBUFFERED = "1" 
+ENVIRONMENT = "production"
