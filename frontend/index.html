@@ -207,12 +207,19 @@
                         const controller = new AbortController();
                         const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
+                        const headers = {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        };
+                        
+                        // Add API key header in production
+                        if (config.API_KEY) {
+                            headers['X-API-Key'] = config.API_KEY;
+                        }
+
                         const response = await fetch(`${config.API_URL}/api/generate`, {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                            },
+                            headers: headers,
                             mode: 'cors',
                             credentials: 'omit',
                             body: JSON.stringify(
@@ -375,12 +382,19 @@
 
                     // Send email to backend with proper error handling
                     try {
+                        const headers = {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        };
+                        
+                        // Add API key header in production
+                        if (config.API_KEY) {
+                            headers['X-API-Key'] = config.API_KEY;
+                        }
+
                         const response = await fetch(`${config.API_URL}/api/subscribe`, {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                            },
+                            headers: headers,
                             mode: 'cors',
                             credentials: 'omit',
                             body: JSON.stringify({

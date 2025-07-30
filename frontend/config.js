@@ -45,6 +45,19 @@ const config = {
     MAX_TWEET_LENGTH: 280,
     MAX_TEXT_INPUT_LENGTH: 10000,
     
+    // API Authentication
+    API_KEY: (() => {
+        const hostname = window.location.hostname;
+        
+        // No API key needed in development
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
+            return null;
+        }
+        
+        // Production API key - using first key from backend
+        return 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
+    })(),
+    
     // Feature flags based on environment
     FEATURES: {
         EMAIL_CAPTURE: true,
