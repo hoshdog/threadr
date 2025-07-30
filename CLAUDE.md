@@ -62,8 +62,8 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# Development
-uvicorn main:app --reload --port 8001
+# Development (from backend directory)
+uvicorn src.main:app --reload --port 8001
 
 # Testing
 pytest
@@ -84,14 +84,33 @@ railway up
 
 ## Architecture Considerations
 
-1. **Simplified File Structure**:
+1. **Organized File Structure** (Updated 2025-07-31):
    ```
    threadr/
-   ├── frontend/
-   │   └── index.html (Alpine.js + Tailwind, ~100 lines)
    ├── backend/
-   │   ├── main.py (FastAPI endpoints, ~150 lines)
+   │   ├── src/
+   │   │   ├── main.py (FastAPI endpoints)
+   │   │   └── redis_manager.py (Redis utilities)
+   │   ├── tests/
+   │   │   └── test_*.py (All backend tests)
+   │   ├── scripts/
+   │   │   └── (Utility scripts)
    │   └── requirements.txt
+   ├── frontend/
+   │   ├── src/
+   │   │   ├── index.html (Alpine.js + Tailwind)
+   │   │   └── config.js
+   │   └── tests/
+   ├── docs/
+   │   ├── deployment/
+   │   │   ├── railway/
+   │   │   └── vercel/
+   │   ├── api/
+   │   ├── security/
+   │   └── development/
+   ├── scripts/
+   │   ├── deploy/
+   │   └── test/
    └── README.md
    ```
 

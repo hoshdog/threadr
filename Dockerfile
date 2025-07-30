@@ -39,7 +39,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
 
 # Start command - use uvicorn directly for consistency with nixpacks.toml
 # Using exec for proper signal handling
-CMD exec uvicorn main:app \
+CMD exec uvicorn src.main:app \
     --host 0.0.0.0 \
     --port ${PORT} \
     --workers 2 \
