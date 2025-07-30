@@ -1238,33 +1238,6 @@ async def debug_scrape_test():
             "error_type": type(e).__name__
         }
 
-@app.get("/api/debug/domain-check")
-async def debug_domain_check(url: str):
-    """Debug endpoint to test domain allowlist validation"""
-    try:
-        from urllib.parse import urlparse
-        
-        parsed = urlparse(url)
-        hostname = parsed.hostname
-        
-        # Test the domain allowlist logic
-        is_allowed = is_allowed_domain(url)
-        
-        return {
-            "url": url,
-            "hostname": hostname,
-            "scheme": parsed.scheme,
-            "is_allowed": is_allowed,
-            "allowed_domains": ALLOWED_DOMAINS[:10],  # Show first 10 for debugging
-            "domain_count": len(ALLOWED_DOMAINS)
-        }
-    except Exception as e:
-        return {
-            "url": url,
-            "error": str(e),
-            "error_type": type(e).__name__
-        }
-
 @app.get("/api/debug/minimal-scrape")
 async def minimal_scrape_debug(url: str):
     """Minimal URL scraper to isolate failure points - NO SECURITY VALIDATION"""
@@ -1513,312 +1486,237 @@ async def minimal_scrape_debug(url: str):
             "suggestion": "Unexpected error occurred - check Railway logs for Python runtime issues"
         }
         return debug_info
-
-@app.get("/debug/http-config-test")
-async def debug_http_config_test(url: str = "https://httpbin.org/get"):
-    """
-    Progressive HTTP configuration test to isolate which settings cause failures.
-    Tests each configuration layer incrementally to identify the problematic one.
-    """
-    if not url:
-        raise HTTPException(status_code=400, detail="URL parameter is required")
-    
-    results = {}
-    
-    # Test 1: Minimal working configuration (baseline)
-    try:
-        logger.info("Test 1: Minimal httpx configuration")
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(url)
-            results["test_1_minimal"] = {
-                "status": "SUCCESS",
-                "status_code": response.status_code,
-                "content_length": len(response.content),
-                "config": "minimal: timeout=10.0"
-            }
-    except Exception as e:
-        results["test_1_minimal"] = {
-            "status": "FAILED",
-            "error": str(e),
-            "error_type": type(e).__name__,
-            "config": "minimal: timeout=10.0"
-        }
-    
-    # Test 2: Add complex timeout configuration
-    try:
-        logger.info("Test 2: Adding complex timeout configuration")
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(60.0, connect=30.0, read=30.0, write=30.0)
-        ) as client:
-            response = await client.get(url)
-            results["test_2_timeout"] = {
-                "status": "SUCCESS",
-                "status_code": response.status_code,
-                "content_length": len(response.content),
-                "config": "complex timeout: total=60s, connect=30s, read=30s, write=30s"
-            }
-    except Exception as e:
-        results["test_2_timeout"] = {
-            "status": "FAILED",
-            "error": str(e),
-            "error_type": type(e).__name__,
-            "config": "complex timeout: total=60s, connect=30s, read=30s, write=30s"
-        }
-    
-    # Test 3: Add connection limits
-    try:
-        logger.info("Test 3: Adding connection limits")
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(60.0, connect=30.0, read=30.0, write=30.0),
-            limits=httpx.Limits(
-                max_keepalive_connections=5,
-                max_connections=10,
-                keepalive_expiry=30.0
-            )
-        ) as client:
-            response = await client.get(url)
-            results["test_3_limits"] = {
-                "status": "SUCCESS",
-                "status_code": response.status_code,
-                "content_length": len(response.content),
-                "config": "with limits: max_keepalive=5, max_connections=10, keepalive_expiry=30s"
-            }
-    except Exception as e:
-        results["test_3_limits"] = {
-            "status": "FAILED",
-            "error": str(e),
-            "error_type": type(e).__name__,
-            "config": "with limits: max_keepalive=5, max_connections=10, keepalive_expiry=30s"
-        }
-    
-    # Test 4: Add basic transport (WITHOUT local_address)
-    try:
-        logger.info("Test 4: Adding basic transport without local_address")
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(60.0, connect=30.0, read=30.0, write=30.0),
-            limits=httpx.Limits(
-                max_keepalive_connections=5,
-                max_connections=10,
-                keepalive_expiry=30.0
-            ),
-            transport=httpx.AsyncHTTPTransport(retries=1)
-        ) as client:
-            response = await client.get(url)
-            results["test_4_transport_basic"] = {
-                "status": "SUCCESS",
-                "status_code": response.status_code,
-                "content_length": len(response.content),
-                "config": "with basic transport: retries=1 (NO local_address)"
-            }
-    except Exception as e:
-        results["test_4_transport_basic"] = {
-            "status": "FAILED",
-            "error": str(e),
-            "error_type": type(e).__name__,
-            "config": "with basic transport: retries=1 (NO local_address)"
-        }
-    
-    # Test 5: Add PROBLEMATIC local_address binding (SUSPECT!)
-    try:
-        logger.info("Test 5: Adding local_address binding (SUSPECT!)")
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(60.0, connect=30.0, read=30.0, write=30.0),
-            limits=httpx.Limits(
-                max_keepalive_connections=5,
-                max_connections=10,
-                keepalive_expiry=30.0
-            ),
-            transport=httpx.AsyncHTTPTransport(retries=1, local_address="0.0.0.0")
-        ) as client:
-            response = await client.get(url)
-            results["test_5_local_address"] = {
-                "status": "SUCCESS",
-                "status_code": response.status_code,
-                "content_length": len(response.content),
-                "config": "with local_address='0.0.0.0' (SUSPECT CONFIGURATION!)"
-            }
-    except Exception as e:
-        results["test_5_local_address"] = {
-            "status": "FAILED",
-            "error": str(e),
-            "error_type": type(e).__name__,
-            "config": "with local_address='0.0.0.0' (SUSPECT CONFIGURATION!)"
-        }
-    
-    # Test 6: Add follow_redirects
-    try:
-        logger.info("Test 6: Adding follow_redirects")
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(60.0, connect=30.0, read=30.0, write=30.0),
-            limits=httpx.Limits(
-                max_keepalive_connections=5,
-                max_connections=10,
-                keepalive_expiry=30.0
-            ),
-            transport=httpx.AsyncHTTPTransport(retries=1),  # NO local_address
-            follow_redirects=True
-        ) as client:
-            response = await client.get(url)
-            results["test_6_redirects"] = {
-                "status": "SUCCESS",
-                "status_code": response.status_code,
-                "content_length": len(response.content),
-                "config": "with follow_redirects=True"
-            }
-    except Exception as e:
-        results["test_6_redirects"] = {
-            "status": "FAILED",
-            "error": str(e),
-            "error_type": type(e).__name__,
-            "config": "with follow_redirects=True"
-        }
-    
-    # Test 7: Add custom headers
-    try:
-        logger.info("Test 7: Adding custom headers")
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(60.0, connect=30.0, read=30.0, write=30.0),
-            limits=httpx.Limits(
-                max_keepalive_connections=5,
-                max_connections=10,
-                keepalive_expiry=30.0
-            ),
-            transport=httpx.AsyncHTTPTransport(retries=1),  # NO local_address
-            follow_redirects=True,
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.5",
-                "Accept-Encoding": "gzip, deflate, br",
-                "DNT": "1",
-                "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1",
-                "Cache-Control": "no-cache",
-                "Pragma": "no-cache"
-            }
-        ) as client:
-            response = await client.get(url)
-            results["test_7_headers"] = {
-                "status": "SUCCESS",
-                "status_code": response.status_code,
-                "content_length": len(response.content),
-                "config": "with custom headers (realistic browser simulation)"
-            }
-    except Exception as e:
-        results["test_7_headers"] = {
-            "status": "FAILED",
-            "error": str(e),
-            "error_type": type(e).__name__,
-            "config": "with custom headers (realistic browser simulation)"
-        }
-    
-    # Analysis
-    success_count = sum(1 for result in results.values() if result["status"] == "SUCCESS")
-    failure_count = len(results) - success_count
-    
-    # Identify the breaking point
-    breaking_point = None
-    last_success = None
-    
-    test_order = [
-        "test_1_minimal", "test_2_timeout", "test_3_limits", 
-        "test_4_transport_basic", "test_5_local_address", 
-        "test_6_redirects", "test_7_headers"
-    ]
-    
-    for test_name in test_order:
-        if test_name in results:
-            if results[test_name]["status"] == "SUCCESS":
-                last_success = test_name
-            elif results[test_name]["status"] == "FAILED" and last_success:
-                breaking_point = test_name
-                break
-    
-    return {
-        "url_tested": url,
-        "timestamp": datetime.now().isoformat(),
-        "summary": {
-            "total_tests": len(results),
-            "successes": success_count,
-            "failures": failure_count,
-            "last_successful_config": last_success,
-            "first_failing_config": breaking_point
-        },
-        "analysis": {
-            "suspected_culprit": "local_address='0.0.0.0' binding" if breaking_point == "test_5_local_address" else "unknown",
-            "recommendation": "Remove local_address parameter from transport configuration" if breaking_point == "test_5_local_address" else "Further investigation needed"
-        },
-        "detailed_results": results
-    }
-
-@app.get("/api/debug/scrape-steps")
-async def debug_scrape_steps(url: str):
-    """Debug endpoint to test each step of the scraping process"""
-    result = {
+    results = {
         "url": url,
-        "steps": {},
-        "success": False
+        "timestamp": datetime.now().isoformat(),
+        "environment": ENVIRONMENT,
+        "steps": {}
     }
     
+    logger.info(f"Starting minimal scrape test for URL: {url}")
+    
+    # Step 1: Basic URL parsing
     try:
-        # Step 1: URL Security Validation
-        try:
-            await validate_url_security(url)
-            result["steps"]["security_validation"] = {"success": True}
-        except Exception as e:
-            result["steps"]["security_validation"] = {"success": False, "error": str(e)}
-            return result
-        
-        # Step 2: DNS Resolution
-        try:
-            import socket
-            from urllib.parse import urlparse
-            parsed = urlparse(url)
-            hostname = parsed.hostname
-            if hostname:
-                ips = socket.gethostbyname_ex(hostname)[2]
-                result["steps"]["dns_resolution"] = {"success": True, "ips": ips}
-            else:
-                result["steps"]["dns_resolution"] = {"success": False, "error": "No hostname"}
-        except Exception as e:
-            result["steps"]["dns_resolution"] = {"success": False, "error": str(e)}
-        
-        # Step 3: Basic HTTP Request
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(url)
-                result["steps"]["basic_http"] = {
-                    "success": True,
-                    "status_code": response.status_code,
-                    "content_length": len(response.content)
-                }
-        except Exception as e:
-            result["steps"]["basic_http"] = {"success": False, "error": str(e)}
-            return result
-        
-        # Step 4: BeautifulSoup Parsing
-        try:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(response.text, 'html.parser')
-            title = soup.title.string if soup.title else None
-            paragraphs = soup.find_all('p')
-            result["steps"]["html_parsing"] = {
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        results["steps"]["url_parsing"] = {
+            "success": True,
+            "scheme": parsed.scheme,
+            "hostname": parsed.hostname,
+            "port": parsed.port,
+            "path": parsed.path
+        }
+        logger.info(f"URL parsing successful: {parsed.hostname}")
+    except Exception as e:
+        results["steps"]["url_parsing"] = {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+        logger.error(f"URL parsing failed: {e}")
+        return results
+    
+    # Step 2: DNS resolution
+    try:
+        import socket
+        hostname = parsed.hostname
+        if hostname:
+            ips = socket.gethostbyname_ex(hostname)[2]
+            results["steps"]["dns_resolution"] = {
                 "success": True,
-                "title": title,
-                "paragraph_count": len(paragraphs),
-                "content_sample": paragraphs[0].get_text()[:100] if paragraphs else None
+                "hostname": hostname,
+                "resolved_ips": ips
             }
-        except Exception as e:
-            result["steps"]["html_parsing"] = {"success": False, "error": str(e)}
-            return result
+            logger.info(f"DNS resolution successful: {hostname} -> {ips}")
+        else:
+            raise ValueError("No hostname in URL")
+    except Exception as e:
+        results["steps"]["dns_resolution"] = {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+        logger.error(f"DNS resolution failed: {e}")
+        # Continue anyway
+    
+    # Step 3: Basic httpx client creation (no advanced config)
+    try:
+        # Most minimal httpx configuration
+        client = httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0),
+            verify=False  # Skip SSL verification initially
+        )
+        results["steps"]["httpx_client_creation"] = {
+            "success": True,
+            "timeout": 30.0,
+            "verify_ssl": False
+        }
+        logger.info("Basic httpx client created successfully")
+    except Exception as e:
+        results["steps"]["httpx_client_creation"] = {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+        logger.error(f"httpx client creation failed: {e}")
+        return results
+    
+    # Step 4: Simple GET request
+    try:
+        async with client:
+            logger.info(f"Making GET request to: {url}")
+            response = await client.get(url)
+            results["steps"]["http_request"] = {
+                "success": True,
+                "status_code": response.status_code,
+                "content_length": len(response.content),
+                "content_type": response.headers.get("content-type", "unknown"),
+                "elapsed_time": response.elapsed.total_seconds() if hasattr(response, 'elapsed') else "unknown"
+            }
+            logger.info(f"HTTP request successful: {response.status_code}, {len(response.content)} bytes")
+            
+            # Store response for next steps
+            http_response = response
+            
+    except httpx.ConnectTimeout as e:
+        results["steps"]["http_request"] = {
+            "success": False,
+            "error_type": "ConnectTimeout",
+            "error": str(e),
+            "suggestion": "Connection timeout - Railway may be blocking outbound connections or target is unreachable"
+        }
+        logger.error(f"Connection timeout: {e}")
+        return results
+    except httpx.ReadTimeout as e:
+        results["steps"]["http_request"] = {
+            "success": False,
+            "error_type": "ReadTimeout", 
+            "error": str(e),
+            "suggestion": "Read timeout - target server is slow to respond"
+        }
+        logger.error(f"Read timeout: {e}")
+        return results
+    except httpx.ConnectError as e:
+        results["steps"]["http_request"] = {
+            "success": False,
+            "error_type": "ConnectError",
+            "error": str(e),
+            "suggestion": "Cannot connect to target server - check network connectivity"
+        }
+        logger.error(f"Connection error: {e}")
+        return results
+    except httpx.TransportError as e:
+        results["steps"]["http_request"] = {
+            "success": False,
+            "error_type": "TransportError", 
+            "error": str(e),
+            "suggestion": "Transport layer error - possible network or SSL issue"
+        }
+        logger.error(f"Transport error: {e}")
+        return results
+    except httpx.HTTPStatusError as e:
+        results["steps"]["http_request"] = {
+            "success": False,
+            "error_type": "HTTPStatusError",
+            "error": str(e),
+            "status_code": e.response.status_code,
+            "suggestion": f"HTTP error {e.response.status_code} from target server"
+        }
+        logger.error(f"HTTP status error: {e}")
+        return results
+    except httpx.RequestError as e:
+        results["steps"]["http_request"] = {
+            "success": False,
+            "error_type": "RequestError",
+            "error": str(e),
+            "suggestion": "Generic request error - check httpx logs for details"
+        }
+        logger.error(f"Request error: {e}")
+        return results
+    except Exception as e:
+        results["steps"]["http_request"] = {
+            "success": False,
+            "error_type": type(e).__name__,
+            "error": str(e),
+            "error_repr": repr(e),
+            "suggestion": "Unexpected error during HTTP request"
+        }
+        logger.error(f"Unexpected HTTP error: {type(e).__name__}: {e}")
+        return results
+    
+    # Step 5: Check response status
+    try:
+        http_response.raise_for_status()
+        results["steps"]["response_validation"] = {
+            "success": True,
+            "status_code": http_response.status_code,
+            "message": "Response status OK"
+        }
+        logger.info(f"Response validation successful: {http_response.status_code}")
+    except httpx.HTTPStatusError as e:
+        results["steps"]["response_validation"] = {
+            "success": False,
+            "error_type": "HTTPStatusError",
+            "status_code": e.response.status_code,
+            "error": str(e)
+        }
+        logger.error(f"Response validation failed: {e}")
+        return results
+    except Exception as e:
+        results["steps"]["response_validation"] = {
+            "success": False,
+            "error_type": type(e).__name__,
+            "error": str(e)
+        }
+        logger.error(f"Response validation error: {e}")
+        return results
+    
+    # Step 6: Basic HTML parsing
+    try:
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(http_response.text, 'html.parser')
         
-        result["success"] = True
-        return result
+        # Basic content extraction
+        title = None
+        if soup.title:
+            title = soup.title.string
+        
+        paragraphs = soup.find_all('p')
+        paragraph_count = len(paragraphs)
+        
+        results["steps"]["html_parsing"] = {
+            "success": True,
+            "title": title,
+            "paragraph_count": paragraph_count,
+            "content_length": len(http_response.text),
+            "has_content": paragraph_count > 0
+        }
+        logger.info(f"HTML parsing successful: {paragraph_count} paragraphs found")
         
     except Exception as e:
-        result["error"] = str(e)
-        result["error_type"] = type(e).__name__
-        return result
+        results["steps"]["html_parsing"] = {
+            "success": False,
+            "error_type": type(e).__name__,
+            "error": str(e)
+        }
+        logger.error(f"HTML parsing failed: {e}")
+        return results
+    
+    # Final summary
+    successful_steps = sum(1 for step in results["steps"].values() if step.get("success", False))
+    total_steps = len(results["steps"])
+    
+    results["summary"] = {
+        "successful_steps": successful_steps,
+        "total_steps": total_steps,
+        "overall_success": successful_steps == total_steps,
+        "failure_point": None if successful_steps == total_steps else 
+                        [k for k, v in results["steps"].items() if not v.get("success", False)][0]
+    }
+    
+    logger.info(f"Minimal scrape test completed: {successful_steps}/{total_steps} steps successful")
+    
+    return results
 
 @app.get("/api/security/config")
 async def security_config():
