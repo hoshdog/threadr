@@ -24,7 +24,15 @@
       "Bash(railway logs:*)",
       "Bash(railway status:*)",
       "Bash(bash:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(timeout:*)",
+      "Bash(vercel:*)",
+      "Bash(npm install:*)",
+      "Bash(where vercel)",
+      "WebFetch(domain:threadr-app.vercel.app)",
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:vercel.com)"
     ],
     "deny": []
   }

@@ -1,16 +1,15 @@
 {
   "version": 2,
-  "name": "threadr-frontend",
-  "builds": [
+  "public": true,
+  "buildCommand": "echo 'Static site - no build required'",
+  "outputDirectory": ".",
+  "installCommand": "npm install --production=false",
+  "devCommand": "npx serve . -p 3000",
+  "framework": null,
+  "rewrites": [
     {
-      "src": "index.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
@@ -44,7 +43,7 @@
       ]
     },
     {
-      "source": "/(.*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot))",
+      "source": "/(.*)\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)",
       "headers": [
         {
           "key": "Cache-Control",
