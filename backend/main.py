@@ -1744,6 +1744,57 @@ async def debug_http_config_test(url: str = "https://httpbin.org/get"):
         "detailed_results": results
     }
 
+@app.get("/api/debug/simple-scrape")
+async def debug_simple_scrape(url: str):
+    """Test scraping with the exact same simple config as working step-by-step debug"""
+    try:
+        # Validate URL security first (same as scrape_article)
+        await validate_url_security(url)
+        
+        # Use exactly the same simple httpx config as working step-by-step debug
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+        
+        # Parse HTML (same as scrape_article)
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Extract title
+        title = None
+        if soup.title:
+            title = soup.title.string
+        elif soup.find('h1'):
+            title = soup.find('h1').get_text()
+        
+        # Remove script and style elements
+        for script in soup(["script", "style"]):
+            script.decompose()
+        
+        # Extract content from paragraphs
+        paragraphs = soup.find_all('p')
+        content = '\n\n'.join([p.get_text().strip() for p in paragraphs if p.get_text().strip()])
+        
+        # Clean up content
+        import re
+        content = re.sub(r'\s+', ' ', content)
+        content = content.strip()
+        
+        return {
+            "success": True,
+            "title": title.strip() if title else None,
+            "content": content[:500] + "..." if len(content) > 500 else content,
+            "content_length": len(content),
+            "paragraph_count": len(paragraphs)
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+
 @app.get("/api/debug/scrape-steps")
 async def debug_scrape_steps(url: str):
     """Debug endpoint to test each step of the scraping process"""
