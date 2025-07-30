@@ -1238,6 +1238,282 @@ async def debug_scrape_test():
             "error_type": type(e).__name__
         }
 
+@app.get("/api/debug/domain-check")
+async def debug_domain_check(url: str):
+    """Debug endpoint to test domain allowlist validation"""
+    try:
+        from urllib.parse import urlparse
+        
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        
+        # Test the domain allowlist logic
+        is_allowed = is_allowed_domain(url)
+        
+        return {
+            "url": url,
+            "hostname": hostname,
+            "scheme": parsed.scheme,
+            "is_allowed": is_allowed,
+            "allowed_domains": ALLOWED_DOMAINS[:10],  # Show first 10 for debugging
+            "domain_count": len(ALLOWED_DOMAINS)
+        }
+    except Exception as e:
+        return {
+            "url": url,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+
+@app.get("/api/debug/minimal-scrape")
+async def minimal_scrape_debug(url: str):
+    """Minimal URL scraper to isolate failure points - NO SECURITY VALIDATION"""
+    if ENVIRONMENT == "production":
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    debug_info = {
+        "url": url,
+        "timestamp": datetime.now().isoformat(),
+        "environment": ENVIRONMENT,
+        "steps": {}
+    }
+    
+    try:
+        # Step 1: URL Parsing
+        debug_info["steps"]["1_url_parsing"] = {"status": "attempting"}
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        
+        if not parsed.scheme or not parsed.hostname:
+            debug_info["steps"]["1_url_parsing"] = {
+                "status": "failed",
+                "error": "Invalid URL format",
+                "parsed": {
+                    "scheme": parsed.scheme,
+                    "hostname": parsed.hostname,
+                    "path": parsed.path
+                }
+            }
+            return debug_info
+        
+        debug_info["steps"]["1_url_parsing"] = {
+            "status": "success",
+            "parsed": {
+                "scheme": parsed.scheme,  
+                "hostname": parsed.hostname,
+                "port": parsed.port,
+                "path": parsed.path
+            }
+        }
+        
+        # Step 2: DNS Resolution
+        debug_info["steps"]["2_dns_resolution"] = {"status": "attempting"}
+        try:
+            import socket
+            hostname = parsed.hostname
+            ips = socket.gethostbyname_ex(hostname)[2]
+            debug_info["steps"]["2_dns_resolution"] = {
+                "status": "success",
+                "hostname": hostname,
+                "resolved_ips": ips
+            }
+        except Exception as dns_e:
+            debug_info["steps"]["2_dns_resolution"] = {
+                "status": "failed",
+                "error": str(dns_e),
+                "error_type": type(dns_e).__name__,
+                "suggestion": "DNS resolution failed - Railway may have DNS issues or hostname is invalid"
+            }
+            return debug_info
+        
+        # Step 3: HTTP Client Creation (minimal config)
+        debug_info["steps"]["3_client_creation"] = {"status": "attempting"}
+        try:
+            # Use absolute minimal httpx configuration
+            client_config = {
+                "timeout": httpx.Timeout(30.0),
+                "verify": False,  # No SSL verification to avoid SSL issues
+                "follow_redirects": True,
+                "headers": {
+                    "User-Agent": "Threadr-Debug/1.0"
+                }
+            }
+            debug_info["steps"]["3_client_creation"] = {
+                "status": "success",
+                "config": {
+                    "timeout": "30.0s",
+                    "verify_ssl": False,
+                    "follow_redirects": True
+                }
+            }
+        except Exception as client_e:
+            debug_info["steps"]["3_client_creation"] = {
+                "status": "failed",
+                "error": str(client_e),
+                "error_type": type(client_e).__name__,
+                "suggestion": "httpx client creation failed - possible import or dependency issue"
+            }
+            return debug_info
+        
+        # Step 4: HTTP Request
+        debug_info["steps"]["4_http_request"] = {"status": "attempting"}
+        try:
+            async with httpx.AsyncClient(**client_config) as client:
+                start_time = datetime.now()
+                response = await client.get(url)
+                elapsed = (datetime.now() - start_time).total_seconds()
+                
+                debug_info["steps"]["4_http_request"] = {
+                    "status": "success",
+                    "elapsed_seconds": elapsed,
+                    "response": {
+                        "status_code": response.status_code,
+                        "headers": dict(list(response.headers.items())[:10]),  # First 10 headers only
+                        "content_length": len(response.content),
+                        "final_url": str(response.url),
+                        "content_type": response.headers.get("content-type", "unknown")
+                    }
+                }
+                
+        except httpx.ConnectTimeout as e:
+            debug_info["steps"]["4_http_request"] = {
+                "status": "failed",
+                "error": str(e),
+                "error_type": "ConnectTimeout",
+                "suggestion": "Connection timeout - Railway may be blocking outbound connections to this target"
+            }
+            return debug_info
+            
+        except httpx.ReadTimeout as e:
+            debug_info["steps"]["4_http_request"] = {
+                "status": "failed", 
+                "error": str(e),
+                "error_type": "ReadTimeout",
+                "suggestion": "Read timeout - target server is slow to respond or Railway has network latency"
+            }
+            return debug_info
+            
+        except httpx.ConnectError as e:
+            debug_info["steps"]["4_http_request"] = {
+                "status": "failed",
+                "error": str(e), 
+                "error_type": "ConnectError",
+                "suggestion": "Cannot connect to target - check if Railway blocks outbound connections or target is down"
+            }
+            return debug_info
+            
+        except httpx.TransportError as e:
+            debug_info["steps"]["4_http_request"] = {
+                "status": "failed",
+                "error": str(e),
+                "error_type": "TransportError", 
+                "suggestion": "Network transport error - possible SSL, proxy, or low-level network issue"
+            }
+            return debug_info
+            
+        except httpx.HTTPStatusError as e:
+            debug_info["steps"]["4_http_request"] = {
+                "status": "failed",
+                "error": f"HTTP {e.response.status_code}: {str(e)}",
+                "error_type": "HTTPStatusError",
+                "status_code": e.response.status_code,
+                "suggestion": f"Target server returned {e.response.status_code} error"
+            }
+            return debug_info
+            
+        except httpx.RequestError as e:
+            debug_info["steps"]["4_http_request"] = {
+                "status": "failed",
+                "error": str(e),
+                "error_type": "RequestError", 
+                "suggestion": "Generic httpx request error - check logs for more details"
+            }
+            return debug_info
+        
+        # Step 5: Response Validation
+        debug_info["steps"]["5_response_validation"] = {"status": "attempting"}
+        try:
+            if response.status_code != 200:
+                debug_info["steps"]["5_response_validation"] = {
+                    "status": "failed",
+                    "error": f"Non-200 status code: {response.status_code}",
+                    "status_code": response.status_code,
+                    "suggestion": "Target returned non-success status"
+                }
+                return debug_info
+            
+            if len(response.content) == 0:
+                debug_info["steps"]["5_response_validation"] = {
+                    "status": "failed",
+                    "error": "Empty response content",
+                    "suggestion": "Target returned 200 OK but no content"
+                }
+                return debug_info
+                
+            debug_info["steps"]["5_response_validation"] = {
+                "status": "success",
+                "content_length": len(response.content),
+                "content_type": response.headers.get("content-type", "unknown")
+            }
+            
+        except Exception as val_e:
+            debug_info["steps"]["5_response_validation"] = {
+                "status": "failed",
+                "error": str(val_e),
+                "error_type": type(val_e).__name__,
+                "suggestion": "Response validation failed unexpectedly"  
+            }
+            return debug_info
+        
+        # Step 6: HTML Parsing
+        debug_info["steps"]["6_html_parsing"] = {"status": "attempting"}
+        try:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Extract basic info
+            title = None
+            if soup.title:
+                title = soup.title.string
+            elif soup.find('h1'):
+                title = soup.find('h1').get_text()
+            
+            paragraphs = soup.find_all('p')
+            paragraph_texts = [p.get_text().strip() for p in paragraphs[:3] if p.get_text().strip()]
+            
+            debug_info["steps"]["6_html_parsing"] = {
+                "status": "success",
+                "parsing": {
+                    "title": title,
+                    "paragraph_count": len(paragraphs),
+                    "sample_paragraphs": paragraph_texts
+                }
+            }
+            
+        except Exception as parse_e:
+            debug_info["steps"]["6_html_parsing"] = {
+                "status": "failed",
+                "error": str(parse_e),
+                "error_type": type(parse_e).__name__,
+                "suggestion": "BeautifulSoup parsing failed - possibly malformed HTML or encoding issues"
+            }
+            return debug_info
+        
+        # All steps successful
+        debug_info["overall_status"] = "success"
+        debug_info["message"] = "All scraping steps completed successfully"
+        
+        return debug_info
+        
+    except Exception as unexpected_e:
+        # This should catch any errors not handled above
+        debug_info["overall_status"] = "unexpected_error"
+        debug_info["unexpected_error"] = {
+            "error": str(unexpected_e),
+            "error_type": type(unexpected_e).__name__,
+            "suggestion": "Unexpected error occurred - check Railway logs for Python runtime issues"
+        }
+        return debug_info
+
 @app.get("/api/security/config")
 async def security_config():
     """Get security configuration - ONLY IN DEVELOPMENT"""
