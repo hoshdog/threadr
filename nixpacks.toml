@@ -22,7 +22,7 @@ cmds = []
 [start]
 # Start the FastAPI application with production settings
 # Use gunicorn with uvicorn workers for better production performance
-cmd = "gunicorn main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT"
+cmd = "gunicorn main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 120 --log-level info --access-logfile - --error-logfile -"
 
 [variables]
 # Python configuration for production

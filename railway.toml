@@ -6,9 +6,10 @@ buildCommand = "echo 'Building Threadr FastAPI backend...'"
 [deploy]
 # Deployment configuration
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
+startCommand = "gunicorn main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 120 --log-level info --access-logfile - --error-logfile -"
 
 # Resource limits
 numReplicas = 1

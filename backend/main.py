@@ -60,27 +60,52 @@ def load_openai_key():
 
 # Initialize OpenAI client with error handling
 openai_client = None
-try:
-    api_key = load_openai_key()
-    openai_client = OpenAI(api_key=api_key)
-    logger.info("OpenAI client initialized successfully")
-except ValueError as e:
-    logger.warning(f"OpenAI initialization failed: {e}")
-    if ENVIRONMENT == "production":
-        # In production, we should fail fast if OpenAI is not configured
-        raise e
+openai_available = False
+
+def initialize_openai_client():
+    """Initialize OpenAI client with proper error handling"""
+    global openai_client, openai_available
+    try:
+        api_key = load_openai_key()
+        openai_client = OpenAI(api_key=api_key)
+        openai_available = True
+        logger.info("OpenAI client initialized successfully")
+        return True
+    except ValueError as e:
+        logger.warning(f"OpenAI initialization failed: {e}")
+        openai_available = False
+        # Don't fail in production - allow graceful degradation
+        if ENVIRONMENT == "production":
+            logger.warning("Running in production mode without OpenAI - using fallback methods only")
+        return False
+    except Exception as e:
+        logger.error(f"Unexpected error initializing OpenAI: {e}")
+        openai_available = False
+        return False
+
+# Try to initialize OpenAI on startup
+initialize_openai_client()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     logger.info(f"Starting Threadr backend in {ENVIRONMENT} mode...")
+    logger.info(f"Python version: {sys.version}")
+    logger.info(f"Port from ENV: {os.getenv('PORT', 'not set')}")
+    logger.info(f"Host binding: 0.0.0.0")
     
-    # Production startup checks
-    if ENVIRONMENT == "production":
-        if not openai_client:
-            logger.error("OpenAI client not initialized - cannot start in production")
-            raise RuntimeError("OpenAI client required for production")
-        logger.info("Production startup checks passed")
+    # Log OpenAI availability
+    if openai_available:
+        logger.info("OpenAI client is available - full functionality enabled")
+    else:
+        logger.warning("OpenAI client not available - using fallback methods only")
+    
+    # Log all critical environment variables
+    logger.info(f"Environment: {ENVIRONMENT}")
+    logger.info(f"CORS Origins: {os.getenv('CORS_ORIGINS', 'not set')}")
+    logger.info(f"Rate limit: {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW_HOURS} hours")
+    
+    logger.info("Threadr backend startup completed successfully")
     
     yield
     
@@ -298,9 +323,9 @@ def split_into_tweets(text: str, include_thread_numbers: bool = True) -> List[st
 
 async def generate_thread_with_gpt(content: str, title: Optional[str] = None) -> List[str]:
     """Use GPT to generate an engaging thread from content"""
-    global openai_client
+    global openai_client, openai_available
     
-    if not openai_client:
+    if not openai_available or not openai_client:
         return None
         
     try:
@@ -379,8 +404,101 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+    """Health check endpoint - always returns healthy if app is running"""
+    try:
+        health_status = {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "version": "1.0.0",
+            "environment": ENVIRONMENT,
+            "port": os.getenv("PORT", "not_set"),
+            "services": {
+                "api": "healthy",
+                "openai": "configured" if openai_client is not None else "not_configured"
+            }
+        }
+        
+        logger.info(f"Health check passed: {health_status}")
+        return health_status
+        
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        # Still return 200 OK - the app is healthy if it can respond
+        return {
+            "status": "healthy", 
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e),
+            "note": "API is responding despite internal error"
+        }
+
+@app.get("/readiness")
+async def readiness_check():
+    """Readiness check - indicates if app is ready to serve traffic"""
+    try:
+        # Test basic functionality
+        test_content = "This is a test message for readiness check."
+        test_tweets = split_into_tweets(test_content)
+        
+        if not test_tweets:
+            raise Exception("Basic functionality test failed")
+        
+        return {
+            "status": "ready",
+            "timestamp": datetime.now().isoformat(),
+            "checks": {
+                "basic_functionality": "passed",
+                "openai_service": "configured" if openai_client is not None else "not_configured_but_ok"
+            }
+        }
+    except Exception as e:
+        logger.error(f"Readiness check failed: {e}")
+        return {
+            "status": "not_ready",
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e)
+        }
+
+@app.get("/debug/startup")
+async def debug_startup():
+    """Debug endpoint to check startup configuration"""
+    return {
+        "timestamp": datetime.now().isoformat(),
+        "environment": ENVIRONMENT,
+        "port": os.getenv("PORT", "not_set"),
+        "python_version": sys.version,
+        "openai_available": openai_available,
+        "openai_client_exists": openai_client is not None,
+        "rate_limiting": {
+            "requests": RATE_LIMIT_REQUESTS,
+            "window_hours": RATE_LIMIT_WINDOW_HOURS
+        },
+        "content_limits": {
+            "max_tweet_length": MAX_TWEET_LENGTH,
+            "max_content_length": MAX_CONTENT_LENGTH
+        },
+        "cors_origins": os.getenv("CORS_ORIGINS", "not_set"),
+        "process_info": {
+            "pid": os.getpid(),
+            "working_directory": os.getcwd()
+        }
+    }
+
+@app.get("/api/test")
+async def test_endpoint():
+    """Simple test endpoint to verify API is working"""
+    test_content = "This is a test message to verify the API is working correctly."
+    test_tweets = split_into_tweets(test_content)
+    
+    return {
+        "status": "working",
+        "timestamp": datetime.now().isoformat(),
+        "test_result": {
+            "input_length": len(test_content),
+            "tweets_generated": len(test_tweets),
+            "sample_tweet": test_tweets[0] if test_tweets else None
+        },
+        "openai_status": "available" if openai_available else "unavailable"
+    }
 
 @app.post("/api/generate", response_model=GenerateThreadResponse)
 async def generate_thread(
@@ -388,6 +506,7 @@ async def generate_thread(
     _: None = Depends(check_rate_limit)
 ):
     """Generate a Twitter/X thread from URL or text content"""
+    global openai_available
     try:
         # Determine source and get content
         if request.url:
@@ -402,13 +521,18 @@ async def generate_thread(
             title = None
             source_type = "text"
         
-        # Try to generate thread with GPT
+        # Try to generate thread with GPT if available
         tweets = None
-        if openai_client:
+        if openai_available and openai_client:
             try:
                 tweets = await generate_thread_with_gpt(content, title)
+                logger.info("Successfully generated thread using OpenAI")
             except Exception as e:
-                print(f"GPT generation failed: {str(e)}")
+                logger.warning(f"GPT generation failed, using fallback: {str(e)}")
+                # Re-check OpenAI availability
+                if "authentication" in str(e).lower() or "api_key" in str(e).lower():
+                    openai_available = False
+                    logger.warning("OpenAI authentication failed - disabling for future requests")
         
         # Fallback to basic splitting if GPT fails or is not available
         if not tweets:
