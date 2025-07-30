@@ -20,7 +20,11 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(mv:*)",
       "WebFetch(domain:threadr-production.up.railway.app)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(railway logs:*)",
+      "Bash(railway status:*)",
+      "Bash(bash:*)",
+      "Bash(powershell:*)"
     ],
     "deny": []
   }

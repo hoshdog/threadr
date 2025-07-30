@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
-from pydantic import BaseModel, HttpUrl, validator
+from pydantic import BaseModel, HttpUrl, validator, root_validator
 from typing import Optional, List, Dict, Union, Annotated
 import httpx
 from bs4 import BeautifulSoup
@@ -233,13 +233,16 @@ class GenerateThreadRequest(BaseModel):
             raise ValueError(f"Text content too long. Maximum {MAX_CONTENT_LENGTH} characters allowed.")
         return v
     
-    @validator('url', always=True)
-    def validate_input(cls, v, values):
-        if not v and not values.get('text'):
+    @root_validator
+    def validate_input(cls, values):
+        url = values.get('url')
+        text = values.get('text')
+        
+        if not url and not text:
             raise ValueError("Either 'url' or 'text' must be provided")
-        if v and values.get('text'):
+        if url and text:
             raise ValueError("Provide either 'url' or 'text', not both")
-        return v
+        return values
 
 class Tweet(BaseModel):
     number: int

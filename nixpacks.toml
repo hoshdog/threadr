@@ -44,3 +44,5 @@ PYTHONPATH = "/app/backend"
 # Debugging
 DEBUG = "false"
 # Let Railway set PORT dynamically (Railway provides this automatically)
+# CRITICAL: Railway Public Networking port MUST match the PORT env var
+# Railway will automatically set PORT to match the exposed service port
