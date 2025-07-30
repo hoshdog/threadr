@@ -20,6 +20,7 @@ import ipaddress
 from urllib.parse import urlparse
 import certifi
 import ssl
+import json
 
 # Initialize rate limiter storage (fallback for when Redis is unavailable)
 rate_limiter_storage: Dict[str, List[datetime]] = defaultdict(list)
@@ -443,9 +444,10 @@ async def check_rate_limit(request: Request):
 
 # Utility functions
 async def scrape_article(url: str) -> Dict[str, str]:
-    """Scrape article content from URL with security validation"""
+    """Scrape article content from URL with enhanced Railway compatibility"""
     # Enhanced logging for debugging
     logger.info(f"Starting URL scrape for: {url}")
+    logger.info(f"Environment: {ENVIRONMENT}, SSL verification override: {os.getenv('HTTPX_VERIFY_SSL', 'true')}")
     
     # Validate URL security first
     try:
@@ -455,66 +457,191 @@ async def scrape_article(url: str) -> Dict[str, str]:
         logger.error(f"URL security validation failed for {url}: {str(e)}")
         raise
     
-    # Enhanced httpx configuration for Railway with proper SSL
-    ssl_context = ssl.create_default_context(cafile=certifi.where())
-    
+    # DNS pre-resolution for debugging
     try:
-        logger.info(f"Creating httpx client with 60s timeout and certifi SSL context")
-        logger.info(f"Using CA bundle from: {certifi.where()}")
+        import socket
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        if hostname:
+            ips = socket.gethostbyname_ex(hostname)[2]
+            logger.info(f"DNS resolution for {hostname}: {ips}")
+    except Exception as dns_e:
+        logger.warning(f"DNS pre-resolution failed: {dns_e}")
+    
+    # SSL configuration with environment variable override
+    verify_ssl = os.getenv("HTTPX_VERIFY_SSL", "true").lower() != "false"
+    ssl_context = None
+    
+    if verify_ssl:
+        try:
+            # Try multiple CA bundle locations for Railway compatibility
+            ca_locations = [
+                certifi.where(),  # certifi bundle
+                os.getenv("SSL_CERT_FILE"),  # Environment variable
+                "/etc/ssl/certs/ca-certificates.crt",  # Debian/Ubuntu
+                "/etc/pki/tls/certs/ca-bundle.crt",  # RHEL/CentOS
+            ]
+            
+            for ca_path in ca_locations:
+                if ca_path and os.path.exists(ca_path):
+                    ssl_context = ssl.create_default_context(cafile=ca_path)
+                    logger.info(f"Using CA bundle from: {ca_path}")
+                    break
+            
+            if not ssl_context:
+                ssl_context = ssl.create_default_context()
+                logger.info("Using system default SSL context")
+                
+        except Exception as ssl_e:
+            logger.warning(f"SSL context creation failed: {ssl_e}, will retry without verification")
+            verify_ssl = False
+    
+    # Retry configuration
+    max_retries = 3
+    retry_delay = 1.0
+    
+    for attempt in range(max_retries):
+        try:
+            # Transport configuration for Railway
+            transport_kwargs = {
+                "retries": 1,
+                "local_address": "0.0.0.0",  # Bind to all interfaces in container
+            }
+            
+            # Check for proxy configuration
+            http_proxy = os.getenv("HTTP_PROXY") or os.getenv("http_proxy")
+            https_proxy = os.getenv("HTTPS_PROXY") or os.getenv("https_proxy")
+            proxies = {}
+            if http_proxy:
+                proxies["http://"] = http_proxy
+                logger.info(f"Using HTTP proxy: {http_proxy}")
+            if https_proxy:
+                proxies["https://"] = https_proxy
+                logger.info(f"Using HTTPS proxy: {https_proxy}")
+            
+            # Enhanced httpx configuration
+            logger.info(f"Attempt {attempt + 1}/{max_retries}: Creating httpx client (verify_ssl={verify_ssl})")
+            
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(60.0, connect=30.0, read=30.0, write=30.0),
+                follow_redirects=True,
+                limits=httpx.Limits(
+                    max_keepalive_connections=5,
+                    max_connections=10,
+                    keepalive_expiry=30.0
+                ),
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.5",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    "DNT": "1",
+                    "Connection": "keep-alive",
+                    "Upgrade-Insecure-Requests": "1",
+                    "Cache-Control": "no-cache",
+                    "Pragma": "no-cache"
+                },
+                verify=ssl_context if verify_ssl else False,
+                proxies=proxies if proxies else None,
+                transport=httpx.AsyncHTTPTransport(**transport_kwargs)
+            ) as client:
+                logger.info(f"Fetching URL: {url}")
+                response = await client.get(str(url))
+                logger.info(f"Response received - Status: {response.status_code}, Content-Length: {len(response.content)}, Headers: {dict(response.headers)}")
+                response.raise_for_status()
+                
+                # Success - break out of retry loop
+                break
+                
+        except httpx.ConnectTimeout as e:
+            logger.error(f"Connection timeout (attempt {attempt + 1}): {str(e)}")
+            if attempt == max_retries - 1:
+                raise HTTPException(
+                    status_code=504,
+                    detail="Connection timeout - Railway network may be blocking outbound connections. Check Railway logs for network restrictions."
+                )
+            await asyncio.sleep(retry_delay)
+            retry_delay *= 2
+            
+        except httpx.ReadTimeout as e:
+            logger.error(f"Read timeout (attempt {attempt + 1}): {str(e)}")
+            if attempt == max_retries - 1:
+                raise HTTPException(status_code=504, detail="Read timeout - target server took too long to respond")
+            await asyncio.sleep(retry_delay)
+            retry_delay *= 2
+            
+        except (httpx.RequestError, httpx.TransportError) as e:
+            error_details = {
+                "type": type(e).__name__,
+                "message": str(e),
+                "url": url,
+                "attempt": attempt + 1,
+                "verify_ssl": verify_ssl
+            }
+            logger.error(f"Request error: {json.dumps(error_details)}")
+            
+            # Check for SSL-related errors with better detection
+            ssl_error_indicators = [
+                "SSL", "ssl", "TLS", "tls",
+                "certificate", "Certificate",
+                "CERTIFICATE_VERIFY_FAILED",
+                "unable to get local issuer certificate",
+                "self signed certificate",
+                "certificate verify failed"
+            ]
+            
+            is_ssl_error = any(indicator in str(e) for indicator in ssl_error_indicators)
+            
+            if is_ssl_error and verify_ssl and attempt == 0:
+                logger.warning("SSL error detected, retrying without verification")
+                verify_ssl = False
+                ssl_context = None
+                continue
+            
+            if attempt == max_retries - 1:
+                # Final attempt failed
+                if is_ssl_error:
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"SSL/TLS error: {str(e)}. Try setting HTTPX_VERIFY_SSL=false in Railway environment variables."
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"Network error after {max_retries} attempts: {type(e).__name__} - {str(e)}"
+                    )
+            
+            await asyncio.sleep(retry_delay)
+            retry_delay *= 2
+            
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error {e.response.status_code} for URL {url}")
+            if e.response.status_code == 403:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Access forbidden - the website may be blocking automated requests"
+                )
+            elif e.response.status_code == 429:
+                raise HTTPException(
+                    status_code=429,
+                    detail="Too many requests - the website is rate limiting us"
+                )
+            else:
+                raise HTTPException(
+                    status_code=e.response.status_code,
+                    detail=f"Target server returned error: {e.response.status_code}"
+                )
         
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(60.0, connect=30.0),  # Increased timeout
-            follow_redirects=True,
-            limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.5",
-                "Accept-Encoding": "gzip, deflate, br",
-                "DNT": "1",
-                "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1"
-            },
-            verify=ssl_context
-        ) as client:
-            logger.info(f"Fetching URL: {url}")
-            response = await client.get(str(url))
-            logger.info(f"Response received - Status: {response.status_code}, Content-Length: {len(response.content)}")
-            response.raise_for_status()
-    except httpx.ConnectTimeout as e:
-        logger.error(f"Connection timeout for URL {url}: {str(e)}")
-        raise HTTPException(status_code=504, detail=f"Connection timeout - Railway may be blocking outbound connections")
-    except httpx.ReadTimeout as e:
-        logger.error(f"Read timeout for URL {url}: {str(e)}")
-        raise HTTPException(status_code=504, detail=f"Read timeout - target server took too long to respond")
-    except httpx.RequestError as e:
-        logger.error(f"Request error for URL {url}: {type(e).__name__}: {str(e)}")
-        
-        # If SSL error, try without verification as fallback
-        if "SSL" in str(e) or "certificate" in str(e).lower():
-            logger.warning(f"SSL error detected, retrying without verification for {url}")
-            try:
-                async with httpx.AsyncClient(
-                    timeout=httpx.Timeout(60.0, connect=30.0),
-                    follow_redirects=True,
-                    verify=False,  # Disable SSL verification
-                    headers={
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                    }
-                ) as fallback_client:
-                    logger.warning("Attempting fetch without SSL verification")
-                    response = await fallback_client.get(str(url))
-                    logger.info(f"Fallback successful - Status: {response.status_code}")
-                    response.raise_for_status()
-                    # Continue with the response processing below
-            except Exception as fallback_e:
-                logger.error(f"Fallback also failed: {fallback_e}")
-                raise HTTPException(status_code=502, detail=f"Network error (SSL and fallback failed): {str(e)}")
-        else:
-            raise HTTPException(status_code=502, detail=f"Network error: {type(e).__name__} - {str(e)}")
-    except httpx.HTTPStatusError as e:
-        logger.error(f"HTTP error {e.response.status_code} for URL {url}")
-        raise HTTPException(status_code=e.response.status_code, detail=f"Target server returned error: {e.response.status_code}")
+        except Exception as e:
+            logger.error(f"Unexpected error (attempt {attempt + 1}): {type(e).__name__}: {str(e)}")
+            if attempt == max_retries - 1:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Unexpected error after {max_retries} attempts: {type(e).__name__} - {str(e)}"
+                )
+            await asyncio.sleep(retry_delay)
+            retry_delay *= 2
     
     # Parse HTML with error handling
     try:
@@ -919,70 +1046,172 @@ async def test_url_check(url: str):
 
 @app.get("/api/test/railway-network")
 async def test_railway_network():
-    """Test Railway network connectivity - checks common issues"""
+    """Test Railway network connectivity - comprehensive diagnostics"""
     results = {
         "timestamp": datetime.now().isoformat(),
         "environment": ENVIRONMENT,
+        "railway_env": {
+            "RAILWAY_ENVIRONMENT": os.getenv("RAILWAY_ENVIRONMENT"),
+            "RAILWAY_PROJECT_ID": os.getenv("RAILWAY_PROJECT_ID"),
+            "RAILWAY_SERVICE_ID": os.getenv("RAILWAY_SERVICE_ID"),
+            "HTTPX_VERIFY_SSL": os.getenv("HTTPX_VERIFY_SSL", "not_set"),
+            "SSL_CERT_FILE": os.getenv("SSL_CERT_FILE", "not_set"),
+            "HTTP_PROXY": os.getenv("HTTP_PROXY", "not_set"),
+            "HTTPS_PROXY": os.getenv("HTTPS_PROXY", "not_set")
+        },
         "tests": {}
     }
     
-    # Test 1: DNS Resolution
-    test_domains = ["google.com", "medium.com", "api.openai.com"]
+    # Test 1: CA Bundle availability
+    try:
+        ca_locations = [
+            certifi.where(),
+            "/etc/ssl/certs/ca-certificates.crt",
+            "/etc/pki/tls/certs/ca-bundle.crt",
+        ]
+        ca_results = {}
+        for ca_path in ca_locations:
+            if ca_path:
+                ca_results[ca_path] = os.path.exists(ca_path)
+        results["tests"]["ca_bundles"] = ca_results
+    except Exception as e:
+        results["tests"]["ca_bundles"] = {"error": str(e)}
+    
+    # Test 2: DNS Resolution with detailed info
+    test_domains = ["google.com", "medium.com", "api.openai.com", "httpbin.org"]
     for domain in test_domains:
         try:
             import socket
-            ip = socket.gethostbyname(domain)
-            results["tests"][f"dns_{domain}"] = {"success": True, "ip": ip}
+            # Get all IPs for the domain
+            hostname, aliaslist, ipaddrlist = socket.gethostbyname_ex(domain)
+            results["tests"][f"dns_{domain}"] = {
+                "success": True,
+                "hostname": hostname,
+                "aliases": aliaslist,
+                "ips": ipaddrlist
+            }
         except Exception as e:
             results["tests"][f"dns_{domain}"] = {"success": False, "error": str(e)}
     
-    # Test 2: Basic HTTP connectivity
+    # Test 3: httpx with different SSL configurations
+    test_configs = [
+        ("ssl_verify_true", True, "with SSL verification"),
+        ("ssl_verify_false", False, "without SSL verification")
+    ]
+    
+    for config_name, verify_ssl, description in test_configs:
+        test_url = "https://httpbin.org/get"
+        try:
+            ssl_context = None
+            if verify_ssl:
+                ssl_context = ssl.create_default_context(cafile=certifi.where())
+            
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(10.0),
+                verify=ssl_context if verify_ssl else False,
+                headers={"User-Agent": "Threadr/1.0 Railway Network Test"},
+                transport=httpx.AsyncHTTPTransport(
+                    retries=1,
+                    local_address="0.0.0.0"
+                )
+            ) as client:
+                start_time = datetime.now()
+                response = await client.get(test_url)
+                elapsed = (datetime.now() - start_time).total_seconds()
+                
+                results["tests"][config_name] = {
+                    "success": True,
+                    "description": description,
+                    "status_code": response.status_code,
+                    "elapsed_seconds": elapsed,
+                    "response_headers": dict(response.headers)
+                }
+        except Exception as e:
+            results["tests"][config_name] = {
+                "success": False,
+                "description": description,
+                "error_type": type(e).__name__,
+                "error": str(e),
+                "error_details": repr(e)
+            }
+    
+    # Test 4: Multiple URLs with detailed error info
     test_urls = [
         ("https://httpbin.org/get", "httpbin"),
         ("https://api.github.com", "github"),
-        ("https://medium.com", "medium")
+        ("https://medium.com", "medium"),
+        ("https://example.com", "example")
     ]
     
     for url, name in test_urls:
         try:
+            # Use the same configuration as scrape_article
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(10.0),
-                verify=False,  # Disable SSL verification for testing
-                headers={"User-Agent": "Threadr/1.0 Railway Network Test"}
+                timeout=httpx.Timeout(30.0, connect=15.0),
+                follow_redirects=True,
+                limits=httpx.Limits(
+                    max_keepalive_connections=5,
+                    max_connections=10
+                ),
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                verify=False,  # Testing without SSL verification
+                transport=httpx.AsyncHTTPTransport(
+                    retries=1,
+                    local_address="0.0.0.0"
+                )
             ) as client:
                 start_time = datetime.now()
                 response = await client.get(url)
                 elapsed = (datetime.now() - start_time).total_seconds()
                 
-                results["tests"][f"http_{name}"] = {
+                results["tests"][f"fetch_{name}"] = {
                     "success": True,
+                    "url": url,
                     "status_code": response.status_code,
                     "elapsed_seconds": elapsed,
-                    "content_length": len(response.content)
+                    "content_type": response.headers.get("content-type", "unknown"),
+                    "content_length": len(response.content),
+                    "final_url": str(response.url) if response.url != url else "no_redirect"
                 }
-        except Exception as e:
-            results["tests"][f"http_{name}"] = {
+        except httpx.ConnectTimeout as e:
+            results["tests"][f"fetch_{name}"] = {
                 "success": False,
+                "url": url,
+                "error_type": "ConnectTimeout",
+                "error": str(e),
+                "suggestion": "Railway may be blocking outbound connections or target is unreachable"
+            }
+        except httpx.ReadTimeout as e:
+            results["tests"][f"fetch_{name}"] = {
+                "success": False,
+                "url": url,
+                "error_type": "ReadTimeout",
+                "error": str(e),
+                "suggestion": "Target server is slow to respond"
+            }
+        except Exception as e:
+            results["tests"][f"fetch_{name}"] = {
+                "success": False,
+                "url": url,
                 "error_type": type(e).__name__,
-                "error": str(e)
+                "error": str(e),
+                "error_repr": repr(e)
             }
     
-    # Test 3: SSL Certificate validation
+    # Test 5: Check system network interfaces
     try:
-        async with httpx.AsyncClient(verify=True) as client:
-            response = await client.get("https://github.com")
-            results["tests"]["ssl_verification"] = {"success": True}
+        import socket
+        hostname = socket.gethostname()
+        local_ip = socket.gethostbyname(hostname)
+        results["tests"]["network_info"] = {
+            "hostname": hostname,
+            "local_ip": local_ip
+        }
     except Exception as e:
-        results["tests"]["ssl_verification"] = {"success": False, "error": str(e)}
-    
-    # Test 4: Railway-specific environment
-    results["railway_env"] = {
-        "RAILWAY_ENVIRONMENT": os.getenv("RAILWAY_ENVIRONMENT"),
-        "RAILWAY_PROJECT_ID": os.getenv("RAILWAY_PROJECT_ID"),
-        "RAILWAY_SERVICE_ID": os.getenv("RAILWAY_SERVICE_ID"),
-        "PORT": os.getenv("PORT"),
-        "has_ca_bundle": os.path.exists("/etc/ssl/certs/ca-certificates.crt")
-    }
+        results["tests"]["network_info"] = {"error": str(e)}
     
     return results
 

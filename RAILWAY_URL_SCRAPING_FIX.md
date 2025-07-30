@@ -3,183 +3,191 @@
 ## Issue Summary
 All URL scraping is failing with 500 errors on Railway, while text input works perfectly. This is a common issue with Railway deployments due to network restrictions, SSL/TLS issues, or container configuration.
 
-## Root Causes & Solutions
+## Enhanced Implementation (2025-07-30)
 
-### 1. SSL/TLS Certificate Issues
-**Problem**: Railway containers may not have proper CA certificates installed or httpx may have issues with SSL verification.
+### Key Improvements Applied to `scrape_article` Function
 
-**Solutions Applied**:
-- Added `certifi` to requirements.txt for proper CA bundle management
-- Updated httpx client to use certifi's CA bundle explicitly
-- Added SSL fallback mode that disables verification if SSL errors occur
-- Enhanced logging to track SSL context usage
+1. **Environment-Based SSL Control**
+   - Added `HTTPX_VERIFY_SSL` environment variable support
+   - Automatically attempts SSL fallback on first failure
+   - Checks multiple CA bundle locations for Railway compatibility
 
-### 2. Network Egress Restrictions
-**Problem**: Railway may have firewall rules or network policies blocking outbound HTTPS requests.
+2. **Comprehensive Error Handling**
+   - Better SSL error detection with expanded keyword list
+   - Detailed error logging with JSON-formatted error details
+   - Specific error messages for different failure types (403, 429, timeouts)
 
-**Solutions Applied**:
-- Increased timeout from 30s to 60s (connect timeout: 30s)
-- Added comprehensive User-Agent headers to avoid bot detection
-- Added retry logic with transport configuration
-- Enhanced error messages to identify network vs SSL issues
+3. **Retry Mechanism with Exponential Backoff**
+   - 3 retry attempts with increasing delays (1s, 2s, 4s)
+   - SSL verification disabled on first SSL error
+   - Preserves original error context across retries
 
-### 3. DNS Resolution Issues
-**Problem**: Railway containers might have DNS resolution problems for external domains.
+4. **Transport Configuration**
+   - Binds to all interfaces (`0.0.0.0`) in container
+   - Support for HTTP/HTTPS proxy environment variables
+   - Keepalive configuration optimized for Railway
 
-**Solutions Applied**:
-- Added `/api/test/railway-network` endpoint to test DNS resolution
-- Tests multiple domains to identify patterns
-- Logs resolved IPs for debugging
+5. **Enhanced Diagnostics**
+   - DNS pre-resolution with IP logging
+   - Response header logging for debugging
+   - CA bundle location detection and logging
 
-### 4. httpx Configuration for Railway
-**Problem**: Default httpx settings may not work well in Railway's container environment.
+## Environment Variables for Railway
 
-**Solutions Applied**:
-```python
-# Enhanced configuration
-async with httpx.AsyncClient(
-    timeout=httpx.Timeout(60.0, connect=30.0),
-    follow_redirects=True,
-    limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
-    headers={
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-        "Accept-Encoding": "gzip, deflate, br",
-        "DNT": "1",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1"
-    },
-    verify=ssl_context
-) as client:
-```
-
-## Debugging Steps
-
-### 1. Test Network Connectivity
+### Required for SSL Issues
 ```bash
-# SSH into Railway service
-railway run bash
-
-# Test DNS
-nslookup medium.com
-nslookup google.com
-
-# Test HTTPS connectivity
-curl -v https://medium.com
-curl -v https://httpbin.org/get
-
-# Check CA certificates
-ls -la /etc/ssl/certs/
-```
-
-### 2. Use Debug Endpoints
-```bash
-# Test Railway network environment
-curl https://your-app.railway.app/api/test/railway-network
-
-# Test specific URL (development mode only)
-curl -X POST https://your-app.railway.app/api/test/url-check?url=https://medium.com
-```
-
-### 3. Check Logs
-Look for these specific log patterns:
-- "SSL error detected, retrying without verification"
-- "Connection timeout - Railway may be blocking outbound connections"
-- "Using CA bundle from: /path/to/certifi/cacert.pem"
-
-## Environment Variables to Set in Railway
-
-```bash
-# Disable SSL verification (temporary workaround)
+# Disable SSL verification (if getting SSL errors)
 HTTPX_VERIFY_SSL=false
 
-# Set custom CA bundle path if needed
+# Custom CA bundle path (if Railway has specific certificates)
 SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+```
 
-# Increase logging
+### Optional Proxy Configuration
+```bash
+# If Railway provides an HTTP proxy
+HTTP_PROXY=http://proxy.railway.internal:8080
+HTTPS_PROXY=http://proxy.railway.internal:8080
+```
+
+### Debugging
+```bash
+# Increase logging verbosity
 LOG_LEVEL=DEBUG
-
-# Allow all domains (for testing only)
-ALLOWED_DOMAINS=""
 ```
 
-## Quick Fixes to Try
+## Testing Endpoints
 
-### 1. Disable SSL Verification (Temporary)
-Set in Railway environment:
-```
-ENVIRONMENT=production
-```
-This triggers the SSL fallback mode automatically.
-
-### 2. Use Railway's Built-in Proxy
-If Railway provides an HTTP proxy, configure it:
-```python
-proxy = os.getenv("HTTP_PROXY")
-if proxy:
-    client = httpx.AsyncClient(proxy=proxy)
+### 1. Network Diagnostics (Enhanced)
+```bash
+curl https://your-app.railway.app/api/test/railway-network
 ```
 
-### 3. Switch to requests Library (Last Resort)
-If httpx continues to fail, try the synchronous requests library:
-```python
-import requests
-response = requests.get(url, timeout=30, verify=False)
+This endpoint now tests:
+- CA bundle availability across multiple locations
+- DNS resolution with full IP listing
+- SSL verification on/off comparison
+- Multiple URL fetching with same config as production
+- System network interface information
+- Railway-specific environment variables
+
+### 2. URL Check (Development Only)
+```bash
+curl -X POST "https://your-app.railway.app/api/test/url-check?url=https://medium.com/article"
 ```
 
-## Monitoring
-
-### Key Metrics to Track
-1. SSL verification failures vs successes
-2. Connection timeouts by domain
-3. DNS resolution times
-4. Response times for successful requests
-
-### Log Patterns
+### 3. Production URL Scraping
+```bash
+curl -X POST https://your-app.railway.app/api/generate \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-key" \
+  -d '{"url": "https://medium.com/p/sample-article"}'
 ```
-INFO: Starting URL scrape for: https://medium.com/...
-INFO: URL security validation passed
-INFO: Creating httpx client with 60s timeout and certifi SSL context
+
+## Debugging Process
+
+### 1. Check Logs for Patterns
+Look for these specific messages:
+```
+INFO: Environment: production, SSL verification override: true
+INFO: DNS resolution for medium.com: ['104.16.120.127', '104.16.121.127']
 INFO: Using CA bundle from: /app/.venv/lib/python3.11/site-packages/certifi/cacert.pem
-INFO: Fetching URL: https://medium.com/...
+INFO: Attempt 1/3: Creating httpx client (verify_ssl=True)
+WARNING: SSL error detected, retrying without verification
+INFO: Attempt 2/3: Creating httpx client (verify_ssl=False)
 INFO: Response received - Status: 200, Content-Length: 45678
 ```
 
-## Testing After Deployment
+### 2. Common Error Patterns and Solutions
 
-1. **Basic connectivity test**:
-   ```bash
-   curl -X POST https://your-app.railway.app/api/generate \
-     -H "Content-Type: application/json" \
-     -H "X-API-Key: your-key" \
-     -d '{"text": "Test text input"}'
-   ```
+#### SSL Certificate Errors
+```
+Error: CERTIFICATE_VERIFY_FAILED
+Solution: Set HTTPX_VERIFY_SSL=false in Railway environment
+```
 
-2. **URL scraping test**:
-   ```bash
-   curl -X POST https://your-app.railway.app/api/generate \
-     -H "Content-Type: application/json" \
-     -H "X-API-Key: your-key" \
-     -d '{"url": "https://medium.com/p/sample-article"}'
-   ```
+#### Connection Timeouts
+```
+Error: Connection timeout - Railway network may be blocking outbound connections
+Solution: Contact Railway support to check firewall rules
+```
 
-3. **Network diagnostic**:
-   ```bash
-   curl https://your-app.railway.app/api/test/railway-network
-   ```
+#### DNS Resolution Failures
+```
+Error: DNS resolution failed
+Solution: Check if Railway DNS is working, may need custom DNS servers
+```
+
+## Implementation Details
+
+### SSL Fallback Logic
+```python
+# Automatic SSL fallback on first error
+ssl_error_indicators = [
+    "SSL", "ssl", "TLS", "tls",
+    "certificate", "Certificate",
+    "CERTIFICATE_VERIFY_FAILED",
+    "unable to get local issuer certificate",
+    "self signed certificate",
+    "certificate verify failed"
+]
+```
+
+### Transport Configuration
+```python
+transport=httpx.AsyncHTTPTransport(
+    retries=1,
+    local_address="0.0.0.0"  # Bind to all interfaces
+)
+```
+
+### Retry Strategy
+- Attempt 1: With SSL verification (if enabled)
+- Attempt 2: Without SSL verification (if SSL error)
+- Attempt 3: Final retry with exponential backoff
+
+## Quick Fixes
+
+### 1. Immediate SSL Bypass
+Add to Railway environment:
+```
+HTTPX_VERIFY_SSL=false
+```
+
+### 2. Test Basic Connectivity
+Use the network diagnostic endpoint to identify specific issues:
+```bash
+curl https://your-app.railway.app/api/test/railway-network | jq
+```
+
+### 3. Monitor Specific URL
+Watch logs while testing a specific URL:
+```bash
+railway logs -f | grep "medium.com"
+```
 
 ## If All Else Fails
 
-1. **Use a proxy service**: Route requests through a proxy API like ScraperAPI
-2. **Implement client-side scraping**: Move URL fetching to the frontend
-3. **Use Railway's support**: They may need to whitelist domains or adjust firewall rules
-4. **Consider alternative hosting**: Render.com or Fly.io may have fewer restrictions
+1. **Contact Railway Support**
+   - Request firewall rule review
+   - Ask about outbound HTTPS restrictions
+   - Check if specific ports are blocked
+
+2. **Alternative Solutions**
+   - Use a scraping API service (ScraperAPI, Bright Data)
+   - Implement client-side URL fetching
+   - Deploy a separate scraping microservice on a different platform
+
+3. **Fallback Deployment**
+   - Consider Render.com or Fly.io if Railway restrictions persist
+   - Use the Dockerfile deployment method instead of nixpacks
 
 ## Update History
 - 2025-01-30: Initial fix implementation
-- Added certifi for SSL certificate management
-- Increased timeouts to 60 seconds
-- Added SSL fallback mode
-- Enhanced logging throughout scraping flow
-- Added comprehensive headers to avoid bot detection
+- 2025-07-30: Enhanced implementation with:
+  - Retry mechanism with exponential backoff
+  - Better SSL error detection
+  - Proxy support
+  - DNS pre-resolution
+  - Comprehensive network diagnostics
+  - Environment variable controls
