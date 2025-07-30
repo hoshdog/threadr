@@ -32,7 +32,10 @@
       "WebFetch(domain:threadr-app.vercel.app)",
       "WebFetch(domain:vercel.com)",
       "WebFetch(domain:vercel.com)",
-      "WebFetch(domain:vercel.com)"
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:threadr-plum.vercel.app)",
+      "Bash(npx vercel:*)",
+      "Bash(nslookup:*)"
     ],
     "deny": []
   }

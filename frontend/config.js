@@ -54,12 +54,8 @@ const config = {
             return null;
         }
         
-        // Production API key for ALL Vercel deployments and production domains
-        if (hostname.includes('vercel.app') || hostname.includes('threadr.app')) {
-            return 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
-        }
-        
-        // Default production API key
+        // Production API key for ALL non-localhost deployments
+        // This includes Vercel preview deployments, production, and any custom domains
         return 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
     })(),
     
@@ -85,4 +81,11 @@ if (config.FEATURES.DEBUG_MODE) {
     console.log('Threadr Config:', config);
     console.log('Environment:', config.ENV);
     console.log('API URL:', config.API_URL);
+    console.log('API Key:', config.API_KEY ? '[HIDDEN]' : 'null');
+}
+
+// Also log in production for debugging (temporary)
+if (!config.FEATURES.DEBUG_MODE && window.location.hostname.includes('vercel')) {
+    console.log('Production Debug - Hostname:', window.location.hostname);
+    console.log('Production Debug - API Key configured:', !!config.API_KEY);
 }
