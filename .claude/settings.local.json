@@ -38,7 +38,8 @@
       "Bash(nslookup:*)",
       "Bash(sed:*)",
       "Bash(git mv:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(taskkill:*)"
     ],
     "deny": []
   }

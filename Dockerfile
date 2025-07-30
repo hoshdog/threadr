@@ -7,6 +7,7 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV ENVIRONMENT=production
+ENV PYTHONPATH=/app:/app/src
 
 # Set working directory
 WORKDIR /app

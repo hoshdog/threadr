@@ -10,6 +10,12 @@ python = "3.11"
 # This eliminates the need for 'cd backend' commands
 [phases.build]
 workDir = "backend"
+cmds = [
+  "echo 'Verifying directory structure...'",
+  "ls -la",
+  "ls -la src/ || echo 'src directory not found'",
+  "echo 'Python path will be: /app/backend:/app/backend/src'"
+]
 
 # Setup phase - install dependencies
 [phases.setup]
@@ -25,7 +31,7 @@ cmds = [
 # Using exec to ensure proper signal handling
 [start]
 workDir = "backend"
-cmd = "exec python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT --workers 1 --log-level debug --access-log --timeout-keep-alive 30"
+cmd = "exec python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT --workers 1 --log-level info --access-log --timeout-keep-alive 30"
 
 # Environment variables to force uvicorn usage
 [variables]
@@ -39,8 +45,8 @@ DISABLE_COLLECTSTATIC = "1"
 WEB_CONCURRENCY = "1"
 # Explicitly disable alternative servers
 RAILWAY_NO_GUNICORN = "true"
-# Python path to ensure imports work
-PYTHONPATH = "/app/backend"
+# Python path to ensure imports work - includes both backend and src directories
+PYTHONPATH = "/app/backend:/app/backend/src"
 # Debugging
 DEBUG = "false"
 # Let Railway set PORT dynamically (Railway provides this automatically)

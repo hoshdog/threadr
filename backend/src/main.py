@@ -15,7 +15,11 @@ from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor
 import logging
 import sys
-from redis_manager import initialize_redis, get_redis_manager
+# Import redis_manager - try relative import first, then absolute
+try:
+    from .redis_manager import initialize_redis, get_redis_manager
+except ImportError:
+    from redis_manager import initialize_redis, get_redis_manager
 import ipaddress
 from urllib.parse import urlparse
 import certifi
