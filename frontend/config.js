@@ -54,7 +54,12 @@ const config = {
             return null;
         }
         
-        // Production API key - using first key from backend
+        // Production API key for ALL Vercel deployments and production domains
+        if (hostname.includes('vercel.app') || hostname.includes('threadr.app')) {
+            return 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
+        }
+        
+        // Default production API key
         return 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
     })(),
     
