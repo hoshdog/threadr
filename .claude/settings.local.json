@@ -36,7 +36,9 @@
       "WebFetch(domain:threadr-plum.vercel.app)",
       "Bash(npx vercel:*)",
       "Bash(nslookup:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(git mv:*)",
+      "Bash(true)"
     ],
     "deny": []
   }
