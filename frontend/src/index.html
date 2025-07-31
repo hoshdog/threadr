@@ -28,7 +28,7 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-    <div x-data="threadrApp()" x-init="init()" class="container mx-auto px-4 py-8 max-w-4xl">
+    <div x-data="threadrApp()" x-init="init(); window.threadrAppInstance = $data" class="container mx-auto px-4 py-8 max-w-4xl">
         <!-- Header -->
         <header class="text-center mb-10">
             <div class="flex justify-between items-start mb-4">
@@ -85,9 +85,12 @@
                 <input 
                     type="url" 
                     x-model="urlInput"
+                    id="url-input"
                     placeholder="https://example.com/article"
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     @keyup.enter="generateThread()"
+                    @input="urlInput = $event.target.value"
+                    @paste="setTimeout(() => { urlInput = $event.target.value }, 10)"
                 >
             </div>
 
@@ -96,9 +99,12 @@
                 <label class="block text-sm font-medium text-gray-700 mb-2">Paste your content</label>
                 <textarea 
                     x-model="textInput"
+                    id="text-input"
                     placeholder="Paste your article content here..."
                     rows="6"
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    @input="textInput = $event.target.value"
+                    @paste="setTimeout(() => { textInput = $event.target.value }, 10)"
                 ></textarea>
             </div>
 
@@ -302,6 +308,92 @@
     </div>
 
     <script>
+        // Enhanced debugging and fallback input handling
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, setting up input debugging...');
+            
+            // Add a small delay to ensure Alpine.js has a chance to initialize
+            setTimeout(function() {
+                console.log('Checking input field status...');
+                
+                // Check if Alpine.js is working by testing if data binding is active
+                const urlInput = document.getElementById('url-input');
+                const textInput = document.getElementById('text-input');
+                
+                console.log('URL Input element:', urlInput);
+                console.log('Text Input element:', textInput);
+                
+                if (urlInput && textInput) {
+                    // Test basic input functionality
+                    console.log('Testing input field functionality...');
+                    
+                    // Test if inputs are focusable
+                    try {
+                        urlInput.focus();
+                        console.log('URL input can be focused');
+                    } catch (e) {
+                        console.error('URL input focus failed:', e);
+                    }
+                    
+                    // Test if inputs accept typing
+                    urlInput.addEventListener('input', function(e) {
+                        console.log('URL input changed:', e.target.value);
+                    });
+                    
+                    textInput.addEventListener('input', function(e) {
+                        console.log('Text input changed:', e.target.value);
+                    });
+                    
+                    // Test Alpine.js data binding
+                    const testValue = 'test-' + Math.random();
+                    urlInput.value = testValue;
+                    
+                    // If Alpine.js is not working, the x-model won't update
+                    setTimeout(function() {
+                        if (urlInput.value === testValue) {
+                            // Alpine.js might not be working, clear test and add manual listeners
+                            urlInput.value = '';
+                            console.log('Alpine.js data binding may not be working, adding fallback handlers');
+                            
+                            // Add manual event listeners as fallback
+                            urlInput.addEventListener('input', function(e) {
+                                if (window.threadrAppInstance && window.threadrAppInstance.urlInput !== e.target.value) {
+                                    window.threadrAppInstance.urlInput = e.target.value;
+                                    console.log('Manual sync: URL input updated to', e.target.value);
+                                }
+                            });
+                            
+                            textInput.addEventListener('input', function(e) {
+                                if (window.threadrAppInstance && window.threadrAppInstance.textInput !== e.target.value) {
+                                    window.threadrAppInstance.textInput = e.target.value;
+                                    console.log('Manual sync: Text input updated to', e.target.value);
+                                }
+                            });
+                        } else {
+                            console.log('Alpine.js data binding appears to be working correctly');
+                        }
+                    }, 50);
+                } else {
+                    console.error('Input elements not found!');
+                    console.log('Available elements with IDs:', Array.from(document.querySelectorAll('[id]')).map(el => el.id));
+                }
+            }, 500);
+            
+            // Also add a later check to see if Alpine.js has initialized
+            setTimeout(function() {
+                console.log('Checking Alpine.js initialization status...');
+                console.log('Alpine available:', typeof window.Alpine !== 'undefined');
+                console.log('App instance available:', typeof window.threadrAppInstance !== 'undefined');
+                if (window.threadrAppInstance) {
+                    console.log('Current app state:', {
+                        inputType: window.threadrAppInstance.inputType,
+                        urlInput: window.threadrAppInstance.urlInput,
+                        textInput: window.threadrAppInstance.textInput
+                    });
+                }
+            }, 2000);
+        });
+
         function threadrApp() {
             return {
                 inputType: 'url',
@@ -325,16 +417,32 @@
                 paymentError: ''
 
                 async init() {
-                    // Check localStorage for usage count and email capture status
-                    this.usageCount = parseInt(localStorage.getItem('threadr_usage_count') || '0');
-                    this.emailCaptured = localStorage.getItem('threadr_email_captured') === 'true';
-                    
-                    // Handle payment return URLs
-                    this.handlePaymentReturn();
-                    
-                    // Load usage data and payment config
-                    await this.loadUsageData();
-                    await this.loadPaymentConfig();
+                    console.log('Threadr Alpine.js app initializing...');
+                    try {
+                        // Check localStorage for usage count and email capture status
+                        this.usageCount = parseInt(localStorage.getItem('threadr_usage_count') || '0');
+                        this.emailCaptured = localStorage.getItem('threadr_email_captured') === 'true';
+                        
+                        console.log('Basic initialization complete. Input fields should be ready.');
+                        
+                        // Handle payment return URLs (non-blocking)
+                        this.handlePaymentReturn();
+                        
+                        // Load usage data and payment config asynchronously without blocking UI
+                        setTimeout(async () => {
+                            try {
+                                await this.loadUsageData();
+                                await this.loadPaymentConfig();
+                                console.log('API data loaded successfully');
+                            } catch (error) {
+                                console.warn('Failed to load initialization data:', error);
+                            }
+                        }, 100);
+                        
+                    } catch (error) {
+                        console.warn('Initialization error:', error);
+                        // Don't let initialization errors break the input functionality
+                    }
                 },
 
                 async loadUsageData() {
@@ -393,6 +501,24 @@
                 },
 
                 async generateThread() {
+                    console.log('Generate thread called');
+                    console.log('Input type:', this.inputType);
+                    console.log('URL input:', this.urlInput);
+                    console.log('Text input:', this.textInput);
+                    
+                    // Basic input validation
+                    if (this.inputType === 'url' && !this.urlInput) {
+                        this.error = 'Please enter a URL';
+                        console.log('No URL provided');
+                        return;
+                    }
+                    
+                    if (this.inputType === 'text' && !this.textInput) {
+                        this.error = 'Please enter some text';
+                        console.log('No text provided');
+                        return;
+                    }
+
                     // If limit reached and not premium, show payment modal instead
                     if (this.limitReached && !this.isPremium) {
                         this.showPaymentModal = true;
