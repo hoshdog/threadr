@@ -39,7 +39,9 @@
       "Bash(sed:*)",
       "Bash(git mv:*)",
       "Bash(true)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(grep:*)",
+      "Bash(awk:*)"
     ],
     "deny": []
   }

@@ -1428,14 +1428,48 @@ async def test_endpoint():
     
     return {
         "status": "working",
-        "timestamp": datetime.now().isoformat(),
-        "test_result": {
-            "input_length": len(test_content),
-            "tweets_generated": len(test_tweets),
-            "sample_tweet": test_tweets[0] if test_tweets else None
-        },
-        "openai_status": "available" if openai_available else "unavailable"
+        "message": test_content,
+        "tweet_count": len(test_tweets),
+        "tweets": test_tweets
     }
+
+@app.get("/api/debug/minimal-httpx")
+async def debug_minimal_httpx(url: str = "https://example.com"):
+    """Minimal httpx test to isolate scraping issues"""
+    import traceback
+    result = {
+        "url": url,
+        "steps": {},
+        "error": None,
+        "traceback": None
+    }
+    
+    try:
+        # Step 1: Create minimal httpx client
+        result["steps"]["client_creation"] = "starting"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            result["steps"]["client_creation"] = "success"
+            
+            # Step 2: Make request
+            result["steps"]["request"] = "starting"
+            response = await client.get(url)
+            result["steps"]["request"] = "success"
+            
+            # Step 3: Get response info
+            result["response"] = {
+                "status_code": response.status_code,
+                "content_length": len(response.content),
+                "headers": dict(response.headers),
+                "content_preview": response.text[:200] if response.text else None
+            }
+            
+            return result
+            
+    except Exception as e:
+        result["error"] = str(e)
+        result["error_type"] = type(e).__name__
+        result["traceback"] = traceback.format_exc()
+        return result
 
 @app.post("/api/test/url-check")
 async def test_url_check(url: str):
