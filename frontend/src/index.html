@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Threadr - Convert Articles to Twitter Threads</title>
+    <title>Threadr - Convert Articles to X Threads</title>
     <script src="config.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -32,7 +32,7 @@
         <!-- Header -->
         <header class="text-center mb-10">
             <h1 class="text-4xl font-bold text-gray-900 mb-2">Threadr</h1>
-            <p class="text-lg text-gray-600">Convert any article into an engaging Twitter thread instantly</p>
+            <p class="text-lg text-gray-600">Convert any article into an engaging X thread instantly</p>
         </header>
 
         <!-- Main Content -->
@@ -214,13 +214,15 @@
                         >
                             Maybe Later
                         </button>
-                        <a 
-                            :href="paymentData?.upgrade_url || '#'"
-                            target="_blank"
-                            class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 text-center"
+                        <button 
+                            @click="upgradeNow()"
+                            :disabled="!paymentConfig?.payment_url"
+                            :class="paymentConfig?.payment_url ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-400 cursor-not-allowed'"
+                            class="flex-1 px-4 py-2 text-white rounded-lg transition-colors duration-200 text-center"
                         >
-                            Upgrade Now
-                        </a>
+                            <span x-show="paymentConfig?.payment_url">Upgrade Now</span>
+                            <span x-show="!paymentConfig?.payment_url">Coming Soon</span>
+                        </button>
                     </div>
                     
                     <p class="text-xs text-gray-500 mt-3">
@@ -244,6 +246,7 @@
                 copiedAll: false,
                 showPaymentModal: false,
                 paymentData: null,
+                paymentConfig: null,
 
                 getHeaders() {
                     const headers = {
@@ -372,8 +375,25 @@
                     ];
                 },
 
-                showPaymentRequired(errorData) {
+                async showPaymentRequired(errorData) {
                     this.paymentData = errorData;
+                    
+                    // Fetch payment configuration from backend
+                    try {
+                        const response = await fetch(`${config.API_URL}/api/payment/config`, {
+                            method: 'GET',
+                            headers: this.getHeaders(),
+                            mode: 'cors',
+                            credentials: 'omit'
+                        });
+                        
+                        if (response.ok) {
+                            this.paymentConfig = await response.json();
+                        }
+                    } catch (error) {
+                        console.error('Failed to fetch payment config:', error);
+                    }
+                    
                     this.showPaymentModal = true;
                     this.loading = false;
                     
@@ -381,9 +401,24 @@
                     this.error = `You've reached your daily limit of ${errorData.limit || 5} free threads. Upgrade to premium for unlimited access!`;
                 },
 
+                async upgradeNow() {
+                    // Use payment URL from config, fallback to paymentData
+                    const paymentUrl = this.paymentConfig?.payment_url || this.paymentData?.upgrade_url;
+                    
+                    if (paymentUrl && paymentUrl !== '#') {
+                        window.open(paymentUrl, '_blank');
+                        this.closePaymentModal();
+                    } else {
+                        console.error('No payment URL available');
+                        // Don't set error here - the button should be disabled instead
+                        // this.error = 'Payment system not configured. Please try again later.';
+                    }
+                },
+
                 closePaymentModal() {
                     this.showPaymentModal = false;
                     this.paymentData = null;
+                    this.paymentConfig = null;
                 },
 
                 updateTweet(index, event) {
