@@ -713,6 +713,7 @@ async def scrape_article(url: Union[str, HttpUrl]) -> Dict[str, str]:
     # Simplified retry configuration
     max_retries = 2
     retry_delay = 1.0
+    response = None  # Initialize response variable
     
     for attempt in range(max_retries):
         try:
@@ -904,8 +905,17 @@ async def scrape_article(url: Union[str, HttpUrl]) -> Dict[str, str]:
             await asyncio.sleep(retry_delay)
             retry_delay *= 2
     
-    # Parse HTML with error handling
+    # Check if we got a response
+    if response is None:
+        logger.error(f"Failed to get response from {url_str} after all retries")
+        raise HTTPException(
+            status_code=503,
+            detail="Unable to connect to the website after multiple attempts. The site may be down or blocking our requests."
+        )
+    
+    # Wrap the entire content extraction in try-except
     try:
+        # Parse HTML with error handling
         error_context["step"] = "html_parsing"
         logger.info(f"Parsing HTML content (length: {len(response.text)} chars)")
         
@@ -1137,11 +1147,22 @@ async def scrape_article(url: Union[str, HttpUrl]) -> Dict[str, str]:
         }
     }
     
-    # Don't include metadata in the actual response
-    return {
-        "title": result["title"],
-        "content": result["content"]
-    }
+        # Don't include metadata in the actual response
+        return {
+            "title": result["title"],
+            "content": result["content"]
+        }
+    
+    except HTTPException:
+        # Re-raise HTTP exceptions as they already have proper error messages
+        raise
+    except Exception as e:
+        # Catch any unexpected errors during content extraction
+        logger.error(f"Unexpected error during content extraction for {url_str}: {type(e).__name__}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to extract content from the webpage: {type(e).__name__}. Please try copying the text directly."
+        )
 
 def split_into_tweets(text: str, include_thread_numbers: bool = True) -> List[str]:
     """Split text into tweet-sized chunks"""
