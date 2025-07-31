@@ -2268,6 +2268,159 @@ async def debug_simple_scrape(url: str):
             "error_type": type(e).__name__
         }
 
+@app.post("/api/debug/generate-test")
+async def debug_generate_test(request: GenerateThreadRequest):
+    """
+    Debug endpoint to test the /api/generate flow step by step.
+    This will help identify exactly where the 500 error occurs.
+    """
+    import traceback
+    
+    result = {
+        "steps": {},
+        "request": request.dict()
+    }
+    
+    try:
+        # Step 1: Check if URL or text is provided
+        result["steps"]["1_input_validation"] = {
+            "has_url": bool(request.url),
+            "has_text": bool(request.text),
+            "url": str(request.url) if request.url else None
+        }
+        
+        # Step 2: Scrape article if URL provided
+        if request.url:
+            try:
+                result["steps"]["2_scraping"] = {"status": "starting"}
+                article_data = await scrape_article(request.url)
+                result["steps"]["2_scraping"] = {
+                    "status": "success",
+                    "title": article_data.get("title"),
+                    "content_length": len(article_data.get("content", "")),
+                    "content_preview": article_data.get("content", "")[:100] + "..."
+                }
+                content = article_data["content"]
+                title = article_data["title"]
+            except Exception as scrape_error:
+                result["steps"]["2_scraping"] = {
+                    "status": "failed",
+                    "error": str(scrape_error),
+                    "error_type": type(scrape_error).__name__
+                }
+                raise
+        else:
+            content = request.text
+            title = None
+            result["steps"]["2_scraping"] = {"status": "skipped", "reason": "text input provided"}
+        
+        # Step 3: Check OpenAI availability
+        result["steps"]["3_openai_check"] = {
+            "openai_available": openai_available,
+            "api_key_present": bool(os.getenv("OPENAI_API_KEY"))
+        }
+        
+        # Step 4: Try GPT generation
+        tweets = None
+        if openai_available:
+            try:
+                result["steps"]["4_gpt_generation"] = {"status": "attempting"}
+                tweets = await generate_thread_with_gpt(content, title)
+                if tweets:
+                    result["steps"]["4_gpt_generation"] = {
+                        "status": "success",
+                        "tweet_count": len(tweets)
+                    }
+                else:
+                    result["steps"]["4_gpt_generation"] = {
+                        "status": "returned_none",
+                        "reason": "GPT function returned None"
+                    }
+            except Exception as gpt_error:
+                result["steps"]["4_gpt_generation"] = {
+                    "status": "failed",
+                    "error": str(gpt_error),
+                    "error_type": type(gpt_error).__name__
+                }
+        else:
+            result["steps"]["4_gpt_generation"] = {"status": "skipped", "reason": "OpenAI not available"}
+        
+        # Step 5: Fallback splitting
+        if not tweets:
+            try:
+                result["steps"]["5_fallback_splitting"] = {"status": "attempting"}
+                tweets = split_into_tweets(content)
+                result["steps"]["5_fallback_splitting"] = {
+                    "status": "success",
+                    "tweet_count": len(tweets),
+                    "sample_tweet": tweets[0] if tweets else None
+                }
+            except Exception as split_error:
+                result["steps"]["5_fallback_splitting"] = {
+                    "status": "failed",
+                    "error": str(split_error),
+                    "error_type": type(split_error).__name__
+                }
+                raise
+        
+        # Step 6: Create Tweet objects
+        try:
+            result["steps"]["6_create_tweet_objects"] = {"status": "attempting"}
+            total_tweets = len(tweets)
+            thread = []
+            for i, tweet_content in enumerate(tweets, 1):
+                thread.append(Tweet(
+                    number=i,
+                    total=total_tweets,
+                    content=tweet_content,
+                    character_count=len(tweet_content)
+                ))
+            result["steps"]["6_create_tweet_objects"] = {
+                "status": "success",
+                "tweet_objects_created": len(thread)
+            }
+        except Exception as tweet_error:
+            result["steps"]["6_create_tweet_objects"] = {
+                "status": "failed",
+                "error": str(tweet_error),
+                "error_type": type(tweet_error).__name__
+            }
+            raise
+        
+        # Step 7: Create response
+        try:
+            result["steps"]["7_create_response"] = {"status": "attempting"}
+            response = GenerateThreadResponse(
+                success=True,
+                thread=thread,
+                source_type="url" if request.url else "text",
+                title=title
+            )
+            result["steps"]["7_create_response"] = {
+                "status": "success",
+                "response_created": True
+            }
+        except Exception as response_error:
+            result["steps"]["7_create_response"] = {
+                "status": "failed",
+                "error": str(response_error),
+                "error_type": type(response_error).__name__
+            }
+            raise
+        
+        result["overall_status"] = "success"
+        result["final_response"] = response.dict()
+        return result
+        
+    except Exception as e:
+        result["overall_status"] = "failed"
+        result["final_error"] = {
+            "error": str(e),
+            "error_type": type(e).__name__,
+            "traceback": traceback.format_exc()
+        }
+        return result
+
 @app.get("/api/debug/scrape-enhanced")
 async def debug_scrape_enhanced(url: str):
     """Test the enhanced scraping with detailed error reporting"""
