@@ -646,8 +646,8 @@ def extract_opengraph_content(html_content: str, url: str) -> Optional[Dict[str,
 
 async def scrape_article(url: Union[str, HttpUrl]) -> Dict[str, str]:
     """Scrape article content from URL with enhanced Railway compatibility and error handling"""
-    # Convert HttpUrl to string if needed
-    url_str = str(url) if isinstance(url, HttpUrl) else url
+    # Convert HttpUrl to string if needed - always convert to handle Pydantic v2 HttpUrl type
+    url_str = str(url)
     
     # Enhanced logging for debugging
     logger.info(f"Starting URL scrape for: {url_str}")
