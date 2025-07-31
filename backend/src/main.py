@@ -1147,22 +1147,11 @@ async def scrape_article(url: Union[str, HttpUrl]) -> Dict[str, str]:
         }
     }
     
-        # Don't include metadata in the actual response
-        return {
-            "title": result["title"],
-            "content": result["content"]
-        }
-    
-    except HTTPException:
-        # Re-raise HTTP exceptions as they already have proper error messages
-        raise
-    except Exception as e:
-        # Catch any unexpected errors during content extraction
-        logger.error(f"Unexpected error during content extraction for {url_str}: {type(e).__name__}: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to extract content from the webpage: {type(e).__name__}. Please try copying the text directly."
-        )
+    # Don't include metadata in the actual response
+    return {
+        "title": result["title"],
+        "content": result["content"]
+    }
 
 def split_into_tweets(text: str, include_thread_numbers: bool = True) -> List[str]:
     """Split text into tweet-sized chunks"""
