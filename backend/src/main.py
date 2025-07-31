@@ -204,6 +204,10 @@ async def lifespan(app: FastAPI):
                 logger.info("Stripe webhook secret configured for signature verification")
             else:
                 logger.warning("Stripe webhook secret not configured - webhook signature verification disabled")
+            
+            # Debug: Log payment link configuration
+            logger.info(f"Stripe payment link URL: '{STRIPE_PAYMENT_LINK_URL}' (configured: {'Yes' if STRIPE_PAYMENT_LINK_URL else 'No'})")
+            logger.info(f"Stripe price ID: '{STRIPE_PRICE_ID}' (configured: {'Yes' if STRIPE_PRICE_ID else 'No'})")
         else:
             logger.warning("Stripe API key not configured - payment processing disabled")
         
@@ -2654,6 +2658,10 @@ async def stripe_thin_webhook_handler(request: Request):
 @app.get("/api/payment/config")
 async def get_payment_config():
     """Get payment configuration for frontend (non-sensitive data only)"""
+    # Debug logging for payment URL issue
+    logger.info(f"Payment config request - STRIPE_PAYMENT_LINK_URL value: '{STRIPE_PAYMENT_LINK_URL}' (type: {type(STRIPE_PAYMENT_LINK_URL)})")
+    logger.info(f"Environment variables check: STRIPE_SECRET_KEY configured: {bool(STRIPE_SECRET_KEY)}")
+    
     return {
         "stripe_configured": bool(STRIPE_SECRET_KEY),
         "webhook_configured": bool(STRIPE_WEBHOOK_SECRET),
