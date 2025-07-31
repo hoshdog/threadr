@@ -118,16 +118,18 @@ const response = await fetch(`${config.API_URL}/api/generate`, {
    - SSL and httpx client simplified
    - Error handling improved
 
-### 6. Immediate Actions Required
+### 6. Immediate Actions Taken
 
-1. **Fix Backend Deployment**:
-   ```bash
-   # Check Railway logs
-   railway logs --service=threadr
-   
-   # Restart the service
-   railway restart
-   ```
+1. **Fixed Syntax Error** (COMPLETED):
+   - Found and fixed indentation error in `backend/src/main.py` line 1156
+   - Code block was incorrectly placed outside try-except structure
+   - Committed fix: "Fix syntax error in main.py: Correct indentation of try-except blocks"
+   - Pushed to GitHub to trigger Railway deployment
+
+2. **Deployment Status**:
+   - Fix has been pushed to main branch
+   - Railway should automatically redeploy
+   - Monitor Railway dashboard for deployment progress
 
 2. **Verify nixpacks.toml Configuration**:
    - Current config uses `python -m uvicorn src.main:app`
@@ -176,9 +178,51 @@ const response = await fetch(`${config.API_URL}/api/generate`, {
 
 ### 9. Conclusion
 
-The primary issue is that the Railway backend is not running (502 error). Once the backend is operational:
-- CORS is properly configured for `https://threadr-plum.vercel.app`
-- The scraping code has been fixed to work with Railway's environment
-- Frontend is correctly sending API keys and CORS headers
+**SYNTAX ERROR FIXED**: The primary issue was a Python syntax error that prevented the backend from starting at all. This has been resolved.
 
-Focus should be on getting the Railway deployment working first, then testing the scraping functionality.
+**Current Status**:
+- ✅ Syntax error in main.py has been fixed
+- ✅ Fix has been pushed to GitHub
+- ⏳ Waiting for Railway to redeploy with the fix
+- ✅ CORS is properly configured for `https://threadr-plum.vercel.app`
+- ✅ Scraping code has been optimized for Railway's environment
+- ✅ Frontend is correctly configured with API keys and headers
+
+**Next Steps**:
+1. Wait 2-3 minutes for Railway deployment to complete
+2. Test the health endpoint: `curl https://threadr-production.up.railway.app/health`
+3. Once backend is running, test scraping from the Vercel frontend
+4. Monitor for any CORS or network-related issues
+
+**Expected Outcome**: With the syntax error fixed, the backend should start successfully on Railway, and web scraping should work from the Vercel frontend.
+
+### 10. Current Testing Results (After Fix)
+
+**Backend Status**: ✅ RUNNING
+- Health check: Working (`{"status":"healthy"}`)
+- CORS: Properly configured for `https://threadr-plum.vercel.app`
+- API test endpoint: Working
+- Text-based thread generation: Working
+
+**Remaining Issue**: URL Scraping Internal Server Error
+- The `/api/generate` endpoint returns 500 errors when given URLs
+- Domain validation is working correctly
+- The error occurs during the actual scraping process
+
+**Possible Causes**:
+1. Network connectivity issues from Railway to external sites
+2. SSL/TLS verification problems
+3. Timeout issues with httpx client
+4. Memory or resource constraints on Railway
+
+**Debug Endpoints Available**:
+- `/api/debug/minimal-httpx` - Test basic httpx connectivity
+- `/api/debug/simple-scrape` - Test scraping with simple configuration
+- `/api/debug/scrape-steps` - Step-by-step scraping debug
+- `/api/debug/domain-check` - Verify domain allowlist
+
+**Recommendation**: 
+1. Check Railway logs for the specific error details
+2. Test with the debug endpoints to isolate the failure point
+3. Consider implementing a fallback to a simpler scraping method
+4. Monitor Railway resource usage during scraping attempts

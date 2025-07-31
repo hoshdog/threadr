@@ -697,19 +697,6 @@ async def scrape_article(url: Union[str, HttpUrl]) -> Dict[str, str]:
     except Exception as dns_e:
         logger.warning(f"DNS pre-resolution warning: {dns_e}")
     
-    # Simplified SSL configuration
-    verify_ssl = os.getenv("HTTPX_VERIFY_SSL", "true").lower() != "false"
-    ssl_context = None
-    
-    if verify_ssl:
-        try:
-            # Use default SSL context - let httpx handle certificates
-            ssl_context = ssl.create_default_context()
-            logger.info("Using default SSL context")
-        except Exception as ssl_e:
-            logger.warning(f"SSL context creation failed: {ssl_e}, disabling SSL verification")
-            verify_ssl = False
-    
     # Simplified retry configuration
     max_retries = 2
     retry_delay = 1.0
@@ -717,41 +704,22 @@ async def scrape_article(url: Union[str, HttpUrl]) -> Dict[str, str]:
     
     for attempt in range(max_retries):
         try:
-            # Railway-compatible httpx configuration (based on working simple version)
-            logger.info(f"Attempt {attempt + 1}/{max_retries}: Creating httpx client (verify_ssl={verify_ssl})")
+            # Use SIMPLE httpx configuration that works on Railway
+            # Based on working simple-scrape endpoint
+            logger.info(f"Attempt {attempt + 1}/{max_retries}: Creating simple httpx client")
             
-            # Create client kwargs
-            client_kwargs = {
-                "timeout": 30.0,  # Simplified timeout like working version
-                "follow_redirects": True,
-                "headers": {
+            async with httpx.AsyncClient(
+                timeout=30.0,  # Simple timeout
+                follow_redirects=True,
+                headers={
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                    "Accept-Language": "en-US,en;q=0.5",
-                    "Accept-Encoding": "gzip, deflate, br",
-                    "DNT": "1",
-                    "Connection": "keep-alive",
-                    "Upgrade-Insecure-Requests": "1"
-                },
-                "verify": ssl_context if verify_ssl else False
-            }
-            
-            # Check for proxy configuration (only if needed)
-            http_proxy = os.getenv("HTTP_PROXY") or os.getenv("http_proxy")
-            https_proxy = os.getenv("HTTPS_PROXY") or os.getenv("https_proxy")
-            if http_proxy or https_proxy:
-                proxies = {}
-                if http_proxy:
-                    proxies["http://"] = http_proxy
-                if https_proxy:
-                    proxies["https://"] = https_proxy
-                client_kwargs["proxies"] = proxies
-                logger.info(f"Using proxies: {proxies}")
-            
-            async with httpx.AsyncClient(**client_kwargs) as client:
+                    "Accept-Language": "en-US,en;q=0.5"
+                }
+            ) as client:
                 logger.info(f"Fetching URL: {url_str}")
                 response = await client.get(url_str)
-                logger.info(f"Response received - Status: {response.status_code}, Content-Length: {len(response.content)}, Headers: {dict(response.headers)}")
+                logger.info(f"Response received - Status: {response.status_code}, Content-Length: {len(response.content)}")
                 response.raise_for_status()
                 
                 # Check for common issues in the response
