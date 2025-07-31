@@ -42,7 +42,13 @@
       "Bash(taskkill:*)",
       "Bash(grep:*)",
       "Bash(awk:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(node:*)",
+      "Bash(ping:*)",
+      "Bash(uvicorn:*)",
+      "Bash(pkill:*)",
+      "Bash(RATE_LIMIT_REQUESTS=100 RATE_LIMIT_WINDOW_HOURS=1 ENVIRONMENT=development python -m uvicorn src.main:app --reload --port 8004 --host 0.0.0.0)",
+      "WebFetch(domain:docs.stripe.com)"
     ],
     "deny": []
   }

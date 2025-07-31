@@ -34,6 +34,10 @@ import json
 rate_limiter_storage: Dict[str, List[datetime]] = defaultdict(list)
 rate_limiter_lock = asyncio.Lock()
 
+# Initialize in-memory usage tracking storage (fallback for when Redis is unavailable)
+usage_tracking_storage: Dict[str, List[datetime]] = defaultdict(list)
+usage_tracking_lock = asyncio.Lock()
+
 # Production Configuration
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "10"))
@@ -56,6 +60,7 @@ ALLOWED_DOMAINS = os.getenv("ALLOWED_DOMAINS", "").split(",") if os.getenv("ALLO
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID")  # For Stripe Payment Links
+STRIPE_PAYMENT_LINK_URL = os.getenv("STRIPE_PAYMENT_LINK_URL")  # Direct Payment Link URL
 if not ALLOWED_DOMAINS:
     # Default allowed domains for scraping
     ALLOWED_DOMAINS = [
@@ -540,13 +545,32 @@ async def get_user_usage_status(client_ip: str, email: Optional[str] = None) -> 
     redis_manager = get_redis_manager()
     
     if not redis_manager or not redis_manager.is_available:
-        # Fallback when Redis is unavailable - allow usage
-        return {
-            "daily_usage": 0,
-            "monthly_usage": 0,
-            "has_premium": False,
-            "premium_info": {"has_premium": False, "source": "redis_unavailable"}
-        }
+        # Fallback to in-memory usage tracking when Redis is unavailable
+        current_time = datetime.now()
+        
+        async with usage_tracking_lock:
+            # Clean up old usage records (keep only today's and this month's)
+            usage_key = f"{client_ip}:{email or 'anonymous'}"
+            if usage_key in usage_tracking_storage:
+                # Keep only records from today and this month
+                today = current_time.date()
+                this_month = current_time.replace(day=1)
+                
+                usage_tracking_storage[usage_key] = [
+                    timestamp for timestamp in usage_tracking_storage[usage_key]
+                    if timestamp.date() == today or timestamp >= this_month
+                ]
+            
+            # Count daily and monthly usage
+            daily_usage = sum(1 for ts in usage_tracking_storage[usage_key] if ts.date() == current_time.date())
+            monthly_usage = sum(1 for ts in usage_tracking_storage[usage_key] if ts >= current_time.replace(day=1))
+            
+            return {
+                "daily_usage": daily_usage,
+                "monthly_usage": monthly_usage,
+                "has_premium": False,  # No premium support in memory fallback
+                "premium_info": {"has_premium": False, "source": "in_memory_fallback"}
+            }
     
     # Get usage counts and premium status
     daily_usage_data = await redis_manager.get_usage_count(client_ip, email, "daily")
@@ -607,8 +631,15 @@ async def track_thread_usage(client_ip: str, email: Optional[str] = None) -> boo
     redis_manager = get_redis_manager()
     
     if not redis_manager or not redis_manager.is_available:
-        logger.warning("Redis unavailable - thread usage not tracked")
-        return False
+        logger.info("Redis unavailable - using in-memory usage tracking")
+        # Fallback to in-memory usage tracking
+        current_time = datetime.now()
+        usage_key = f"{client_ip}:{email or 'anonymous'}"
+        
+        async with usage_tracking_lock:
+            usage_tracking_storage[usage_key].append(current_time)
+            logger.info(f"Tracked usage for {usage_key} at {current_time}")
+            return True
     
     return await redis_manager.track_thread_generation(client_ip, email)
 
@@ -2467,7 +2498,7 @@ async def process_stripe_checkout_completed(session_data: Dict[str, Any]) -> boo
 
 @app.post("/api/webhooks/stripe")
 async def stripe_webhook_handler(request: Request):
-    """Handle Stripe webhook events securely"""
+    """Handle Stripe webhook events securely (snapshot payloads)"""
     try:
         # Get raw payload and signature
         payload = await request.body()
@@ -2495,7 +2526,7 @@ async def stripe_webhook_handler(request: Request):
         event_type = event_data.type
         event_id = event_data.id
         
-        logger.info(f"Received Stripe webhook: {event_type} (ID: {event_id})")
+        logger.info(f"Received Stripe webhook (snapshot): {event_type} (ID: {event_id})")
         
         # Process checkout.session.completed events
         if event_type == 'checkout.session.completed':
@@ -2504,10 +2535,10 @@ async def stripe_webhook_handler(request: Request):
             
             if success:
                 logger.info(f"Successfully processed checkout completion: {event_id}")
-                return {"received": True, "processed": True, "event_id": event_id}
+                return {"received": True, "processed": True, "event_id": event_id, "payload_type": "snapshot"}
             else:
                 logger.error(f"Failed to process checkout completion: {event_id}")
-                return {"received": True, "processed": False, "event_id": event_id, "error": "Failed to grant premium access"}
+                return {"received": True, "processed": False, "event_id": event_id, "error": "Failed to grant premium access", "payload_type": "snapshot"}
         
         # Handle other webhook events (log and acknowledge)
         elif event_type in [
@@ -2518,17 +2549,102 @@ async def stripe_webhook_handler(request: Request):
             'invoice.payment_failed'
         ]:
             logger.info(f"Received {event_type} webhook event: {event_id} (acknowledged but not processed)")
-            return {"received": True, "processed": False, "event_id": event_id, "message": "Event acknowledged but not processed"}
+            return {"received": True, "processed": False, "event_id": event_id, "message": "Event acknowledged but not processed", "payload_type": "snapshot"}
         
         else:
             logger.info(f"Unhandled webhook event type: {event_type} (ID: {event_id})")
-            return {"received": True, "processed": False, "event_id": event_id, "message": "Unhandled event type"}
+            return {"received": True, "processed": False, "event_id": event_id, "message": "Unhandled event type", "payload_type": "snapshot"}
     
     except HTTPException:
         raise
     except Exception as e:
         error_id = datetime.now().isoformat()
         logger.error(f"Stripe webhook error [{error_id}]: {str(e)}", exc_info=True)
+        
+        if ENVIRONMENT == "production":
+            raise HTTPException(status_code=500, detail=f"Webhook processing error. Error ID: {error_id}")
+        else:
+            raise HTTPException(status_code=500, detail=f"Webhook error: {str(e)}")
+
+@app.post("/api/webhooks/stripe/thin")
+async def stripe_thin_webhook_handler(request: Request):
+    """Handle Stripe webhook events securely (thin payloads)"""
+    try:
+        # Get raw payload and signature
+        payload = await request.body()
+        signature = request.headers.get('stripe-signature', '')
+        
+        if not payload:
+            logger.error("Empty webhook payload received")
+            raise HTTPException(status_code=400, detail="Empty payload")
+        
+        # Verify webhook signature for security (same secret as snapshot endpoint)
+        if STRIPE_WEBHOOK_SECRET and not verify_stripe_signature(payload, signature, STRIPE_WEBHOOK_SECRET):
+            logger.error("Stripe webhook signature verification failed")
+            raise HTTPException(status_code=401, detail="Invalid signature")
+        
+        # Parse the webhook event (thin payload only contains event ID and type)
+        try:
+            event_data = stripe.Event.construct_from(
+                json.loads(payload.decode('utf-8')),
+                stripe.api_key
+            )
+        except Exception as e:
+            logger.error(f"Failed to parse Stripe webhook event: {str(e)}")
+            raise HTTPException(status_code=400, detail="Invalid event data")
+        
+        event_type = event_data.type
+        event_id = event_data.id
+        
+        logger.info(f"Received Stripe webhook (thin): {event_type} (ID: {event_id})")
+        
+        # For thin payloads, we need to fetch the full event data from Stripe API
+        if not STRIPE_SECRET_KEY:
+            logger.error("Stripe API key not configured - cannot fetch full event data for thin payload")
+            raise HTTPException(status_code=500, detail="Stripe API key not configured")
+        
+        # Process checkout.session.completed events
+        if event_type == 'checkout.session.completed':
+            try:
+                # Fetch the full event data from Stripe API
+                logger.info(f"Fetching full event data for thin payload: {event_id}")
+                full_event = stripe.Event.retrieve(event_id)
+                
+                # Extract session data from the full event
+                session_data = full_event.data.object
+                success = await process_stripe_checkout_completed(session_data)
+                
+                if success:
+                    logger.info(f"Successfully processed checkout completion from thin payload: {event_id}")
+                    return {"received": True, "processed": True, "event_id": event_id, "payload_type": "thin"}
+                else:
+                    logger.error(f"Failed to process checkout completion from thin payload: {event_id}")
+                    return {"received": True, "processed": False, "event_id": event_id, "error": "Failed to grant premium access", "payload_type": "thin"}
+                    
+            except stripe.error.StripeError as e:
+                logger.error(f"Failed to retrieve full event data from Stripe API: {str(e)}")
+                raise HTTPException(status_code=500, detail="Failed to retrieve full event data from Stripe")
+        
+        # Handle other webhook events (log and acknowledge)
+        elif event_type in [
+            'customer.subscription.created',
+            'customer.subscription.updated', 
+            'customer.subscription.deleted',
+            'invoice.payment_succeeded',
+            'invoice.payment_failed'
+        ]:
+            logger.info(f"Received {event_type} webhook event (thin): {event_id} (acknowledged but not processed)")
+            return {"received": True, "processed": False, "event_id": event_id, "message": "Event acknowledged but not processed", "payload_type": "thin"}
+        
+        else:
+            logger.info(f"Unhandled webhook event type (thin): {event_type} (ID: {event_id})")
+            return {"received": True, "processed": False, "event_id": event_id, "message": "Unhandled event type", "payload_type": "thin"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_id = datetime.now().isoformat()
+        logger.error(f"Stripe thin webhook error [{error_id}]: {str(e)}", exc_info=True)
         
         if ENVIRONMENT == "production":
             raise HTTPException(status_code=500, detail=f"Webhook processing error. Error ID: {error_id}")
@@ -2542,9 +2658,12 @@ async def get_payment_config():
         "stripe_configured": bool(STRIPE_SECRET_KEY),
         "webhook_configured": bool(STRIPE_WEBHOOK_SECRET),
         "premium_price": PREMIUM_PRICE_USD,
+        "display_price": f"${PREMIUM_PRICE_USD:.2f}",
         "currency": "USD",
         "price_id": STRIPE_PRICE_ID if STRIPE_PRICE_ID else None,
-        "payment_methods": ["stripe_payment_links"] if STRIPE_SECRET_KEY else []
+        "payment_url": STRIPE_PAYMENT_LINK_URL if STRIPE_PAYMENT_LINK_URL else None,
+        "payment_methods": ["stripe_payment_links"] if STRIPE_SECRET_KEY else [],
+        "pricing_type": "one_time"
     }
 
 if __name__ == "__main__":

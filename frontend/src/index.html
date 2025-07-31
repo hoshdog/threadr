@@ -233,8 +233,8 @@
                 <!-- Pricing -->
                 <div class="text-center mb-6">
                     <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 border border-purple-200">
-                        <div class="text-3xl font-bold text-gray-900 mb-1" x-text="paymentConfig?.display_price || '$9.99'"></div>
-                        <div class="text-sm text-gray-600">per month</div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1" x-text="paymentConfig?.display_price || '$4.99'"></div>
+                        <div class="text-sm text-gray-600">one-time payment</div>
                     </div>
                 </div>
 
@@ -328,6 +328,9 @@
                     // Check localStorage for usage count and email capture status
                     this.usageCount = parseInt(localStorage.getItem('threadr_usage_count') || '0');
                     this.emailCaptured = localStorage.getItem('threadr_email_captured') === 'true';
+                    
+                    // Handle payment return URLs
+                    this.handlePaymentReturn();
                     
                     // Load usage data and payment config
                     await this.loadUsageData();
@@ -708,6 +711,65 @@
                     } finally {
                         this.paymentLoading = false;
                     }
+                },
+
+                handlePaymentReturn() {
+                    // Check URL parameters for payment status
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const paymentStatus = urlParams.get('payment');
+                    const sessionId = urlParams.get('session_id');
+
+                    if (paymentStatus === 'success') {
+                        // Payment successful - show success message and refresh data
+                        this.showSuccessMessage('Payment successful! You now have premium access.');
+                        // Clean up URL
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                        // Refresh usage data to reflect premium status
+                        setTimeout(() => {
+                            this.loadUsageData();
+                        }, 1000);
+                    } else if (paymentStatus === 'cancelled') {
+                        // Payment cancelled - show info message
+                        this.showInfoMessage('Payment was cancelled. You can upgrade anytime by hitting your daily limit.');
+                        // Clean up URL
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                },
+
+                showSuccessMessage(message) {
+                    // Create and show a temporary success banner
+                    const banner = document.createElement('div');
+                    banner.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+                    banner.innerHTML = `
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            ${message}
+                        </div>
+                    `;
+                    document.body.appendChild(banner);
+                    setTimeout(() => {
+                        banner.remove();
+                    }, 5000);
+                },
+
+                showInfoMessage(message) {
+                    // Create and show a temporary info banner
+                    const banner = document.createElement('div');
+                    banner.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+                    banner.innerHTML = `
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                            ${message}
+                        </div>
+                    `;
+                    document.body.appendChild(banner);
+                    setTimeout(() => {
+                        banner.remove();
+                    }, 4000);
                 }
             }
         }
