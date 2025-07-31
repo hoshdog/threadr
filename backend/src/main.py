@@ -249,6 +249,30 @@ class GenerateThreadRequest(BaseModel):
             raise ValueError("Provide either 'url' or 'text', not both")
         return self
 
+class EmailSubscribeRequest(BaseModel):
+    email: str
+    
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        if not v or not v.strip():
+            raise ValueError("Email is required")
+        
+        # Basic email validation
+        email = v.strip().lower()
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            raise ValueError("Invalid email format")
+        
+        if len(email) > 254:  # RFC 5321 limit
+            raise ValueError("Email address too long")
+            
+        return email
+
+class EmailSubscribeResponse(BaseModel):
+    success: bool
+    message: str
+    email: Optional[str] = None
+
 class Tweet(BaseModel):
     number: int
     total: int
@@ -1859,6 +1883,130 @@ async def monitor_health():
             "uptime_seconds": int((datetime.now() - datetime.fromtimestamp(os.path.getctime(__file__))).total_seconds())
         }
     }
+
+@app.post("/api/subscribe", response_model=EmailSubscribeResponse)
+async def subscribe_email(
+    request: EmailSubscribeRequest,
+    client_request: Request,
+    _: None = Depends(check_rate_limit),
+    api_key: str = Depends(verify_api_key)
+):
+    """Subscribe email for notifications and updates"""
+    redis_manager = get_redis_manager()
+    client_ip = client_request.client.host
+    
+    try:
+        # Extract email from validated request
+        email = request.email
+        
+        # Check if email already exists
+        email_exists = False
+        if redis_manager and redis_manager.is_available:
+            email_exists = await redis_manager.check_email_exists(email)
+        else:
+            # Check fallback storage
+            if hasattr(subscribe_email, 'fallback_emails'):
+                email_exists = email in subscribe_email.fallback_emails
+        
+        if email_exists:
+            logger.info(f"Duplicate email subscription attempt: {email}")
+            return EmailSubscribeResponse(
+                success=True,
+                message="You're already subscribed! We'll keep you updated on new features.",
+                email=email
+            )
+        
+        # Store email with analytics data
+        email_data = {
+            "email": email,
+            "subscribed_at": datetime.now().isoformat(),
+            "client_ip": client_ip,
+            "user_agent": client_request.headers.get("user-agent", ""),
+            "referrer": client_request.headers.get("referer", ""),
+            "source": "web_app"
+        }
+        
+        # Try to store in Redis first
+        stored = False
+        if redis_manager and redis_manager.is_available:
+            stored = await redis_manager.store_email_subscription(email, email_data)
+            
+        if stored:
+            logger.info(f"Email subscription stored in Redis: {email}")
+        else:
+            # Fallback to in-memory storage (for development/testing)
+            # In production, you might want to log this for later processing
+            logger.warning(f"Email subscription fallback for: {email} (Redis unavailable)")
+            
+            # Store in a simple in-memory dict for development
+            if not hasattr(subscribe_email, 'fallback_emails'):
+                subscribe_email.fallback_emails = {}
+            subscribe_email.fallback_emails[email] = email_data
+        
+        # Log subscription for monitoring
+        logger.info(f"New email subscription: {email} from IP: {client_ip}")
+        
+        return EmailSubscribeResponse(
+            success=True,
+            message="Successfully subscribed! We'll keep you updated on new features.",
+            email=email
+        )
+        
+    except ValueError as ve:
+        # Pydantic validation errors
+        logger.warning(f"Email subscription validation error: {str(ve)}")
+        raise HTTPException(
+            status_code=400,
+            detail=str(ve)
+        )
+    except Exception as e:
+        # Log the error but don't expose internals
+        error_id = datetime.now().isoformat()
+        logger.error(f"Email subscription error [{error_id}]: {str(e)}", exc_info=True)
+        
+        if ENVIRONMENT == "production":
+            raise HTTPException(
+                status_code=500,
+                detail="Unable to process subscription. Please try again later."
+            )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Subscription error: {str(e)}"
+            )
+
+@app.get("/api/emails/stats")
+async def email_stats(
+    _: str = Depends(verify_api_key)
+):
+    """Get email subscription statistics - Admin only"""
+    redis_manager = get_redis_manager()
+    
+    if not redis_manager or not redis_manager.is_available:
+        # Check fallback storage
+        fallback_count = len(getattr(subscribe_email, 'fallback_emails', {}))
+        return {
+            "total_subscriptions": fallback_count,
+            "redis_available": False,
+            "storage": "fallback" if fallback_count > 0 else "none"
+        }
+    
+    try:
+        stats = await redis_manager.get_email_stats()
+        return {
+            "total_subscriptions": stats.get("total_emails", 0),
+            "recent_subscriptions": stats.get("recent_count", 0),
+            "redis_available": True,
+            "storage": "redis"
+        }
+    except Exception as e:
+        logger.error(f"Error getting email stats: {e}")
+        return {
+            "total_subscriptions": 0,
+            "redis_available": False,
+            "error": str(e),
+            "storage": "error"
+        }
 
 if __name__ == "__main__":
     import uvicorn

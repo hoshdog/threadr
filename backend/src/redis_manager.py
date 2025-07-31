@@ -6,7 +6,7 @@ Supports Upstash Redis (free tier) and standard Redis installations
 import redis
 from redis.exceptions import RedisError, ConnectionError as RedisConnectionError
 from typing import Optional, Dict, Any, List
-from datetime import timedelta
+from datetime import datetime, timedelta
 import json
 import hashlib
 import logging
@@ -38,6 +38,8 @@ class RedisManager:
         self.cache_ttl = int(os.getenv("CACHE_TTL_HOURS", "24")) * 3600  # 24 hours default
         self.cache_prefix = "threadr:cache:"
         self.rate_limit_prefix = "threadr:ratelimit:"
+        self.email_prefix = "threadr:email:"
+        self.email_list_key = "threadr:emails:list"
         
         # Initialize connection
         self._initialize_connection()
@@ -347,6 +349,129 @@ class RedisManager:
         
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(self.executor, _stats)
+    
+    async def store_email_subscription(self, email: str, email_data: Dict[str, Any]) -> bool:
+        """Store email subscription with analytics data"""
+        email_key = f"{self.email_prefix}{email}"
+        
+        def _store():
+            with self._redis_operation() as r:
+                if not r:
+                    return False
+                
+                try:
+                    # Use pipeline for atomic operations
+                    pipe = r.pipeline()
+                    
+                    # Store individual email data with expiry (keep for 2 years)
+                    email_ttl = 2 * 365 * 24 * 3600  # 2 years
+                    pipe.setex(email_key, email_ttl, json.dumps(email_data))
+                    
+                    # Add to emails set for easy counting and listing
+                    pipe.sadd(self.email_list_key, email)
+                    
+                    # Set expiry on the email list (renew each time we add)
+                    pipe.expire(self.email_list_key, email_ttl)
+                    
+                    results = pipe.execute()
+                    
+                    # Check if operations succeeded
+                    return all(results)
+                    
+                except Exception as e:
+                    logger.error(f"Error storing email subscription: {e}")
+                    return False
+        
+        # Run in thread pool
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _store)
+    
+    async def get_email_stats(self) -> Dict[str, Any]:
+        """Get email subscription statistics"""
+        def _stats():
+            with self._redis_operation() as r:
+                if not r:
+                    return {"total_emails": 0, "recent_count": 0}
+                
+                try:
+                    # Get total unique emails
+                    total_emails = r.scard(self.email_list_key)
+                    
+                    # Count recent subscriptions (last 7 days)
+                    recent_count = 0
+                    cutoff_time = (datetime.now() - timedelta(days=7)).isoformat()
+                    
+                    # Get sample of emails to check recency
+                    sample_emails = list(r.sscan_iter(self.email_list_key, count=100))
+                    
+                    for email in sample_emails:
+                        email_key = f"{self.email_prefix}{email}"
+                        email_data_str = r.get(email_key)
+                        
+                        if email_data_str:
+                            try:
+                                email_data = json.loads(email_data_str)
+                                if email_data.get("subscribed_at", "") > cutoff_time:
+                                    recent_count += 1
+                            except (json.JSONDecodeError, KeyError):
+                                continue
+                    
+                    # Estimate recent count if we have more emails than sampled
+                    if len(sample_emails) == 100 and total_emails > 100:
+                        recent_count = int(recent_count * (total_emails / 100))
+                    
+                    return {
+                        "total_emails": total_emails,
+                        "recent_count": recent_count,
+                        "sample_size": len(sample_emails)
+                    }
+                    
+                except Exception as e:
+                    logger.error(f"Error getting email stats: {e}")
+                    return {"total_emails": 0, "recent_count": 0, "error": str(e)}
+        
+        # Run in thread pool
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _stats)
+    
+    async def get_email_data(self, email: str) -> Optional[Dict[str, Any]]:
+        """Get stored data for a specific email"""
+        email_key = f"{self.email_prefix}{email}"
+        
+        def _get():
+            with self._redis_operation() as r:
+                if not r:
+                    return None
+                
+                try:
+                    email_data_str = r.get(email_key)
+                    if email_data_str:
+                        return json.loads(email_data_str)
+                    return None
+                except Exception as e:
+                    logger.error(f"Error retrieving email data: {e}")
+                    return None
+        
+        # Run in thread pool
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _get)
+    
+    async def check_email_exists(self, email: str) -> bool:
+        """Check if email is already subscribed"""
+        def _check():
+            with self._redis_operation() as r:
+                if not r:
+                    return False
+                
+                try:
+                    return r.sismember(self.email_list_key, email)
+                except Exception as e:
+                    logger.error(f"Error checking email existence: {e}")
+                    return False
+        
+        # Run in thread pool
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _check)
     
     def close(self):
         """Close Redis connection and thread pool"""
