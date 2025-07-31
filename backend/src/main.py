@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Request, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel, HttpUrl, field_validator, model_validator
-from typing import Optional, List, Dict, Union, Annotated
+from typing import Optional, List, Dict, Union, Annotated, Any
 import httpx
 from bs4 import BeautifulSoup
 # OpenAI imports removed - using httpx for async API calls
@@ -15,6 +15,10 @@ from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor
 import logging
 import sys
+import stripe
+import hmac
+import hashlib
+import json
 # Import redis_manager - try relative import first, then absolute
 try:
     from .redis_manager import initialize_redis, get_redis_manager
@@ -37,9 +41,21 @@ RATE_LIMIT_WINDOW_HOURS = int(os.getenv("RATE_LIMIT_WINDOW_HOURS", "1"))
 MAX_TWEET_LENGTH = int(os.getenv("MAX_TWEET_LENGTH", "280"))
 MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", "10000"))  # Maximum characters to process
 
+# Monetization Configuration
+FREE_TIER_DAILY_LIMIT = int(os.getenv("FREE_TIER_DAILY_LIMIT", "5"))  # Free threads per day
+FREE_TIER_MONTHLY_LIMIT = int(os.getenv("FREE_TIER_MONTHLY_LIMIT", "20"))  # Free threads per month
+FREE_TIER_ENABLED = os.getenv("FREE_TIER_ENABLED", "true").lower() == "true"
+PREMIUM_PRICE_USD = float(os.getenv("PREMIUM_PRICE_USD", "4.99"))  # Monthly premium price
+ENABLE_EMAIL_TRACKING = os.getenv("ENABLE_EMAIL_TRACKING", "true").lower() == "true"
+
 # Security Configuration
 API_KEYS = os.getenv("API_KEYS", "").split(",") if os.getenv("API_KEYS") else []
 ALLOWED_DOMAINS = os.getenv("ALLOWED_DOMAINS", "").split(",") if os.getenv("ALLOWED_DOMAINS") else []
+
+# Stripe Configuration
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID")  # For Stripe Payment Links
 if not ALLOWED_DOMAINS:
     # Default allowed domains for scraping
     ALLOWED_DOMAINS = [
@@ -167,6 +183,25 @@ async def lifespan(app: FastAPI):
         logger.info(f"CORS Origins configured: {allowed_origins}")
         logger.info(f"Rate limit: {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW_HOURS} hours")
         
+        # Log monetization configuration
+        logger.info(f"Free tier enabled: {FREE_TIER_ENABLED}")
+        if FREE_TIER_ENABLED:
+            logger.info(f"Free tier limits: {FREE_TIER_DAILY_LIMIT} daily, {FREE_TIER_MONTHLY_LIMIT} monthly")
+            logger.info(f"Premium price: ${PREMIUM_PRICE_USD}/month")
+        else:
+            logger.info("Free tier disabled - unlimited usage for all users")
+        
+        # Initialize Stripe if configured
+        if STRIPE_SECRET_KEY:
+            stripe.api_key = STRIPE_SECRET_KEY
+            logger.info("Stripe API key configured successfully")
+            if STRIPE_WEBHOOK_SECRET:
+                logger.info("Stripe webhook secret configured for signature verification")
+            else:
+                logger.warning("Stripe webhook secret not configured - webhook signature verification disabled")
+        else:
+            logger.warning("Stripe API key not configured - payment processing disabled")
+        
         # Test basic functionality
         test_split = split_into_tweets("Test startup functionality")
         logger.info(f"Basic functionality test: {len(test_split)} tweets generated")
@@ -285,6 +320,34 @@ class GenerateThreadResponse(BaseModel):
     source_type: str
     title: Optional[str] = None
     error: Optional[str] = None
+
+class UsageStatus(BaseModel):
+    daily_usage: int
+    daily_limit: int
+    monthly_usage: int
+    monthly_limit: int
+    has_premium: bool
+    premium_expires_at: Optional[str] = None
+
+class PremiumCheckResponse(BaseModel):
+    has_premium: bool
+    usage_status: UsageStatus
+    needs_payment: bool
+    premium_price: float
+    message: str
+
+class GrantPremiumRequest(BaseModel):
+    email: Optional[str] = None
+    plan: str = "premium"
+    duration_days: int = 30
+    payment_reference: str
+    
+    @field_validator('payment_reference')
+    @classmethod
+    def validate_payment_reference(cls, v):
+        if not v or len(v) < 5:
+            raise ValueError("Payment reference must be at least 5 characters")
+        return v
 
 # Security Dependencies and Utilities
 
@@ -469,6 +532,91 @@ async def check_rate_limit(request: Request):
         
         # Record this request
         rate_limiter_storage[client_ip].append(current_time)
+
+# Monetization and Usage Tracking Functions
+
+async def get_user_usage_status(client_ip: str, email: Optional[str] = None) -> Dict[str, Any]:
+    """Get comprehensive usage status for a user"""
+    redis_manager = get_redis_manager()
+    
+    if not redis_manager or not redis_manager.is_available:
+        # Fallback when Redis is unavailable - allow usage
+        return {
+            "daily_usage": 0,
+            "monthly_usage": 0,
+            "has_premium": False,
+            "premium_info": {"has_premium": False, "source": "redis_unavailable"}
+        }
+    
+    # Get usage counts and premium status
+    daily_usage_data = await redis_manager.get_usage_count(client_ip, email, "daily")
+    monthly_usage_data = await redis_manager.get_usage_count(client_ip, email, "monthly")
+    premium_info = await redis_manager.check_premium_access(client_ip, email)
+    
+    return {
+        "daily_usage": daily_usage_data.get("combined_usage", 0),
+        "monthly_usage": monthly_usage_data.get("combined_usage", 0),
+        "has_premium": premium_info.get("has_premium", False),
+        "premium_info": premium_info
+    }
+
+async def check_usage_limits(client_ip: str, email: Optional[str] = None) -> Dict[str, Any]:
+    """Check if user has exceeded their usage limits"""
+    if not FREE_TIER_ENABLED:
+        return {"allowed": True, "reason": "free_tier_disabled"}
+    
+    usage_status = await get_user_usage_status(client_ip, email)
+    
+    # Premium users have unlimited access
+    if usage_status["has_premium"]:
+        return {
+            "allowed": True,
+            "reason": "premium_access",
+            "usage_status": usage_status
+        }
+    
+    daily_usage = usage_status["daily_usage"]
+    monthly_usage = usage_status["monthly_usage"]
+    
+    # Check daily limit first
+    if daily_usage >= FREE_TIER_DAILY_LIMIT:
+        return {
+            "allowed": False,
+            "reason": "daily_limit_exceeded",
+            "usage_status": usage_status,
+            "message": f"Daily limit of {FREE_TIER_DAILY_LIMIT} threads exceeded. Upgrade to premium for unlimited access."
+        }
+    
+    # Check monthly limit
+    if monthly_usage >= FREE_TIER_MONTHLY_LIMIT:
+        return {
+            "allowed": False,
+            "reason": "monthly_limit_exceeded",
+            "usage_status": usage_status,
+            "message": f"Monthly limit of {FREE_TIER_MONTHLY_LIMIT} threads exceeded. Upgrade to premium for unlimited access."
+        }
+    
+    return {
+        "allowed": True,
+        "reason": "within_limits",
+        "usage_status": usage_status
+    }
+
+async def track_thread_usage(client_ip: str, email: Optional[str] = None) -> bool:
+    """Track thread generation for analytics and limit enforcement"""
+    redis_manager = get_redis_manager()
+    
+    if not redis_manager or not redis_manager.is_available:
+        logger.warning("Redis unavailable - thread usage not tracked")
+        return False
+    
+    return await redis_manager.track_thread_generation(client_ip, email)
+
+def extract_email_from_request_context() -> Optional[str]:
+    """Extract email from request context if available (for future email auth)"""
+    # This is a placeholder for future email-based authentication
+    # For now, we only track email if it's provided in the request
+    return None
 
 # Utility functions
 def extract_content_with_readability(html_content: str) -> Optional[Dict[str, str]]:
@@ -1648,12 +1796,47 @@ async def security_config():
 @app.post("/api/generate", response_model=GenerateThreadResponse)
 async def generate_thread(
     request: GenerateThreadRequest,
+    client_request: Request,
     _: None = Depends(check_rate_limit),
     api_key: str = Depends(verify_api_key)
 ):
     """Generate a Twitter/X thread from URL or text content"""
     global openai_available
     redis_manager = get_redis_manager()
+    client_ip = client_request.client.host
+    
+    # Extract email from context (future feature)
+    user_email = extract_email_from_request_context()
+    
+    # Check usage limits and reserve usage slot BEFORE processing to prevent race conditions
+    if FREE_TIER_ENABLED:
+        usage_check = await check_usage_limits(client_ip, user_email)
+        
+        if not usage_check["allowed"]:
+            # Return 402 Payment Required with details
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "message": usage_check["message"],
+                    "reason": usage_check["reason"],
+                    "usage_status": {
+                        "daily_usage": usage_check["usage_status"]["daily_usage"],
+                        "daily_limit": FREE_TIER_DAILY_LIMIT,
+                        "monthly_usage": usage_check["usage_status"]["monthly_usage"],
+                        "monthly_limit": FREE_TIER_MONTHLY_LIMIT,
+                        "has_premium": usage_check["usage_status"]["has_premium"]
+                    },
+                    "premium_price": PREMIUM_PRICE_USD,
+                    "upgrade_message": f"Upgrade to premium for ${PREMIUM_PRICE_USD}/month for unlimited threads!"
+                }
+            )
+        
+        # For now, track usage immediately before processing to prevent race conditions
+        # TODO: Implement proper reservation system for better UX (allow retry on failures)
+        usage_tracked = await track_thread_usage(client_ip, user_email)
+        if not usage_tracked:
+            logger.warning(f"Failed to track usage for IP: {client_ip}, Email: {user_email or 'None'}")
+            # Continue processing - this prevents Redis failures from blocking the service
     
     # Check cache first
     if redis_manager and redis_manager.is_available:
@@ -1716,6 +1899,10 @@ async def generate_thread(
             source_type=source_type,
             title=title
         )
+        
+        # Usage already tracked before processing to prevent race conditions
+        # This ensures limits are enforced even with concurrent requests
+        logger.info(f"Thread generation completed for IP: {client_ip}, Email: {user_email or 'None'}")
         
         # Cache the response
         if redis_manager and redis_manager.is_available:
@@ -2007,6 +2194,358 @@ async def email_stats(
             "error": str(e),
             "storage": "error"
         }
+
+@app.get("/api/premium/check", response_model=PremiumCheckResponse)
+async def check_premium_status(request: Request):
+    """Check user's premium status and usage limits for frontend payment logic"""
+    client_ip = request.client.host
+    user_email = extract_email_from_request_context()  # Future: get from auth
+    
+    # Get comprehensive usage status
+    usage_status = await get_user_usage_status(client_ip, user_email)
+    premium_info = usage_status["premium_info"]
+    
+    # Create usage status object
+    usage_obj = UsageStatus(
+        daily_usage=usage_status["daily_usage"],
+        daily_limit=FREE_TIER_DAILY_LIMIT,
+        monthly_usage=usage_status["monthly_usage"],
+        monthly_limit=FREE_TIER_MONTHLY_LIMIT,
+        has_premium=usage_status["has_premium"],
+        premium_expires_at=premium_info.get("expires_at")
+    )
+    
+    # Determine if user needs to pay
+    needs_payment = False
+    message = "You have full access to Threadr."
+    
+    if not usage_status["has_premium"] and FREE_TIER_ENABLED:
+        daily_remaining = max(0, FREE_TIER_DAILY_LIMIT - usage_status["daily_usage"])
+        monthly_remaining = max(0, FREE_TIER_MONTHLY_LIMIT - usage_status["monthly_usage"])
+        
+        if daily_remaining == 0 or monthly_remaining == 0:
+            needs_payment = True
+            if daily_remaining == 0:
+                message = f"You've reached your daily limit of {FREE_TIER_DAILY_LIMIT} threads. Upgrade to premium for unlimited access!"
+            else:
+                message = f"You've reached your monthly limit of {FREE_TIER_MONTHLY_LIMIT} threads. Upgrade to premium for unlimited access!"
+        else:
+            remaining = min(daily_remaining, monthly_remaining)
+            message = f"You have {remaining} free threads remaining today. Upgrade to premium for unlimited access!"
+    elif usage_status["has_premium"]:
+        expires_at = premium_info.get("expires_at")
+        if expires_at:
+            try:
+                expiry_date = datetime.fromisoformat(expires_at)
+                days_remaining = (expiry_date - datetime.now()).days
+                message = f"Premium access active. Expires in {days_remaining} days."
+            except:
+                message = "Premium access active."
+        else:
+            message = "Premium access active."
+    
+    return PremiumCheckResponse(
+        has_premium=usage_status["has_premium"],
+        usage_status=usage_obj,
+        needs_payment=needs_payment,
+        premium_price=PREMIUM_PRICE_USD,
+        message=message
+    )
+
+@app.post("/api/premium/grant")
+async def grant_premium_access(
+    request: GrantPremiumRequest,
+    client_request: Request,
+    _: str = Depends(verify_api_key)  # Admin/webhook endpoint - requires API key
+):
+    """Grant premium access - for Stripe webhook integration"""
+    redis_manager = get_redis_manager()
+    client_ip = client_request.client.host
+    
+    if not redis_manager or not redis_manager.is_available:
+        raise HTTPException(
+            status_code=503,
+            detail="Premium access service temporarily unavailable"
+        )
+    
+    # Prepare payment info for tracking
+    payment_info = {
+        "payment_reference": request.payment_reference,
+        "granted_at": datetime.now().isoformat(),
+        "granted_by": "api",
+        "client_ip": client_ip
+    }
+    
+    # Grant premium access
+    success = await redis_manager.grant_premium_access(
+        client_ip=client_ip,
+        email=request.email,
+        plan=request.plan,
+        duration_days=request.duration_days,
+        payment_info=payment_info
+    )
+    
+    if not success:
+        logger.error(f"Failed to grant premium access for {request.email or client_ip}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to grant premium access"
+        )
+    
+    logger.info(f"Premium access granted: Email={request.email}, IP={client_ip}, Plan={request.plan}, Duration={request.duration_days} days")
+    
+    return {
+        "success": True,
+        "message": f"Premium access granted for {request.duration_days} days",
+        "plan": request.plan,
+        "expires_at": (datetime.now() + timedelta(days=request.duration_days)).isoformat()
+    }
+
+@app.get("/api/usage/analytics")
+async def get_usage_analytics(
+    _: str = Depends(verify_api_key)  # Admin endpoint
+):
+    """Get comprehensive usage analytics - Admin only"""
+    redis_manager = get_redis_manager()
+    
+    if not redis_manager or not redis_manager.is_available:
+        return {
+            "available": False,
+            "message": "Analytics service unavailable - Redis not connected"
+        }
+    
+    analytics = await redis_manager.get_usage_analytics()
+    return analytics
+
+@app.get("/api/usage/status")
+async def get_current_usage_status(request: Request):
+    """Get current user's usage status without API key requirement"""
+    client_ip = request.client.host
+    user_email = extract_email_from_request_context()
+    
+    usage_status = await get_user_usage_status(client_ip, user_email)
+    
+    return {
+        "daily_usage": usage_status["daily_usage"],
+        "daily_limit": FREE_TIER_DAILY_LIMIT,
+        "daily_remaining": max(0, FREE_TIER_DAILY_LIMIT - usage_status["daily_usage"]),
+        "monthly_usage": usage_status["monthly_usage"],
+        "monthly_limit": FREE_TIER_MONTHLY_LIMIT,
+        "monthly_remaining": max(0, FREE_TIER_MONTHLY_LIMIT - usage_status["monthly_usage"]),
+        "has_premium": usage_status["has_premium"],
+        "premium_expires_at": usage_status["premium_info"].get("expires_at"),
+        "free_tier_enabled": FREE_TIER_ENABLED
+    }
+
+# Stripe webhook functionality
+
+class StripeEvent(BaseModel):
+    """Stripe webhook event data structure"""
+    id: str
+    object: str
+    type: str
+    data: Dict[str, Any]
+    created: int
+    api_version: Optional[str] = None
+
+def verify_stripe_signature(payload: bytes, signature: str, webhook_secret: str) -> bool:
+    """Verify Stripe webhook signature for security"""
+    if not webhook_secret:
+        logger.warning("Stripe webhook secret not configured - skipping signature verification")
+        return True  # Allow webhooks when not configured (development only)
+    
+    try:
+        # Extract timestamp and signature from header
+        elements = signature.split(',')
+        timestamp = None
+        signatures = []
+        
+        for element in elements:
+            key, value = element.split('=')
+            if key == 't':
+                timestamp = value
+            elif key.startswith('v'):
+                signatures.append(value)
+        
+        if not timestamp or not signatures:
+            logger.error("Invalid Stripe signature format")
+            return False
+        
+        # Create expected signature
+        signed_payload = f"{timestamp}.{payload.decode('utf-8')}"
+        expected_signature = hmac.new(
+            webhook_secret.encode('utf-8'),
+            signed_payload.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+        
+        # Compare signatures
+        for signature in signatures:
+            if hmac.compare_digest(expected_signature, signature):
+                return True
+        
+        logger.error("Stripe signature verification failed")
+        return False
+        
+    except Exception as e:
+        logger.error(f"Error verifying Stripe signature: {str(e)}")
+        return False
+
+async def process_stripe_checkout_completed(session_data: Dict[str, Any]) -> bool:
+    """Process completed checkout session and grant premium access"""
+    try:
+        # Extract session information
+        session_id = session_data.get('id')
+        customer_email = session_data.get('customer_details', {}).get('email')
+        payment_status = session_data.get('payment_status')
+        amount_total = session_data.get('amount_total', 0)
+        currency = session_data.get('currency', 'usd')
+        
+        logger.info(f"Processing Stripe checkout completion: Session={session_id}, Email={customer_email}, Amount={amount_total/100:.2f} {currency.upper()}")
+        
+        # Verify payment was successful
+        if payment_status != 'paid':
+            logger.warning(f"Checkout session {session_id} not paid (status: {payment_status})")
+            return False
+        
+        # Verify amount matches expected premium price
+        expected_amount = int(PREMIUM_PRICE_USD * 100)  # Convert to cents
+        if amount_total != expected_amount:
+            logger.warning(f"Unexpected payment amount: {amount_total} (expected: {expected_amount})")
+            # Don't fail - prices might change or have discounts
+        
+        # Grant premium access using existing endpoint
+        premium_request = GrantPremiumRequest(
+            email=customer_email,
+            plan="premium",
+            duration_days=30,  # Monthly subscription
+            payment_reference=f"stripe_session_{session_id}"
+        )
+        
+        # Create mock request for IP tracking
+        class MockRequest:
+            def __init__(self):
+                self.client = type('Client', (), {'host': '0.0.0.0'})()  # Webhook origin
+        
+        mock_request = MockRequest()
+        
+        # Grant premium access
+        redis_manager = get_redis_manager()
+        if not redis_manager or not redis_manager.is_available:
+            logger.error("Redis not available - cannot grant premium access")
+            return False
+        
+        payment_info = {
+            "payment_reference": f"stripe_session_{session_id}",
+            "granted_at": datetime.now().isoformat(),
+            "granted_by": "stripe_webhook",
+            "client_ip": "stripe_webhook",
+            "stripe_session_id": session_id,
+            "amount": amount_total,
+            "currency": currency
+        }
+        
+        # Grant premium access directly through Redis manager
+        success = await redis_manager.grant_premium_access(
+            client_ip=None,  # No specific IP for webhook
+            email=customer_email,
+            plan="premium",
+            duration_days=30,
+            payment_info=payment_info
+        )
+        
+        if success:
+            logger.info(f"Premium access granted successfully via Stripe webhook: Email={customer_email}, Session={session_id}")
+            return True
+        else:
+            logger.error(f"Failed to grant premium access via Redis: Email={customer_email}, Session={session_id}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Error processing Stripe checkout completion: {str(e)}", exc_info=True)
+        return False
+
+@app.post("/api/webhooks/stripe")
+async def stripe_webhook_handler(request: Request):
+    """Handle Stripe webhook events securely"""
+    try:
+        # Get raw payload and signature
+        payload = await request.body()
+        signature = request.headers.get('stripe-signature', '')
+        
+        if not payload:
+            logger.error("Empty webhook payload received")
+            raise HTTPException(status_code=400, detail="Empty payload")
+        
+        # Verify webhook signature for security
+        if STRIPE_WEBHOOK_SECRET and not verify_stripe_signature(payload, signature, STRIPE_WEBHOOK_SECRET):
+            logger.error("Stripe webhook signature verification failed")
+            raise HTTPException(status_code=401, detail="Invalid signature")
+        
+        # Parse the webhook event
+        try:
+            event_data = stripe.Event.construct_from(
+                json.loads(payload.decode('utf-8')),
+                stripe.api_key
+            )
+        except Exception as e:
+            logger.error(f"Failed to parse Stripe webhook event: {str(e)}")
+            raise HTTPException(status_code=400, detail="Invalid event data")
+        
+        event_type = event_data.type
+        event_id = event_data.id
+        
+        logger.info(f"Received Stripe webhook: {event_type} (ID: {event_id})")
+        
+        # Process checkout.session.completed events
+        if event_type == 'checkout.session.completed':
+            session_data = event_data.data.object
+            success = await process_stripe_checkout_completed(session_data)
+            
+            if success:
+                logger.info(f"Successfully processed checkout completion: {event_id}")
+                return {"received": True, "processed": True, "event_id": event_id}
+            else:
+                logger.error(f"Failed to process checkout completion: {event_id}")
+                return {"received": True, "processed": False, "event_id": event_id, "error": "Failed to grant premium access"}
+        
+        # Handle other webhook events (log and acknowledge)
+        elif event_type in [
+            'customer.subscription.created',
+            'customer.subscription.updated', 
+            'customer.subscription.deleted',
+            'invoice.payment_succeeded',
+            'invoice.payment_failed'
+        ]:
+            logger.info(f"Received {event_type} webhook event: {event_id} (acknowledged but not processed)")
+            return {"received": True, "processed": False, "event_id": event_id, "message": "Event acknowledged but not processed"}
+        
+        else:
+            logger.info(f"Unhandled webhook event type: {event_type} (ID: {event_id})")
+            return {"received": True, "processed": False, "event_id": event_id, "message": "Unhandled event type"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_id = datetime.now().isoformat()
+        logger.error(f"Stripe webhook error [{error_id}]: {str(e)}", exc_info=True)
+        
+        if ENVIRONMENT == "production":
+            raise HTTPException(status_code=500, detail=f"Webhook processing error. Error ID: {error_id}")
+        else:
+            raise HTTPException(status_code=500, detail=f"Webhook error: {str(e)}")
+
+@app.get("/api/payment/config")
+async def get_payment_config():
+    """Get payment configuration for frontend (non-sensitive data only)"""
+    return {
+        "stripe_configured": bool(STRIPE_SECRET_KEY),
+        "webhook_configured": bool(STRIPE_WEBHOOK_SECRET),
+        "premium_price": PREMIUM_PRICE_USD,
+        "currency": "USD",
+        "price_id": STRIPE_PRICE_ID if STRIPE_PRICE_ID else None,
+        "payment_methods": ["stripe_payment_links"] if STRIPE_SECRET_KEY else []
+    }
 
 if __name__ == "__main__":
     import uvicorn

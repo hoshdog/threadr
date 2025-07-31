@@ -24,6 +24,9 @@ typing-extensions>=4.8.0
 redis[hiredis]==5.0.1
 hiredis==2.3.2
 
+# Payment processing
+stripe==7.12.0
+
 # SSL/TLS certificates handling for Railway
 certifi>=2023.11.17
 

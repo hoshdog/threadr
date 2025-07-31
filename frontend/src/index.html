@@ -31,8 +31,30 @@
     <div x-data="threadrApp()" x-init="init()" class="container mx-auto px-4 py-8 max-w-4xl">
         <!-- Header -->
         <header class="text-center mb-10">
-            <h1 class="text-4xl font-bold text-gray-900 mb-2">Threadr</h1>
-            <p class="text-lg text-gray-600">Convert any article into an engaging Twitter thread instantly</p>
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex-1"></div>
+                <div class="flex-1 text-center">
+                    <h1 class="text-4xl font-bold text-gray-900 mb-2">Threadr</h1>
+                    <p class="text-lg text-gray-600">Convert any article into an engaging Twitter thread instantly</p>
+                </div>
+                <div class="flex-1 flex justify-end">
+                    <!-- Usage Counter -->
+                    <div x-show="usageData" class="text-right">
+                        <div class="inline-flex items-center px-3 py-2 rounded-lg" :class="isPremium ? 'bg-gradient-to-r from-purple-100 to-blue-100 border border-purple-200' : 'bg-gray-100 border border-gray-200'">
+                            <div class="flex items-center space-x-2">
+                                <div x-show="isPremium" class="w-2 h-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"></div>
+                                <div class="text-sm">
+                                    <div class="font-semibold" :class="isPremium ? 'text-purple-700' : 'text-gray-700'" x-text="isPremium ? 'Premium' : 'Free Plan'"></div>
+                                    <div class="text-xs" :class="isPremium ? 'text-purple-600' : 'text-gray-500'">
+                                        <span x-show="!isPremium" x-text="`${usageData?.used || 0}/${usageData?.limit || 5} today`"></span>
+                                        <span x-show="isPremium">Unlimited</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </header>
 
         <!-- Main Content -->
@@ -83,15 +105,33 @@
             <!-- Generate Button -->
             <button 
                 @click="generateThread()"
-                :disabled="loading || (!urlInput && inputType === 'url') || (!textInput && inputType === 'text')"
-                class="w-full mt-6 bg-blue-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
+                :disabled="loading || (!urlInput && inputType === 'url') || (!textInput && inputType === 'text') || (limitReached && !isPremium)"
+                class="w-full mt-6 font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                :class="(limitReached && !isPremium) ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600' : 'bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed'"
             >
-                <span x-show="!loading">Generate Thread</span>
+                <span x-show="!loading && !(limitReached && !isPremium)">Generate Thread</span>
+                <span x-show="!loading && limitReached && !isPremium">Upgrade to Generate More</span>
                 <span x-show="loading" class="flex items-center justify-center">
                     <div class="loading-spinner mr-3"></div>
                     Generating...
                 </span>
             </button>
+            
+            <!-- Usage Warning -->
+            <div x-show="!isPremium && usageData && (usageData.used / usageData.limit) >= 0.8" x-transition class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-amber-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-sm text-amber-700">
+                            <span x-show="!limitReached">You're running low on free threads!</span>
+                            <span x-show="limitReached">Daily limit reached</span>
+                        </span>
+                    </div>
+                    <button @click="showPaymentModal = true" class="text-sm text-amber-700 underline hover:text-amber-800">Upgrade</button>
+                </div>
+            </div>
 
             <!-- Error Message -->
             <div x-show="error" x-transition class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -138,6 +178,91 @@
                         </div>
                     </div>
                 </template>
+            </div>
+        </div>
+
+        <!-- Payment Modal -->
+        <div 
+            x-show="showPaymentModal" 
+            x-transition
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            @click.self="closePaymentModal()"
+        >
+            <div class="bg-white rounded-lg p-8 max-w-lg w-full mx-4">
+                <!-- Header -->
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Upgrade to Premium</h3>
+                    <p class="text-gray-600">Unlock unlimited thread generation and premium features</p>
+                </div>
+
+                <!-- Features List -->
+                <div class="mb-6">
+                    <div class="space-y-3">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-gray-700">Unlimited thread generation</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-gray-700">Priority processing</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-gray-700">Advanced customization options</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-gray-700">Email support</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pricing -->
+                <div class="text-center mb-6">
+                    <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 border border-purple-200">
+                        <div class="text-3xl font-bold text-gray-900 mb-1" x-text="paymentConfig?.display_price || '$9.99'"></div>
+                        <div class="text-sm text-gray-600">per month</div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex space-x-3">
+                    <button 
+                        @click="redirectToPayment()"
+                        :disabled="!paymentConfig?.payment_url"
+                        class="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <span x-show="!paymentLoading">Upgrade Now</span>
+                        <span x-show="paymentLoading" class="flex items-center justify-center">
+                            <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                            Loading...
+                        </span>
+                    </button>
+                    <button 
+                        @click="closePaymentModal()"
+                        class="flex-1 bg-gray-100 text-gray-700 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+                    >
+                        Maybe Later
+                    </button>
+                </div>
+
+                <!-- Error Message -->
+                <div x-show="paymentError" x-transition class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p class="text-red-700 text-sm" x-text="paymentError"></p>
+                </div>
             </div>
         </div>
 
@@ -190,14 +315,87 @@
                 copiedAll: false,
                 usageCount: 0,
                 emailCaptured: false,
+                // Monetization state
+                usageData: null,
+                isPremium: false,
+                limitReached: false,
+                showPaymentModal: false,
+                paymentConfig: null,
+                paymentLoading: false,
+                paymentError: ''
 
-                init() {
+                async init() {
                     // Check localStorage for usage count and email capture status
                     this.usageCount = parseInt(localStorage.getItem('threadr_usage_count') || '0');
                     this.emailCaptured = localStorage.getItem('threadr_email_captured') === 'true';
+                    
+                    // Load usage data and payment config
+                    await this.loadUsageData();
+                    await this.loadPaymentConfig();
+                },
+
+                async loadUsageData() {
+                    try {
+                        const headers = this.getHeaders();
+                        const response = await fetch(`${config.API_URL}/api/usage/status`, {
+                            method: 'GET',
+                            headers: headers,
+                            mode: 'cors',
+                            credentials: 'omit'
+                        });
+
+                        if (response.ok) {
+                            this.usageData = await response.json();
+                            this.isPremium = this.usageData.is_premium || false;
+                            this.limitReached = this.usageData.used >= this.usageData.limit && !this.isPremium;
+                        }
+                    } catch (error) {
+                        console.warn('Failed to load usage data:', error);
+                    }
+                },
+
+                async loadPaymentConfig() {
+                    try {
+                        const headers = this.getHeaders();
+                        const response = await fetch(`${config.API_URL}/api/payment/config`, {
+                            method: 'GET',
+                            headers: headers,
+                            mode: 'cors',
+                            credentials: 'omit'
+                        });
+
+                        if (response.ok) {
+                            this.paymentConfig = await response.json();
+                        }
+                    } catch (error) {
+                        console.warn('Failed to load payment config:', error);
+                    }
+                },
+
+                getHeaders() {
+                    const headers = {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    };
+                    
+                    // Add API key header for non-development environments
+                    const hostname = window.location.hostname;
+                    const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+                    
+                    if (!isDevelopment) {
+                        headers['X-API-Key'] = config.API_KEY || 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
+                    }
+                    
+                    return headers;
                 },
 
                 async generateThread() {
+                    // If limit reached and not premium, show payment modal instead
+                    if (this.limitReached && !this.isPremium) {
+                        this.showPaymentModal = true;
+                        return;
+                    }
+
                     this.loading = true;
                     this.error = '';
                     this.tweets = [];
@@ -246,6 +444,24 @@
                         clearTimeout(timeoutId);
 
                         if (!response.ok) {
+                            // Handle 402 Payment Required responses
+                            if (response.status === 402) {
+                                try {
+                                    const paymentData = await response.json();
+                                    // Update usage data from response
+                                    if (paymentData.usage) {
+                                        this.usageData = paymentData.usage;
+                                        this.limitReached = true;
+                                    }
+                                    // Show payment modal
+                                    this.showPaymentModal = true;
+                                    return;
+                                } catch (parseError) {
+                                    this.showPaymentModal = true;
+                                    return;
+                                }
+                            }
+
                             let errorMessage = 'Failed to generate thread. Please try again.';
                             
                             try {
@@ -284,7 +500,10 @@
                             throw new Error('No tweets were generated. Please try with different content.');
                         }
 
-                        // Update usage count and show email modal if needed
+                        // Update usage data after successful generation
+                        await this.loadUsageData();
+                        
+                        // Update local usage count for backwards compatibility
                         this.usageCount++;
                         localStorage.setItem('threadr_usage_count', this.usageCount.toString());
                         
@@ -439,6 +658,56 @@
                     // Still mark as captured even if they close without subscribing
                     localStorage.setItem('threadr_email_captured', 'true');
                     this.emailCaptured = true;
+                },
+
+                // Payment modal methods
+                closePaymentModal() {
+                    this.showPaymentModal = false;
+                    this.paymentError = '';
+                },
+
+                async redirectToPayment() {
+                    if (!this.paymentConfig?.payment_url) {
+                        this.paymentError = 'Payment configuration not available. Please try again later.';
+                        return;
+                    }
+
+                    this.paymentLoading = true;
+                    this.paymentError = '';
+
+                    try {
+                        // Optional: Check if payment is still needed
+                        const headers = this.getHeaders();
+                        const checkResponse = await fetch(`${config.API_URL}/api/premium/check`, {
+                            method: 'GET',
+                            headers: headers,
+                            mode: 'cors',
+                            credentials: 'omit'
+                        });
+
+                        if (checkResponse.ok) {
+                            const checkData = await checkResponse.json();
+                            if (!checkData.payment_needed) {
+                                // User is already premium, refresh the page
+                                window.location.reload();
+                                return;
+                            }
+                        }
+
+                        // Redirect to Stripe Payment Link
+                        window.open(this.paymentConfig.payment_url, '_blank');
+                        
+                        // Close modal after opening payment link
+                        setTimeout(() => {
+                            this.closePaymentModal();
+                        }, 1000);
+                        
+                    } catch (error) {
+                        console.error('Payment redirect error:', error);
+                        this.paymentError = 'Failed to redirect to payment. Please try again.';
+                    } finally {
+                        this.paymentLoading = false;
+                    }
                 }
             }
         }

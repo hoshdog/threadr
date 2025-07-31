@@ -40,6 +40,9 @@ class RedisManager:
         self.rate_limit_prefix = "threadr:ratelimit:"
         self.email_prefix = "threadr:email:"
         self.email_list_key = "threadr:emails:list"
+        self.usage_prefix = "threadr:usage:"
+        self.premium_prefix = "threadr:premium:"
+        self.usage_stats_key = "threadr:usage:stats"
         
         # Initialize connection
         self._initialize_connection()
@@ -472,6 +475,276 @@ class RedisManager:
         # Run in thread pool
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(self.executor, _check)
+    
+    async def track_thread_generation(self, client_ip: str, email: Optional[str] = None) -> bool:
+        """Track thread generation for usage analytics and limit enforcement"""
+        current_time = datetime.now()
+        usage_data = {
+            "timestamp": current_time.isoformat(),
+            "client_ip": client_ip,
+            "email": email,
+            "date": current_time.strftime("%Y-%m-%d"),
+            "month": current_time.strftime("%Y-%m")
+        }
+        
+        def _track():
+            with self._redis_operation() as r:
+                if not r:
+                    return False
+                
+                try:
+                    pipe = r.pipeline()
+                    
+                    # Track by IP (daily counter)
+                    ip_daily_key = f"{self.usage_prefix}ip:{client_ip}:daily:{usage_data['date']}"
+                    pipe.incr(ip_daily_key)
+                    pipe.expire(ip_daily_key, 30 * 24 * 3600)  # 30 days retention
+                    
+                    # Track by IP (monthly counter)
+                    ip_monthly_key = f"{self.usage_prefix}ip:{client_ip}:monthly:{usage_data['month']}"
+                    pipe.incr(ip_monthly_key)
+                    pipe.expire(ip_monthly_key, 365 * 24 * 3600)  # 1 year retention
+                    
+                    # Track by email if provided
+                    if email:
+                        email_daily_key = f"{self.usage_prefix}email:{email}:daily:{usage_data['date']}"
+                        pipe.incr(email_daily_key)
+                        pipe.expire(email_daily_key, 30 * 24 * 3600)
+                        
+                        email_monthly_key = f"{self.usage_prefix}email:{email}:monthly:{usage_data['month']}"
+                        pipe.incr(email_monthly_key)
+                        pipe.expire(email_monthly_key, 365 * 24 * 3600)
+                    
+                    # Store detailed usage log
+                    usage_key = f"{self.usage_prefix}log:{client_ip}:{current_time.timestamp()}"
+                    pipe.setex(usage_key, 7 * 24 * 3600, json.dumps(usage_data))  # 7 days detailed logs
+                    
+                    # Update global stats
+                    pipe.hincrby(self.usage_stats_key, "total_threads", 1)
+                    pipe.hincrby(self.usage_stats_key, f"threads_{usage_data['date']}", 1)
+                    pipe.expire(self.usage_stats_key, 365 * 24 * 3600)
+                    
+                    results = pipe.execute()
+                    return True
+                    
+                except Exception as e:
+                    logger.error(f"Error tracking thread generation: {e}")
+                    return False
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _track)
+    
+    async def get_usage_count(self, client_ip: str, email: Optional[str] = None, period: str = "daily") -> Dict[str, int]:
+        """Get usage count for IP and/or email for current period"""
+        current_time = datetime.now()
+        if period == "daily":
+            period_key = current_time.strftime("%Y-%m-%d")
+        elif period == "monthly":
+            period_key = current_time.strftime("%Y-%m")
+        else:
+            period_key = current_time.strftime("%Y-%m-%d")
+        
+        def _get():
+            with self._redis_operation() as r:
+                if not r:
+                    return {"ip_usage": 0, "email_usage": 0}
+                
+                try:
+                    pipe = r.pipeline()
+                    
+                    # Get IP usage
+                    ip_key = f"{self.usage_prefix}ip:{client_ip}:{period}:{period_key}"
+                    pipe.get(ip_key)
+                    
+                    # Get email usage if provided
+                    if email:
+                        email_key = f"{self.usage_prefix}email:{email}:{period}:{period_key}"
+                        pipe.get(email_key)
+                    else:
+                        pipe.get("dummy")  # Placeholder to maintain pipeline consistency
+                    
+                    results = pipe.execute()
+                    
+                    ip_usage = int(results[0] or 0)
+                    email_usage = int(results[1] or 0) if email else 0
+                    
+                    return {
+                        "ip_usage": ip_usage,
+                        "email_usage": email_usage,
+                        "combined_usage": max(ip_usage, email_usage)  # Use the higher count
+                    }
+                    
+                except Exception as e:
+                    logger.error(f"Error getting usage count: {e}")
+                    return {"ip_usage": 0, "email_usage": 0, "combined_usage": 0}
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _get)
+    
+    async def check_premium_access(self, client_ip: str, email: Optional[str] = None) -> Dict[str, Any]:
+        """Check if user has premium access"""
+        def _check():
+            with self._redis_operation() as r:
+                if not r:
+                    return {"has_premium": False, "source": "redis_unavailable"}
+                
+                try:
+                    pipe = r.pipeline()
+                    
+                    # Check IP-based premium access
+                    ip_premium_key = f"{self.premium_prefix}ip:{client_ip}"
+                    pipe.get(ip_premium_key)
+                    
+                    # Check email-based premium access if provided
+                    if email:
+                        email_premium_key = f"{self.premium_prefix}email:{email}"
+                        pipe.get(email_premium_key)
+                    else:
+                        pipe.get("dummy")
+                    
+                    results = pipe.execute()
+                    
+                    ip_premium_data = None
+                    email_premium_data = None
+                    
+                    if results[0]:
+                        try:
+                            ip_premium_data = json.loads(results[0])
+                        except json.JSONDecodeError:
+                            pass
+                    
+                    if email and results[1]:
+                        try:
+                            email_premium_data = json.loads(results[1])
+                        except json.JSONDecodeError:
+                            pass
+                    
+                    # Determine premium status (either IP or email can grant access)
+                    premium_data = email_premium_data or ip_premium_data
+                    
+                    if premium_data:
+                        # Check if premium access is still valid
+                        expires_at = premium_data.get("expires_at")
+                        if expires_at:
+                            expiry_time = datetime.fromisoformat(expires_at)
+                            if datetime.now() > expiry_time:
+                                return {"has_premium": False, "source": "expired", "expired_at": expires_at}
+                        
+                        return {
+                            "has_premium": True,
+                            "source": "email" if email_premium_data else "ip",
+                            "granted_at": premium_data.get("granted_at"),
+                            "expires_at": premium_data.get("expires_at"),
+                            "plan": premium_data.get("plan", "premium")
+                        }
+                    
+                    return {"has_premium": False, "source": "none"}
+                    
+                except Exception as e:
+                    logger.error(f"Error checking premium access: {e}")
+                    return {"has_premium": False, "source": "error", "error": str(e)}
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _check)
+    
+    async def grant_premium_access(self, client_ip: str, email: Optional[str] = None, 
+                                 plan: str = "premium", duration_days: int = 30,
+                                 payment_info: Optional[Dict[str, Any]] = None) -> bool:
+        """Grant premium access to user"""
+        current_time = datetime.now()
+        expires_at = current_time + timedelta(days=duration_days)
+        
+        premium_data = {
+            "granted_at": current_time.isoformat(),
+            "expires_at": expires_at.isoformat(),
+            "plan": plan,
+            "duration_days": duration_days,
+            "client_ip": client_ip,
+            "email": email,
+            "payment_info": payment_info or {}
+        }
+        
+        def _grant():
+            with self._redis_operation() as r:
+                if not r:
+                    return False
+                
+                try:
+                    pipe = r.pipeline()
+                    
+                    # Store premium access by IP
+                    ip_premium_key = f"{self.premium_prefix}ip:{client_ip}"
+                    premium_ttl = duration_days * 24 * 3600 + 7 * 24 * 3600  # Extra 7 days buffer
+                    pipe.setex(ip_premium_key, premium_ttl, json.dumps(premium_data))
+                    
+                    # Store premium access by email if provided
+                    if email:
+                        email_premium_key = f"{self.premium_prefix}email:{email}"
+                        pipe.setex(email_premium_key, premium_ttl, json.dumps(premium_data))
+                    
+                    # Update premium stats
+                    pipe.hincrby(self.usage_stats_key, "total_premium_grants", 1)
+                    pipe.hincrby(self.usage_stats_key, f"premium_grants_{current_time.strftime('%Y-%m')}", 1)
+                    
+                    results = pipe.execute()
+                    return True
+                    
+                except Exception as e:
+                    logger.error(f"Error granting premium access: {e}")
+                    return False
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _grant)
+    
+    async def get_usage_analytics(self) -> Dict[str, Any]:
+        """Get comprehensive usage analytics"""
+        def _analytics():
+            with self._redis_operation() as r:
+                if not r:
+                    return {"available": False}
+                
+                try:
+                    # Get global stats
+                    stats = r.hgetall(self.usage_stats_key)
+                    
+                    # Get current period activity
+                    current_date = datetime.now().strftime("%Y-%m-%d")
+                    current_month = datetime.now().strftime("%Y-%m")
+                    
+                    # Count active IPs today
+                    ip_pattern = f"{self.usage_prefix}ip:*:daily:{current_date}"
+                    active_ips_today = len(list(r.scan_iter(ip_pattern)))
+                    
+                    # Count active emails today
+                    email_pattern = f"{self.usage_prefix}email:*:daily:{current_date}"
+                    active_emails_today = len(list(r.scan_iter(email_pattern)))
+                    
+                    # Count premium users
+                    premium_pattern = f"{self.premium_prefix}*"
+                    premium_users = len(list(r.scan_iter(premium_pattern)))
+                    
+                    return {
+                        "available": True,
+                        "global_stats": {
+                            "total_threads": int(stats.get("total_threads", 0)),
+                            "threads_today": int(stats.get(f"threads_{current_date}", 0)),
+                            "premium_grants_total": int(stats.get("total_premium_grants", 0)),
+                            "premium_grants_this_month": int(stats.get(f"premium_grants_{current_month}", 0))
+                        },
+                        "activity": {
+                            "active_ips_today": active_ips_today,
+                            "active_emails_today": active_emails_today,
+                            "premium_users": premium_users
+                        },
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    
+                except Exception as e:
+                    logger.error(f"Error getting usage analytics: {e}")
+                    return {"available": False, "error": str(e)}
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _analytics)
     
     def close(self):
         """Close Redis connection and thread pool"""
