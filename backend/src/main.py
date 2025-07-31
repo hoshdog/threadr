@@ -2674,6 +2674,40 @@ async def get_payment_config():
         "pricing_type": "one_time"
     }
 
+@app.get("/debug/env")
+async def debug_environment_variables():
+    """Debug endpoint to check environment variable configuration - DEVELOPMENT ONLY"""
+    if ENVIRONMENT == "production":
+        # Still allow in production but with limited info for debugging payment issue
+        return {
+            "environment": ENVIRONMENT,
+            "stripe_vars": {
+                "STRIPE_SECRET_KEY": "configured" if STRIPE_SECRET_KEY else "not_configured",
+                "STRIPE_WEBHOOK_SECRET": "configured" if STRIPE_WEBHOOK_SECRET else "not_configured", 
+                "STRIPE_PRICE_ID": STRIPE_PRICE_ID if STRIPE_PRICE_ID else "not_configured",
+                "STRIPE_PAYMENT_LINK_URL": STRIPE_PAYMENT_LINK_URL if STRIPE_PAYMENT_LINK_URL else "not_configured"
+            },
+            "payment_vars_raw": {
+                "payment_link_type": str(type(STRIPE_PAYMENT_LINK_URL)),
+                "payment_link_length": len(STRIPE_PAYMENT_LINK_URL) if STRIPE_PAYMENT_LINK_URL else 0,
+                "payment_link_empty": STRIPE_PAYMENT_LINK_URL == "",
+                "payment_link_none": STRIPE_PAYMENT_LINK_URL is None,
+                "payment_link_whitespace": STRIPE_PAYMENT_LINK_URL.strip() == "" if STRIPE_PAYMENT_LINK_URL else False
+            }
+        }
+    
+    # Full debug info for development
+    return {
+        "environment": ENVIRONMENT,
+        "all_env_vars": dict(os.environ),
+        "stripe_vars": {
+            "STRIPE_SECRET_KEY": STRIPE_SECRET_KEY[:10] + "..." if STRIPE_SECRET_KEY else None,
+            "STRIPE_WEBHOOK_SECRET": STRIPE_WEBHOOK_SECRET[:10] + "..." if STRIPE_WEBHOOK_SECRET else None,
+            "STRIPE_PRICE_ID": STRIPE_PRICE_ID,
+            "STRIPE_PAYMENT_LINK_URL": STRIPE_PAYMENT_LINK_URL
+        }
+    }
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
