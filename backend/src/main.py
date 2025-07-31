@@ -2678,22 +2678,32 @@ async def get_payment_config():
 async def debug_environment_variables():
     """Debug endpoint to check environment variable configuration - DEVELOPMENT ONLY"""
     if ENVIRONMENT == "production":
-        # Still allow in production but with limited info for debugging payment issue
+        # Enhanced debug info for production payment issue troubleshooting
+        raw_stripe_payment_url = os.getenv("STRIPE_PAYMENT_LINK_URL")
+        
         return {
             "environment": ENVIRONMENT,
+            "timestamp": datetime.now().isoformat(),
             "stripe_vars": {
                 "STRIPE_SECRET_KEY": "configured" if STRIPE_SECRET_KEY else "not_configured",
                 "STRIPE_WEBHOOK_SECRET": "configured" if STRIPE_WEBHOOK_SECRET else "not_configured", 
                 "STRIPE_PRICE_ID": STRIPE_PRICE_ID if STRIPE_PRICE_ID else "not_configured",
                 "STRIPE_PAYMENT_LINK_URL": STRIPE_PAYMENT_LINK_URL if STRIPE_PAYMENT_LINK_URL else "not_configured"
             },
-            "payment_vars_raw": {
-                "payment_link_type": str(type(STRIPE_PAYMENT_LINK_URL)),
-                "payment_link_length": len(STRIPE_PAYMENT_LINK_URL) if STRIPE_PAYMENT_LINK_URL else 0,
-                "payment_link_empty": STRIPE_PAYMENT_LINK_URL == "",
-                "payment_link_none": STRIPE_PAYMENT_LINK_URL is None,
-                "payment_link_whitespace": STRIPE_PAYMENT_LINK_URL.strip() == "" if STRIPE_PAYMENT_LINK_URL else False
-            }
+            "payment_url_diagnosis": {
+                "variable_name": "STRIPE_PAYMENT_LINK_URL",
+                "raw_value": raw_stripe_payment_url if raw_stripe_payment_url else "not_found_in_env",
+                "processed_value": STRIPE_PAYMENT_LINK_URL if STRIPE_PAYMENT_LINK_URL else "none_after_processing",
+                "value_type": str(type(STRIPE_PAYMENT_LINK_URL)),
+                "value_length": len(STRIPE_PAYMENT_LINK_URL) if STRIPE_PAYMENT_LINK_URL else 0,
+                "is_empty_string": STRIPE_PAYMENT_LINK_URL == "",
+                "is_none": STRIPE_PAYMENT_LINK_URL is None,
+                "is_whitespace_only": STRIPE_PAYMENT_LINK_URL.strip() == "" if STRIPE_PAYMENT_LINK_URL else False,
+                "contains_https": "https://" in str(STRIPE_PAYMENT_LINK_URL) if STRIPE_PAYMENT_LINK_URL else False,
+                "starts_with_stripe": str(STRIPE_PAYMENT_LINK_URL).startswith("https://buy.stripe.com/") if STRIPE_PAYMENT_LINK_URL else False
+            },
+            "env_var_count": len([k for k in os.environ.keys() if "STRIPE" in k.upper()]),
+            "stripe_env_keys": [k for k in os.environ.keys() if "STRIPE" in k.upper()]
         }
     
     # Full debug info for development
