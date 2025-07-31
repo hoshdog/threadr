@@ -61,10 +61,11 @@ threadr/
 ## 📋 Project Status
 
 - ✅ **Backend**: Feature complete with thread generation, rate limiting, and health checks
-- ✅ **Railway Deployment**: Fixed and operational with proper health checks
+- ✅ **Railway Deployment**: Live at https://threadr-production.up.railway.app
+- ✅ **Frontend**: Live at https://threadr-plum.vercel.app
 - ✅ **OpenAI Integration**: Working with graceful fallback handling
-- 🔄 **Frontend**: Implementation pending (Alpine.js + Tailwind)
-- 🔄 **Production Deployment**: Backend ready, frontend pending
+- ✅ **URL Scraping**: Fully functional for all allowed domains
+- ✅ **Production Ready**: Both frontend and backend are deployed and working
 
 ## 🚀 Quick Start
 
@@ -78,7 +79,7 @@ threadr/
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/threadr.git
+git clone https://github.com/hoshdog/threadr.git
 cd threadr
 
 # Navigate to backend
@@ -99,7 +100,7 @@ cp .env.example .env
 echo "your-openai-api-key" > .openai_key
 
 # Run the development server
-uvicorn main:app --reload --port 8001
+uvicorn src.main:app --reload --port 8001
 ```
 
 The API will be available at `http://localhost:8001`
