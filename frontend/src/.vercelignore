@@ -1,2 +1,9 @@
-# Vercel ignore file
-# Don't ignore any files - we need all assets deployed
+# Backend files and analytics
+../../backend/
+../dashboard/
+*.py
+node_modules/
+.env*
+.git/
+.vercel/
+.claude/

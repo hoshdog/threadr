@@ -1,7 +1,0 @@
-# Backend files and analytics
-../backend/
-dashboard/
-*.py
-node_modules/
-.env*
-.git/
