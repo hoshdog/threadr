@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, Request, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import Response, JSONResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, HttpUrl, field_validator, model_validator
 from typing import Optional, List, Dict, Union, Annotated, Any
 import httpx
@@ -264,6 +266,48 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Custom exception handler for validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Handle validation errors with user-friendly messages"""
+    error_messages = []
+    
+    for error in exc.errors():
+        field = error["loc"][-1] if error["loc"] else "field"
+        msg = error["msg"]
+        
+        # Convert field names to user-friendly names
+        field_name_map = {
+            "email": "Email",
+            "password": "Password",
+            "confirm_password": "Password confirmation",
+            "current_password": "Current password",
+            "new_password": "New password",
+            "confirm_new_password": "New password confirmation"
+        }
+        
+        friendly_field = field_name_map.get(field, field.title())
+        
+        # Convert validation messages to user-friendly messages
+        if "ensure this value has at least" in msg:
+            error_messages.append(f"{friendly_field} must be at least {msg.split()[-2]} characters long")
+        elif "field required" in msg:
+            error_messages.append(f"{friendly_field} is required")
+        elif "value is not a valid email address" in msg:
+            error_messages.append("Please enter a valid email address")
+        elif "string too short" in msg:
+            error_messages.append(f"{friendly_field} is too short")
+        elif "string too long" in msg:
+            error_messages.append(f"{friendly_field} is too long")
+        else:
+            # Use the original message if we can't improve it
+            error_messages.append(f"{friendly_field}: {msg}")
+    
+    return JSONResponse(
+        status_code=422,
+        content={"detail": error_messages[0] if len(error_messages) == 1 else "; ".join(error_messages)}
+    )
 
 # Security Middleware
 @app.middleware("http")
