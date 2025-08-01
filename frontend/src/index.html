@@ -196,6 +196,19 @@
                     </div>
                     
                     <div 
+                        @click="switchToPage('templates')"
+                        :class="currentPage === 'templates' ? 'bg-x-blue text-white' : 'text-x-gray hover:text-white'"
+                        class="nav-item rounded-xl p-3 cursor-pointer"
+                    >
+                        <div class="flex items-center space-x-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 00-2 2v2m0 0V9a2 2 0 012-2h14a2 2 0 012 2v2M7 7V5a2 2 0 012-2h6a2 2 0 012 2v2"/>
+                            </svg>
+                            <span class="font-medium">Templates</span>
+                        </div>
+                    </div>
+                    
+                    <div 
                         @click="switchToPage('history')"
                         :class="currentPage === 'history' ? 'bg-x-blue text-white' : 'text-x-gray hover:text-white'"
                         class="nav-item rounded-xl p-3 cursor-pointer"
@@ -1420,6 +1433,167 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Templates Page -->
+                <div x-show="currentPage === 'templates'" x-transition>
+                    <!-- Header -->
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-white mb-2">Thread Templates</h2>
+                        <p class="text-x-gray">Choose from proven thread formats to get started quickly</p>
+                    </div>
+
+                    <!-- Search and Filter Controls -->
+                    <div class="mb-8">
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <!-- Search -->
+                            <div class="flex-1">
+                                <div class="relative">
+                                    <input 
+                                        type="text" 
+                                        x-model="templateSearch"
+                                        placeholder="Search templates..."
+                                        class="w-full bg-x-dark border border-x-border rounded-xl px-4 py-3 pl-10 text-white placeholder-x-gray focus:outline-none focus:border-x-blue"
+                                    />
+                                    <svg class="w-5 h-5 text-x-gray absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            
+                            <!-- Category Filter -->
+                            <div class="sm:w-48">
+                                <select 
+                                    x-model="selectedCategory"
+                                    class="w-full bg-x-dark border border-x-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-x-blue"
+                                >
+                                    <option value="all">All Categories</option>
+                                    <option value="Business">Business</option>
+                                    <option value="Educational">Educational</option>
+                                    <option value="Personal">Personal</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Popular Templates Section -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                            <svg class="w-5 h-5 text-x-blue mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Popular Templates
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <template x-for="template in getPopularTemplates()" :key="template.id">
+                                <div class="tweet-card rounded-2xl p-6 hover:border-x-gray/50 transition-all duration-200 cursor-pointer"
+                                     @click="selectTemplate(template)">
+                                    <!-- Template Header -->
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div>
+                                            <h4 class="text-white font-medium mb-1" x-text="template.name"></h4>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs px-2 py-1 rounded-full bg-x-blue/20 text-x-blue" x-text="template.category"></span>
+                                                <span x-show="template.isPro" class="text-xs px-2 py-1 rounded-full bg-amber-500/20 text-amber-400">Pro</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center text-x-gray text-sm">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                            </svg>
+                                            <span x-text="template.popularity + '%'"></span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Template Description -->
+                                    <p class="text-x-gray text-sm mb-4" x-text="template.description"></p>
+                                    
+                                    <!-- Template Preview -->
+                                    <div class="space-y-2">
+                                        <template x-for="(tweet, index) in template.structure.slice(0, 3)" :key="index">
+                                            <div class="text-xs text-x-gray bg-x-dark/50 rounded px-3 py-2 truncate" x-text="tweet.replace(/\{[^}]+\}/g, '...')"></div>
+                                        </template>
+                                        <div x-show="template.structure.length > 3" class="text-xs text-x-gray text-center">
+                                            + <span x-text="template.structure.length - 3"></span> more tweets
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Use Template Button -->
+                                    <button class="w-full mt-4 bg-x-blue hover:bg-x-blue-hover text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium">
+                                        Use Template
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- All Templates Section -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                            <svg class="w-5 h-5 text-x-blue mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 00-2 2v2m0 0V9a2 2 0 012-2h14a2 2 0 012 2v2M7 7V5a2 2 0 012-2h6a2 2 0 012 2v2"/>
+                            </svg>
+                            All Templates
+                            <span class="ml-2 text-sm text-x-gray">(<span x-text="getFilteredTemplates().length"></span>)</span>
+                        </h3>
+                        
+                        <!-- Templates Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <template x-for="template in getFilteredTemplates()" :key="template.id">
+                                <div class="tweet-card rounded-2xl p-6 hover:border-x-gray/50 transition-all duration-200 cursor-pointer"
+                                     @click="selectTemplate(template)">
+                                    <!-- Template Header -->
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div>
+                                            <h4 class="text-white font-medium mb-1" x-text="template.name"></h4>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs px-2 py-1 rounded-full bg-x-blue/20 text-x-blue" x-text="template.category"></span>
+                                                <span x-show="template.isPro" class="text-xs px-2 py-1 rounded-full bg-amber-500/20 text-amber-400">Pro</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center text-x-gray text-sm">
+                                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            </svg>
+                                            <span x-text="template.popularity + '%'"></span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Template Description -->
+                                    <p class="text-x-gray text-sm mb-4" x-text="template.description"></p>
+                                    
+                                    <!-- Template Preview -->
+                                    <div class="space-y-2">
+                                        <template x-for="(tweet, index) in template.structure.slice(0, 2)" :key="index">
+                                            <div class="text-xs text-x-gray bg-x-dark/50 rounded px-3 py-2 truncate" x-text="tweet.replace(/\{[^}]+\}/g, '...')"></div>
+                                        </template>
+                                        <div x-show="template.structure.length > 2" class="text-xs text-x-gray text-center">
+                                            + <span x-text="template.structure.length - 2"></span> more tweets
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Use Template Button -->
+                                    <button class="w-full mt-4 bg-x-blue hover:bg-x-blue-hover text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium">
+                                        Use Template
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div x-show="getFilteredTemplates().length === 0" class="tweet-card rounded-2xl p-12 text-center">
+                            <div class="w-16 h-16 bg-x-dark rounded-full flex items-center justify-center mx-auto mb-6">
+                                <svg class="w-8 h-8 text-x-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-4">No templates found</h3>
+                            <p class="text-x-gray mb-6">Try adjusting your search or filter criteria</p>
+                            <button @click="templateSearch = ''; selectedCategory = 'all';" class="bg-x-blue hover:bg-x-blue-hover text-white px-6 py-2 rounded-lg transition-colors">
+                                Clear Filters
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1456,7 +1630,7 @@
                 sidebarOpen: false,
                 
                 // Page state
-                currentPage: 'generate', // 'generate', 'history', or 'analytics'
+                currentPage: 'generate', // 'generate', 'templates', 'history', or 'analytics'
                 
                 // History state
                 threadHistory: [],
@@ -1481,6 +1655,300 @@
                 compareThreads: [],
                 showComparisonModal: false,
                 charts: {}, // Store Chart.js instances
+                
+                // Templates state
+                templates: [
+                    {
+                        id: 'product-launch',
+                        name: 'Product Launch Announcement',
+                        description: 'Announce your new product with excitement and key features',
+                        category: 'Business',
+                        isPro: false,
+                        popularity: 95,
+                        variables: ['product_name', 'key_feature_1', 'key_feature_2', 'key_feature_3', 'launch_date', 'website_url'],
+                        structure: [
+                            "🚀 Big news! We're launching {product_name}!",
+                            "After months of hard work, we're excited to share what we've built:",
+                            "✨ {key_feature_1}",
+                            "⚡ {key_feature_2}", 
+                            "🔥 {key_feature_3}",
+                            "Mark your calendars - {launch_date} is the day!",
+                            "Ready to try it? Check it out: {website_url}",
+                            "Retweet if you're as excited as we are! 🎉"
+                        ]
+                    },
+                    {
+                        id: 'tutorial-guide',
+                        name: 'Tutorial/How-to Guide',
+                        description: 'Step-by-step guide to teach your audience something valuable',
+                        category: 'Educational',
+                        isPro: false,
+                        popularity: 88,
+                        variables: ['topic', 'step_1', 'step_2', 'step_3', 'step_4', 'pro_tip', 'resource_link'],
+                        structure: [
+                            "🧵 How to {topic} (a step-by-step guide)",
+                            "I've helped 100+ people master this. Here's exactly how to do it:",
+                            "Step 1: {step_1}",
+                            "Step 2: {step_2}",
+                            "Step 3: {step_3}",
+                            "Step 4: {step_4}",
+                            "💡 Pro tip: {pro_tip}",
+                            "Want more resources? Check out: {resource_link}",
+                            "Found this helpful? Share it with others! ↗️"
+                        ]
+                    },
+                    {
+                        id: 'personal-story',
+                        name: 'Personal Story/Journey',
+                        description: 'Share your personal experience or transformation story',
+                        category: 'Personal',
+                        isPro: false,
+                        popularity: 92,
+                        variables: ['time_period', 'starting_point', 'challenge', 'turning_point', 'outcome', 'lesson_learned'],
+                        structure: [
+                            "{time_period} ago, I was {starting_point}",
+                            "I was struggling with {challenge} and felt stuck.",
+                            "Then something changed: {turning_point}",
+                            "Fast forward to today: {outcome}",
+                            "The biggest lesson I learned: {lesson_learned}",
+                            "Your current situation is not your final destination.",
+                            "What's one small step you can take today? 💪"
+                        ]
+                    },
+                    {
+                        id: 'news-breakdown',
+                        name: 'Industry News Breakdown',
+                        description: 'Analyze and explain breaking news or industry updates',
+                        category: 'Business',
+                        isPro: true,
+                        popularity: 76,
+                        variables: ['news_topic', 'key_fact_1', 'key_fact_2', 'impact', 'prediction', 'action_item'],
+                        structure: [
+                            "🔥 Breaking: {news_topic}",
+                            "Here's what you need to know (and why it matters):",
+                            "Key facts:",
+                            "• {key_fact_1}",
+                            "• {key_fact_2}",
+                            "Why this matters: {impact}",
+                            "My prediction: {prediction}",
+                            "What should you do? {action_item}",
+                            "What are your thoughts on this? 👇"
+                        ]
+                    },
+                    {
+                        id: 'tips-tricks',
+                        name: 'Tips and Tricks List',
+                        description: 'Share actionable tips and tricks about your expertise',
+                        category: 'Educational',
+                        isPro: false,
+                        popularity: 90,
+                        variables: ['topic', 'tip_1', 'tip_2', 'tip_3', 'tip_4', 'tip_5', 'bonus_tip'],
+                        structure: [
+                            "5 {topic} tips that changed my game:",
+                            "1. {tip_1}",
+                            "2. {tip_2}",
+                            "3. {tip_3}",
+                            "4. {tip_4}",
+                            "5. {tip_5}",
+                            "Bonus tip: {bonus_tip}",
+                            "Which tip resonates most with you? Let me know! 👇"
+                        ]
+                    },
+                    {
+                        id: 'case-study',
+                        name: 'Case Study Analysis',
+                        description: 'Deep dive into a successful project or campaign',
+                        category: 'Business',
+                        isPro: true,
+                        popularity: 71,
+                        variables: ['company_name', 'challenge', 'strategy', 'execution', 'results', 'takeaway'],
+                        structure: [
+                            "Case Study: How {company_name} solved {challenge}",
+                            "The Problem: {challenge} was costing them thousands monthly.",
+                            "The Strategy: {strategy}",
+                            "The Execution: {execution}",
+                            "The Results: {results}",
+                            "Key Takeaway: {takeaway}",
+                            "Apply this to your business and watch what happens 📈"
+                        ]
+                    },
+                    {
+                        id: 'book-summary',
+                        name: 'Book/Article Summary',
+                        description: 'Summarize key insights from books or articles',
+                        category: 'Educational',
+                        isPro: false,
+                        popularity: 84,
+                        variables: ['title', 'author', 'main_insight', 'insight_1', 'insight_2', 'insight_3', 'actionable_takeaway'],
+                        structure: [
+                            "Just finished \"{title}\" by {author}",
+                            "The main insight that blew my mind: {main_insight}",
+                            "3 key takeaways:",
+                            "📖 {insight_1}",
+                            "💡 {insight_2}",
+                            "🔥 {insight_3}",
+                            "Most actionable takeaway: {actionable_takeaway}",
+                            "10/10 recommend if you want to level up! 📚"
+                        ]
+                    },
+                    {
+                        id: 'controversial-opinion',
+                        name: 'Controversial Opinion/Hot Take',
+                        description: 'Share a bold opinion that sparks discussion',
+                        category: 'Personal',
+                        isPro: true,
+                        popularity: 68,
+                        variables: ['opinion', 'reason_1', 'reason_2', 'counterargument', 'final_thought'],
+                        structure: [
+                            "Unpopular opinion: {opinion}",
+                            "Here's why I believe this:",
+                            "Reason 1: {reason_1}",
+                            "Reason 2: {reason_2}",
+                            "I know some will say: {counterargument}",
+                            "But here's the thing: {final_thought}",
+                            "Change my mind (or agree) in the comments 👇",
+                            "RT if you think I'm onto something 🔥"
+                        ]
+                    },
+                    {
+                        id: 'behind-scenes',
+                        name: 'Behind the Scenes',
+                        description: 'Give followers a peek behind the curtain',
+                        category: 'Personal', 
+                        isPro: false,
+                        popularity: 82,
+                        variables: ['project', 'challenge', 'solution', 'unexpected_learning', 'current_status'],
+                        structure: [
+                            "Behind the scenes of {project}:",
+                            "What you see: The polished final result",
+                            "What you don't see: {challenge}",
+                            "How we solved it: {solution}",
+                            "Plot twist: {unexpected_learning}",
+                            "Current status: {current_status}",
+                            "The messy middle is where the magic happens ✨"
+                        ]
+                    },
+                    {
+                        id: 'resource-compilation',
+                        name: 'Resource Compilation',
+                        description: 'Curated list of valuable resources and tools',
+                        category: 'Educational',
+                        isPro: true,
+                        popularity: 79,
+                        variables: ['topic', 'resource_1', 'resource_2', 'resource_3', 'resource_4', 'bonus_resource'],
+                        structure: [
+                            "Ultimate {topic} resource list (bookmark this 🔖)",
+                            "After 5+ years, these are my go-to resources:",
+                            "🔗 {resource_1}",
+                            "⚡ {resource_2}",
+                            "💎 {resource_3}",
+                            "🚀 {resource_4}",
+                            "Bonus: {bonus_resource} (my secret weapon)",
+                            "Save this tweet - you'll thank me later!",
+                            "What would you add to this list? 👇"
+                        ]
+                    },
+                    {
+                        id: 'qa-format',
+                        name: 'Q&A Format',
+                        description: 'Answer common questions in your field',
+                        category: 'Educational',
+                        isPro: false,
+                        popularity: 75,
+                        variables: ['topic', 'question_1', 'answer_1', 'question_2', 'answer_2', 'question_3', 'answer_3'],
+                        structure: [
+                            "Common {topic} questions (answered):",
+                            "Q: {question_1}",
+                            "A: {answer_1}",
+                            "Q: {question_2}",
+                            "A: {answer_2}",
+                            "Q: {question_3}",
+                            "A: {answer_3}",
+                            "Got more questions? Drop them below! 👇"
+                        ]
+                    },
+                    {
+                        id: 'problem-solution',
+                        name: 'Problem/Solution',
+                        description: 'Present a common problem and your solution',
+                        category: 'Business',
+                        isPro: false,
+                        popularity: 86,
+                        variables: ['problem', 'why_common', 'solution', 'benefit_1', 'benefit_2', 'how_to_start'],
+                        structure: [
+                            "Problem: {problem}",
+                            "This affects 80% of people because {why_common}",
+                            "The solution: {solution}",
+                            "Benefits:",
+                            "✅ {benefit_1}",
+                            "✅ {benefit_2}",
+                            "How to start: {how_to_start}",
+                            "Don't let this problem hold you back any longer 💪"
+                        ]
+                    },
+                    {
+                        id: 'transformation',
+                        name: 'Before/After Transformation',
+                        description: 'Showcase a dramatic before and after transformation',
+                        category: 'Personal',
+                        isPro: true,
+                        popularity: 89,
+                        variables: ['timeframe', 'before_state', 'catalyst', 'changes_made', 'after_state', 'key_lesson'],
+                        structure: [
+                            "{timeframe} transformation thread 🧵",
+                            "BEFORE: {before_state}",
+                            "The catalyst: {catalyst}",
+                            "What changed: {changes_made}",
+                            "AFTER: {after_state}",
+                            "Key lesson: {key_lesson}",
+                            "Your future self is counting on the decisions you make today.",
+                            "What transformation are you working on? 👇"
+                        ]
+                    },
+                    {
+                        id: 'myth-busting',
+                        name: 'Myth Busting',
+                        description: 'Debunk common myths in your industry',  
+                        category: 'Educational',
+                        isPro: true,
+                        popularity: 73,
+                        variables: ['topic', 'myth_1', 'reality_1', 'myth_2', 'reality_2', 'why_myths_persist'],
+                        structure: [
+                            "🚫 {topic} myths that need to die:",
+                            "Myth #1: {myth_1}",
+                            "Reality: {reality_1}",
+                            "Myth #2: {myth_2}",
+                            "Reality: {reality_2}",
+                            "Why these myths persist: {why_myths_persist}",
+                            "Stop believing the hype. Focus on what actually works.",
+                            "What myths would you add to this list? 👇"
+                        ]
+                    },
+                    {
+                        id: 'future-predictions',
+                        name: 'Future Predictions',
+                        description: 'Share your predictions about industry trends',
+                        category: 'Business',
+                        isPro: true,
+                        popularity: 67,
+                        variables: ['industry', 'prediction_1', 'evidence_1', 'prediction_2', 'evidence_2', 'timeline', 'preparation_tip'],
+                        structure: [
+                            "My {industry} predictions for the next 2 years:",
+                            "Prediction 1: {prediction_1}",
+                            "Evidence: {evidence_1}",
+                            "Prediction 2: {prediction_2}",
+                            "Evidence: {evidence_2}",
+                            "Timeline: {timeline}",
+                            "How to prepare: {preparation_tip}",
+                            "RemindMe! 2 years to see how accurate these were 📅"
+                        ]
+                    }
+                ],
+                selectedTemplate: null,
+                templateSearch: '',
+                selectedCategory: 'all',
+                showTemplateModal: false,
+                templateFormData: {},
                 
                 // Initialize authentication on component load
                 init() {
@@ -2445,6 +2913,134 @@
                     this.selectedAnalyticsThread = thread;
                 },
 
+                // Template functions
+                getPopularTemplates() {
+                    return this.templates
+                        .filter(template => template.popularity >= 85)
+                        .sort((a, b) => b.popularity - a.popularity)
+                        .slice(0, 6);
+                },
+
+                getFilteredTemplates() {
+                    let filtered = this.templates;
+
+                    // Apply category filter
+                    if (this.selectedCategory !== 'all') {
+                        filtered = filtered.filter(template => template.category === this.selectedCategory);
+                    }
+
+                    // Apply search filter
+                    if (this.templateSearch.trim()) {
+                        const searchTerm = this.templateSearch.toLowerCase();
+                        filtered = filtered.filter(template => 
+                            template.name.toLowerCase().includes(searchTerm) ||
+                            template.description.toLowerCase().includes(searchTerm) ||
+                            template.category.toLowerCase().includes(searchTerm)
+                        );
+                    }
+
+                    return filtered.sort((a, b) => b.popularity - a.popularity);
+                },
+
+                selectTemplate(template) {
+                    this.selectedTemplate = template;
+                    this.templateFormData = {};
+                    // Initialize form data with empty values
+                    template.variables.forEach(variable => {
+                        this.templateFormData[variable] = '';
+                    });
+                    this.showTemplateModal = true;
+                },
+
+                closeTemplateModal() {
+                    this.showTemplateModal = false;
+                    this.selectedTemplate = null;
+                    this.templateFormData = {};
+                },
+
+                formatVariableLabel(variable) {
+                    return variable.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                },
+
+                getVariablePlaceholder(variable) {
+                    const placeholders = {
+                        'product_name': 'e.g., ThreadrAI Pro',
+                        'topic': 'e.g., social media marketing',
+                        'company_name': 'e.g., Apple',
+                        'time_period': 'e.g., 2 years',
+                        'starting_point': 'e.g., struggling freelancer',
+                        'challenge': 'e.g., low conversion rates',
+                        'strategy': 'e.g., A/B tested email campaigns',
+                        'results': 'e.g., 300% increase in sales',
+                        'title': 'e.g., Atomic Habits',
+                        'author': 'e.g., James Clear',
+                        'opinion': 'e.g., Remote work is overrated',
+                        'project': 'e.g., launching our SaaS product',
+                        'website_url': 'e.g., https://threadr.ai',
+                        'launch_date': 'e.g., March 15th',
+                        'resource_link': 'e.g., https://example.com'
+                    };
+                    return placeholders[variable] || `Enter ${this.formatVariableLabel(variable).toLowerCase()}`;
+                },
+
+                generatePreviewTweets() {
+                    if (!this.selectedTemplate) return [];
+                    
+                    return this.selectedTemplate.structure.map(tweet => {
+                        let processedTweet = tweet;
+                        
+                        // Replace variables with form data or placeholders
+                        this.selectedTemplate.variables.forEach(variable => {
+                            const value = this.templateFormData[variable] || `{${variable}}`;
+                            const regex = new RegExp(`\\{${variable}\\}`, 'g');
+                            processedTweet = processedTweet.replace(regex, value);
+                        });
+                        
+                        return processedTweet;
+                    });
+                },
+
+                isTemplateFormValid() {
+                    if (!this.selectedTemplate) return false;
+                    
+                    return this.selectedTemplate.variables.every(variable => 
+                        this.templateFormData[variable] && this.templateFormData[variable].trim()
+                    );
+                },
+
+                useTemplate() {
+                    if (!this.isTemplateFormValid()) return;
+                    
+                    // Generate the final tweets
+                    const generatedTweets = this.generatePreviewTweets().map((tweet, index) => ({
+                        id: Date.now() + index,
+                        text: tweet,
+                        charCount: tweet.length
+                    }));
+                    
+                    // Set the tweets in the main editor
+                    this.tweets = generatedTweets;
+                    
+                    // Switch to the generate page
+                    this.switchToPage('generate');
+                    
+                    // Close the modal
+                    this.closeTemplateModal();
+                    
+                    // Show success message
+                    this.showSuccessMessage('Template applied successfully! You can now edit and refine your thread.');
+                },
+
+                showSuccessMessage(message) {
+                    // You could implement a toast notification here
+                    // For now, we'll just use a simple approach
+                    const originalError = this.error;
+                    this.error = '';
+                    setTimeout(() => {
+                        // Could show a success state here
+                    }, 100);
+                },
+
                 addToComparison(thread) {
                     if (this.compareThreads.length < 2 && !this.compareThreads.find(t => t.id === thread.id)) {
                         this.compareThreads.push(thread);
@@ -2596,6 +3192,116 @@
             `;
             document.body.insertAdjacentHTML('beforeend', comparisonModal);
         });
+
+        <!-- Template Selection Modal -->
+        <div 
+            x-show="showTemplateModal" 
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-end="opacity-0"
+            @click.self="closeTemplateModal()"
+            class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+        >
+            <div 
+                x-show="showTemplateModal"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 transform scale-95"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-end="opacity-0 transform scale-95"
+                @click.stop
+                class="bg-x-black border border-x-border rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+            >
+                <!-- Modal Header -->
+                <div class="flex justify-between items-center p-6 border-b border-x-border">
+                    <div>
+                        <h3 class="text-xl font-bold text-white" x-text="selectedTemplate?.name"></h3>
+                        <p class="text-x-gray text-sm mt-1" x-text="selectedTemplate?.description"></p>
+                    </div>
+                    <button @click="closeTemplateModal()" class="p-2 hover:bg-x-dark rounded-lg transition-colors">
+                        <svg class="w-5 h-5 text-x-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Modal Content -->
+                <div class="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+                    <!-- Pro Gate -->
+                    <div x-show="selectedTemplate?.isPro && !user?.premium" class="text-center py-8">
+                        <div class="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                        </div>
+                        <h4 class="text-lg font-bold text-white mb-2">Pro Template</h4>
+                        <p class="text-x-gray mb-6">This template is only available for Pro users. Upgrade to unlock premium templates and features.</p>
+                        <div class="flex gap-3 justify-center">
+                            <button @click="closeTemplateModal()" class="px-4 py-2 text-x-gray hover:text-white transition-colors">
+                                Cancel
+                            </button>
+                            <button @click="openPaymentModal()" class="bg-amber-500 hover:bg-amber-600 text-black px-6 py-2 rounded-lg font-medium transition-colors">
+                                Upgrade to Pro
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Template Form -->
+                    <div x-show="!selectedTemplate?.isPro || user?.premium">
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-white mb-4">Fill in the details below to customize your thread:</h4>
+                            
+                            <!-- Template Variables Form -->
+                            <div class="space-y-4">
+                                <template x-for="variable in selectedTemplate?.variables || []" :key="variable">
+                                    <div>
+                                        <label class="block text-sm font-medium text-white mb-2" x-text="formatVariableLabel(variable)"></label>
+                                        <textarea 
+                                            x-model="templateFormData[variable]"
+                                            :placeholder="getVariablePlaceholder(variable)"
+                                            rows="2"
+                                            class="w-full bg-x-dark border border-x-border rounded-lg px-3 py-2 text-white placeholder-x-gray focus:outline-none focus:border-x-blue resize-none"
+                                        ></textarea>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Template Preview -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-white mb-4">Preview:</h4>
+                            <div class="space-y-2 max-h-40 overflow-y-auto">
+                                <template x-for="(tweet, index) in generatePreviewTweets()" :key="index">
+                                    <div class="bg-x-dark/50 rounded-lg p-3">
+                                        <div class="text-xs text-x-gray mb-1">Tweet <span x-text="index + 1"></span></div>
+                                        <div class="text-sm text-white" x-text="tweet"></div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex gap-3 justify-end">
+                            <button 
+                                @click="closeTemplateModal()" 
+                                class="px-4 py-2 text-x-gray hover:text-white transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                @click="useTemplate()" 
+                                :disabled="!isTemplateFormValid()"
+                                :class="isTemplateFormValid() ? 'bg-x-blue hover:bg-x-blue-hover' : 'bg-x-gray cursor-not-allowed'"
+                                class="px-6 py-2 text-white rounded-lg font-medium transition-colors"
+                            >
+                                Use Template
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    });
     </script>
 </body>
 </html>
