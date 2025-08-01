@@ -181,6 +181,7 @@ if ENVIRONMENT == "production":
     else:
         # Default production origins
         allowed_origins = [
+            "https://threadr-plum.vercel.app",
             "https://threadr.vercel.app",
             "https://threadr-frontend.vercel.app",
             "https://www.threadr.app"

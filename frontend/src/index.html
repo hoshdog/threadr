@@ -2753,6 +2753,13 @@
                         this.loadThreadHistory();
                     } else if (page === 'analytics') {
                         this.loadAnalytics();
+                    } else if (page === 'templates') {
+                        // Force Alpine.js to re-evaluate template functions for reactivity
+                        this.$nextTick(() => {
+                            // Trigger template data refresh by accessing the functions
+                            this.getPopularTemplates();
+                            this.getFilteredTemplates();
+                        });
                     }
                 },
 
