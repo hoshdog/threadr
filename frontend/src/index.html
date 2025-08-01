@@ -8,6 +8,7 @@
     <link rel="apple-touch-icon" href="/logos/threadrLogo_White.png">
     <script src="config.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -207,13 +208,17 @@
                         </div>
                     </div>
                     
-                    <div class="nav-item rounded-xl p-3 text-x-gray hover:text-white cursor-pointer">
+                    <div 
+                        @click="switchToPage('analytics')"
+                        :class="currentPage === 'analytics' ? 'bg-x-blue text-white' : 'text-x-gray hover:text-white'"
+                        class="nav-item rounded-xl p-3 cursor-pointer"
+                    >
                         <div class="flex items-center space-x-3">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                             </svg>
                             <span class="font-medium">Analytics</span>
-                            <span class="text-xs bg-x-gray text-x-black px-2 py-1 rounded-full">Soon</span>
+                            <span x-show="!user?.premium" class="text-xs bg-amber-500 text-black px-2 py-1 rounded-full">Pro</span>
                         </div>
                     </div>
                 </nav>
@@ -1081,6 +1086,340 @@
                         Try again tomorrow for more free threads!
                     </p>
                 </div>
+
+                <!-- Analytics Page -->
+                <div x-show="currentPage === 'analytics'" x-transition>
+                    <!-- Premium Gate -->
+                    <div x-show="!user?.premium" class="text-center py-12">
+                        <div class="max-w-md mx-auto">
+                            <div class="w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center">
+                                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                            </div>
+                            <h3 class="text-2xl font-bold text-white mb-4">Analytics is a Pro Feature</h3>
+                            <p class="text-x-gray mb-8">Get detailed insights into your thread performance, engagement metrics, and AI-powered recommendations.</p>
+                            
+                            <div class="space-y-4 mb-8">
+                                <div class="flex items-center space-x-3 text-left">
+                                    <div class="w-2 h-2 bg-x-blue rounded-full"></div>
+                                    <span class="text-white">Detailed engagement metrics</span>
+                                </div>
+                                <div class="flex items-center space-x-3 text-left">
+                                    <div class="w-2 h-2 bg-x-blue rounded-full"></div>
+                                    <span class="text-white">Thread performance comparisons</span>
+                                </div>
+                                <div class="flex items-center space-x-3 text-left">
+                                    <div class="w-2 h-2 bg-x-blue rounded-full"></div>
+                                    <span class="text-white">AI-powered insights and tips</span>
+                                </div>
+                                <div class="flex items-center space-x-3 text-left">
+                                    <div class="w-2 h-2 bg-x-blue rounded-full"></div>
+                                    <span class="text-white">Industry benchmarking</span>
+                                </div>
+                            </div>
+                            
+                            <button class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold py-4 px-8 rounded-full transition-all duration-200">
+                                Upgrade to Pro
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Analytics Dashboard (Premium Users) -->
+                    <div x-show="user?.premium">
+                        <!-- Header -->
+                        <div class="mb-8">
+                            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                                <div>
+                                    <h2 class="text-2xl font-bold text-white mb-2">Analytics Dashboard</h2>
+                                    <p class="text-x-gray">Track your thread performance and engagement</p>
+                                </div>
+                                
+                                <!-- Time Period Selector -->
+                                <div class="flex rounded-full bg-x-dark border border-x-border p-1">
+                                    <button 
+                                        @click="changeTimePeriod('1d')"
+                                        :class="analyticsTimePeriod === '1d' ? 'bg-x-blue text-white' : 'text-x-gray hover:text-white'"
+                                        class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200"
+                                    >
+                                        24h
+                                    </button>
+                                    <button 
+                                        @click="changeTimePeriod('7d')"
+                                        :class="analyticsTimePeriod === '7d' ? 'bg-x-blue text-white' : 'text-x-gray hover:text-white'"
+                                        class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200"
+                                    >
+                                        7d
+                                    </button>
+                                    <button 
+                                        @click="changeTimePeriod('30d')"
+                                        :class="analyticsTimePeriod === '30d' ? 'bg-x-blue text-white' : 'text-x-gray hover:text-white'"
+                                        class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200"
+                                    >
+                                        30d
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div x-show="analyticsLoading" class="flex items-center justify-center py-12">
+                            <div class="loading-spinner"></div>
+                            <span class="ml-3 text-x-gray">Loading analytics...</span>
+                        </div>
+
+                        <!-- Error State -->
+                        <div x-show="analyticsError && !analyticsLoading" class="tweet-card rounded-2xl p-6 mb-6">
+                            <div class="flex items-center space-x-3 text-red-400">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span x-text="analyticsError"></span>
+                            </div>
+                        </div>
+
+                        <!-- Dashboard Content -->
+                        <div x-show="!analyticsLoading && !analyticsError && analyticsData.dashboard">
+                            <!-- Key Metrics Cards -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                <!-- Total Impressions -->
+                                <div class="tweet-card rounded-2xl p-6">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="w-12 h-12 bg-x-blue/20 rounded-full flex items-center justify-center">
+                                            <svg class="w-6 h-6 text-x-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                        </div>
+                                        <span :class="analyticsData.dashboard?.impressions_change >= 0 ? 'text-green-400' : 'text-red-400'" 
+                                              class="text-sm font-medium"
+                                              x-text="analyticsData.dashboard?.impressions_change >= 0 ? '+' + formatPercentage(analyticsData.dashboard?.impressions_change) : formatPercentage(analyticsData.dashboard?.impressions_change)">
+                                        </span>
+                                    </div>
+                                    <h3 class="text-2xl font-bold text-white mb-1" x-text="formatNumber(analyticsData.dashboard?.total_impressions)"></h3>
+                                    <p class="text-x-gray text-sm">Impressions</p>
+                                </div>
+
+                                <!-- Engagement Rate -->
+                                <div class="tweet-card rounded-2xl p-6">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
+                                            <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                            </svg>
+                                        </div>
+                                        <span :class="analyticsData.dashboard?.engagement_change >= 0 ? 'text-green-400' : 'text-red-400'" 
+                                              class="text-sm font-medium"
+                                              x-text="analyticsData.dashboard?.engagement_change >= 0 ? '+' + formatPercentage(analyticsData.dashboard?.engagement_change) : formatPercentage(analyticsData.dashboard?.engagement_change)">
+                                        </span>
+                                    </div>
+                                    <h3 class="text-2xl font-bold text-white mb-1" x-text="formatPercentage(analyticsData.dashboard?.avg_engagement_rate)"></h3>
+                                    <p class="text-x-gray text-sm">Engagement Rate</p>
+                                </div>
+
+                                <!-- Total Threads -->
+                                <div class="tweet-card rounded-2xl p-6">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
+                                            <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                                            </svg>
+                                        </div>
+                                        <span :class="analyticsData.dashboard?.threads_change >= 0 ? 'text-green-400' : 'text-red-400'" 
+                                              class="text-sm font-medium"
+                                              x-text="analyticsData.dashboard?.threads_change >= 0 ? '+' + analyticsData.dashboard?.threads_change : analyticsData.dashboard?.threads_change">
+                                        </span>
+                                    </div>
+                                    <h3 class="text-2xl font-bold text-white mb-1" x-text="analyticsData.dashboard?.total_threads || 0"></h3>
+                                    <p class="text-x-gray text-sm">Threads Created</p>
+                                </div>
+
+                                <!-- Avg Thread Length -->
+                                <div class="tweet-card rounded-2xl p-6">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center">
+                                            <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                        </div>
+                                        <span class="text-x-gray text-sm">tweets</span>
+                                    </div>
+                                    <h3 class="text-2xl font-bold text-white mb-1" x-text="(analyticsData.dashboard?.avg_thread_length || 0).toFixed(1)"></h3>
+                                    <p class="text-x-gray text-sm">Avg Thread Length</p>
+                                </div>
+                            </div>
+
+                            <!-- Charts Section -->
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                                <!-- Engagement Over Time -->
+                                <div class="tweet-card rounded-2xl p-6">
+                                    <h3 class="text-lg font-semibold text-white mb-4">Engagement Over Time</h3>
+                                    <div class="h-64">
+                                        <canvas id="engagementChart"></canvas>
+                                    </div>
+                                </div>
+
+                                <!-- Top Performing Threads -->
+                                <div class="tweet-card rounded-2xl p-6">
+                                    <h3 class="text-lg font-semibold text-white mb-4">Thread Performance</h3>
+                                    <div class="h-64">
+                                        <canvas id="performanceChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Thread Performance Table -->
+                            <div class="tweet-card rounded-2xl p-6 mb-8">
+                                <div class="flex justify-between items-center mb-6">
+                                    <h3 class="text-lg font-semibold text-white">Thread Performance</h3>
+                                    <div class="flex items-center space-x-2">
+                                        <button 
+                                            x-show="compareThreads.length === 2"
+                                            @click="showComparison()"
+                                            class="bg-x-blue hover:bg-x-blue-hover text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                        >
+                                            Compare Selected
+                                        </button>
+                                        <button 
+                                            x-show="compareThreads.length > 0"
+                                            @click="compareThreads = []"
+                                            class="text-x-gray hover:text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                                        >
+                                            Clear Selection
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="overflow-x-auto">
+                                    <table class="w-full">
+                                        <thead>
+                                            <tr class="border-b border-x-border">
+                                                <th class="text-left py-3 px-4 text-x-gray font-medium">Thread</th>
+                                                <th class="text-left py-3 px-4 text-x-gray font-medium">Engagement</th>
+                                                <th class="text-left py-3 px-4 text-x-gray font-medium">Impressions</th>
+                                                <th class="text-left py-3 px-4 text-x-gray font-medium">Rate</th>
+                                                <th class="text-left py-3 px-4 text-x-gray font-medium">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template x-for="thread in analyticsData.threads?.slice(0, 10)" :key="thread.id">
+                                                <tr class="border-b border-x-border/50 hover:bg-x-hover/30 transition-colors">
+                                                    <td class="py-4 px-4">
+                                                        <div class="flex items-center space-x-3">
+                                                            <input 
+                                                                type="checkbox"
+                                                                :checked="compareThreads.find(t => t.id === thread.id)"
+                                                                @change="$event.target.checked ? addToComparison(thread) : removeFromComparison(thread.id)"
+                                                                :disabled="!$event.target.checked && compareThreads.length >= 2"
+                                                                class="w-4 h-4 text-x-blue bg-x-black border-x-border rounded"
+                                                            >
+                                                            <div>
+                                                                <p class="text-white font-medium cursor-pointer hover:text-x-blue transition-colors" 
+                                                                   @click="selectAnalyticsThread(thread)"
+                                                                   x-text="thread.title?.slice(0, 50) + '...' || 'Untitled Thread'">
+                                                                </p>
+                                                                <p class="text-x-gray text-sm" x-text="new Date(thread.created_at).toLocaleDateString()"></p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="py-4 px-4">
+                                                        <span class="text-white font-medium" x-text="formatNumber(thread.total_engagement)"></span>
+                                                    </td>
+                                                    <td class="py-4 px-4">
+                                                        <span class="text-white font-medium" x-text="formatNumber(thread.impressions)"></span>
+                                                    </td>
+                                                    <td class="py-4 px-4">
+                                                        <span :class="getEngagementColor(thread.engagement_rate)" 
+                                                              class="font-medium"
+                                                              x-text="formatPercentage(thread.engagement_rate)">
+                                                        </span>
+                                                        <span class="ml-1" x-text="getPerformanceIcon(thread.engagement_rate)"></span>
+                                                    </td>
+                                                    <td class="py-4 px-4">
+                                                        <button 
+                                                            @click="selectAnalyticsThread(thread)"
+                                                            class="text-x-blue hover:text-x-blue-hover text-sm font-medium transition-colors"
+                                                        >
+                                                            View Details
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- AI Insights Section -->
+                            <div x-show="analyticsData.insights" class="tweet-card rounded-2xl p-6 mb-8">
+                                <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                                    <svg class="w-5 h-5 text-x-blue mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                    </svg>
+                                    AI Insights & Recommendations
+                                </h3>
+                                
+                                <div class="space-y-4">
+                                    <template x-for="insight in analyticsData.insights?.recommendations" :key="insight.id">
+                                        <div class="flex items-start space-x-3 p-4 bg-x-dark/30 rounded-xl border border-x-border/30">
+                                            <div class="w-2 h-2 bg-x-blue rounded-full mt-2 flex-shrink-0"></div>
+                                            <div>
+                                                <h4 class="text-white font-medium mb-1" x-text="insight.title"></h4>
+                                                <p class="text-x-gray text-sm" x-text="insight.description"></p>
+                                                <div x-show="insight.impact" class="mt-2">
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-900/30 text-green-400">
+                                                        Potential Impact: <span x-text="insight.impact" class="ml-1"></span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Industry Benchmarks -->
+                            <div x-show="analyticsData.benchmarks" class="tweet-card rounded-2xl p-6">
+                                <h3 class="text-lg font-semibold text-white mb-4">Industry Benchmarks</h3>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-white mb-1" x-text="formatPercentage(analyticsData.benchmarks?.industry_avg_engagement)"></div>
+                                        <div class="text-x-gray text-sm">Industry Average</div>
+                                        <div class="mt-2">
+                                            <span :class="(analyticsData.dashboard?.avg_engagement_rate || 0) > (analyticsData.benchmarks?.industry_avg_engagement || 0) ? 'text-green-400' : 'text-red-400'" 
+                                                  class="text-sm font-medium">
+                                                <span x-show="(analyticsData.dashboard?.avg_engagement_rate || 0) > (analyticsData.benchmarks?.industry_avg_engagement || 0)">Above average</span>
+                                                <span x-show="(analyticsData.dashboard?.avg_engagement_rate || 0) <= (analyticsData.benchmarks?.industry_avg_engagement || 0)">Below average</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-white mb-1" x-text="analyticsData.benchmarks?.top_performer_percentile"></div>
+                                        <div class="text-x-gray text-sm">Your Percentile</div>
+                                        <div class="mt-2">
+                                            <span :class="(analyticsData.benchmarks?.top_performer_percentile || 0) >= 75 ? 'text-green-400' : 
+                                                          (analyticsData.benchmarks?.top_performer_percentile || 0) >= 50 ? 'text-yellow-400' : 'text-red-400'" 
+                                                  class="text-sm font-medium">
+                                                <span x-show="(analyticsData.benchmarks?.top_performer_percentile || 0) >= 75">Top performer</span>
+                                                <span x-show="(analyticsData.benchmarks?.top_performer_percentile || 0) >= 50 && (analyticsData.benchmarks?.top_performer_percentile || 0) < 75">Above average</span>
+                                                <span x-show="(analyticsData.benchmarks?.top_performer_percentile || 0) < 50">Room for improvement</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-white mb-1" x-text="(analyticsData.benchmarks?.optimal_thread_length || 0).toFixed(0)"></div>
+                                        <div class="text-x-gray text-sm">Optimal Length</div>
+                                        <div class="mt-2">
+                                            <span class="text-x-gray text-sm">tweets for max engagement</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1117,7 +1456,7 @@
                 sidebarOpen: false,
                 
                 // Page state
-                currentPage: 'generate', // 'generate' or 'history'
+                currentPage: 'generate', // 'generate', 'history', or 'analytics'
                 
                 // History state
                 threadHistory: [],
@@ -1127,6 +1466,21 @@
                 searchTimeout: null,
                 selectedThread: null,
                 showThreadModal: false,
+                
+                // Analytics state
+                analyticsData: {
+                    dashboard: null,
+                    threads: [],
+                    insights: null,
+                    benchmarks: null
+                },
+                analyticsLoading: false,
+                analyticsError: '',
+                analyticsTimePeriod: '7d', // '1d', '7d', '30d'
+                selectedAnalyticsThread: null,
+                compareThreads: [],
+                showComparisonModal: false,
+                charts: {}, // Store Chart.js instances
                 
                 // Initialize authentication on component load
                 init() {
@@ -1663,6 +2017,8 @@
                     
                     if (page === 'history') {
                         this.loadThreadHistory();
+                    } else if (page === 'analytics') {
+                        this.loadAnalytics();
                     }
                 },
 
@@ -1893,9 +2249,353 @@
                         console.error('Failed to delete thread:', error);
                         this.historyError = 'Failed to delete thread';
                     }
+                },
+
+                // Analytics functions
+                async loadAnalytics() {
+                    if (!this.isAuthenticated()) {
+                        this.analyticsError = 'Please log in to view analytics';
+                        return;
+                    }
+                    
+                    if (!this.user?.premium) {
+                        this.analyticsError = 'Analytics is a premium feature. Upgrade to Pro to access detailed analytics.';
+                        return;
+                    }
+                    
+                    this.analyticsLoading = true;
+                    this.analyticsError = '';
+                    
+                    try {
+                        // Load dashboard data
+                        await this.loadDashboardData();
+                        await this.loadThreadAnalytics();
+                        await this.loadInsights();
+                        await this.loadBenchmarks();
+                        
+                        // Initialize charts after data is loaded
+                        setTimeout(() => this.initializeCharts(), 100);
+                    } catch (error) {
+                        console.error('Failed to load analytics:', error);
+                        this.analyticsError = 'Failed to load analytics data';
+                    } finally {
+                        this.analyticsLoading = false;
+                    }
+                },
+
+                async loadDashboardData() {
+                    const response = await fetch(`${config.API_URL}/api/analytics/dashboard?period=${this.analyticsTimePeriod}`, {
+                        method: 'GET',
+                        headers: this.getHeaders(),
+                        mode: 'cors',
+                        credentials: 'omit'
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to load dashboard data');
+                    this.analyticsData.dashboard = await response.json();
+                },
+
+                async loadThreadAnalytics() {
+                    const response = await fetch(`${config.API_URL}/api/analytics/threads?period=${this.analyticsTimePeriod}`, {
+                        method: 'GET',
+                        headers: this.getHeaders(),
+                        mode: 'cors',
+                        credentials: 'omit'
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to load thread analytics');
+                    this.analyticsData.threads = await response.json();
+                },
+
+                async loadInsights() {
+                    const response = await fetch(`${config.API_URL}/api/analytics/insights?period=${this.analyticsTimePeriod}`, {
+                        method: 'GET',
+                        headers: this.getHeaders(),
+                        mode: 'cors',
+                        credentials: 'omit'
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to load insights');
+                    this.analyticsData.insights = await response.json();
+                },
+
+                async loadBenchmarks() {
+                    const response = await fetch(`${config.API_URL}/api/analytics/benchmarks`, {
+                        method: 'GET',
+                        headers: this.getHeaders(),
+                        mode: 'cors',
+                        credentials: 'omit'  
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to load benchmarks');
+                    this.analyticsData.benchmarks = await response.json();
+                },
+
+                changeTimePeriod(period) {
+                    this.analyticsTimePeriod = period;
+                    this.loadAnalytics();
+                },
+
+                initializeCharts() {
+                    // Destroy existing charts
+                    Object.values(this.charts).forEach(chart => {
+                        if (chart) chart.destroy();
+                    });
+                    this.charts = {};
+
+                    if (!this.analyticsData.dashboard) return;
+
+                    // Engagement over time chart
+                    const engagementCtx = document.getElementById('engagementChart');
+                    if (engagementCtx && this.analyticsData.dashboard.engagement_over_time) {
+                        this.charts.engagement = new Chart(engagementCtx, {
+                            type: 'line',
+                            data: {
+                                labels: this.analyticsData.dashboard.engagement_over_time.map(d => d.date),
+                                datasets: [{
+                                    label: 'Engagement Rate',
+                                    data: this.analyticsData.dashboard.engagement_over_time.map(d => d.engagement_rate),
+                                    borderColor: '#1d9bf0',
+                                    backgroundColor: 'rgba(29, 155, 240, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { display: false }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: { color: '#8899ac' },
+                                        grid: { color: '#38444d' }
+                                    },
+                                    x: {
+                                        ticks: { color: '#8899ac' },
+                                        grid: { color: '#38444d' }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    // Thread performance chart
+                    const performanceCtx = document.getElementById('performanceChart');
+                    if (performanceCtx && this.analyticsData.threads.length > 0) {
+                        const topThreads = this.analyticsData.threads.slice(0, 10);
+                        this.charts.performance = new Chart(performanceCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: topThreads.map(t => t.title?.slice(0, 20) + '...' || 'Untitled'),
+                                datasets: [{
+                                    label: 'Total Engagement',
+                                    data: topThreads.map(t => t.total_engagement),
+                                    backgroundColor: '#1d9bf0',
+                                    borderRadius: 4
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { display: false }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: { color: '#8899ac' },
+                                        grid: { color: '#38444d' }
+                                    },
+                                    x: {
+                                        ticks: { color: '#8899ac', maxRotation: 45 },
+                                        grid: { color: '#38444d' }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                },
+
+                formatNumber(num) {
+                    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+                    return num?.toString() || '0';
+                },
+
+                formatPercentage(num) {
+                    return (num || 0).toFixed(1) + '%';
+                },
+
+                getEngagementColor(rate) {
+                    if (rate >= 5) return 'text-green-400';
+                    if (rate >= 2) return 'text-yellow-400';
+                    return 'text-red-400';
+                },
+
+                getPerformanceIcon(rate) {
+                    if (rate >= 5) return '🔥';
+                    if (rate >= 2) return '👍';
+                    return '📈';
+                },
+
+                selectAnalyticsThread(thread) {
+                    this.selectedAnalyticsThread = thread;
+                },
+
+                addToComparison(thread) {
+                    if (this.compareThreads.length < 2 && !this.compareThreads.find(t => t.id === thread.id)) {
+                        this.compareThreads.push(thread);
+                    }
+                },
+
+                removeFromComparison(threadId) {
+                    this.compareThreads = this.compareThreads.filter(t => t.id !== threadId);
+                },
+
+                showComparison() {
+                    if (this.compareThreads.length === 2) {
+                        this.showComparisonModal = true;
+                    }
+                },
+
+                closeComparison() {
+                    this.showComparisonModal = false;
                 }
             }
         }
+
+        // Thread Comparison Modal (add after the main app div)
+        document.addEventListener('alpine:init', () => {
+            // Add comparison modal HTML to the body
+            const comparisonModal = `
+                <!-- Thread Comparison Modal -->
+                <div 
+                    x-show="showComparisonModal" 
+                    x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0"
+                    x-transition:enter-end="opacity-100"
+                    x-transition:leave="transition ease-in duration-200"
+                    x-transition:leave-start="opacity-100"
+                    x-transition:leave-end="opacity-0"
+                    class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
+                    @click.self="closeComparison()"
+                    x-data="threadrApp()"
+                    style="display: none;"
+                >
+                    <div 
+                        x-show="showComparisonModal"
+                        x-transition:enter="transition ease-out duration-300"
+                        x-transition:enter-start="opacity-0 transform scale-95"
+                        x-transition:enter-end="opacity-100 transform scale-100"
+                        x-transition:leave="transition ease-in duration-200"
+                        x-transition:leave-start="opacity-100 transform scale-100"
+                        x-transition:leave-end="opacity-0 transform scale-95"
+                        class="bg-x-black border border-x-border rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden"
+                    >
+                        <!-- Modal Header -->
+                        <div class="p-6 border-b border-x-border">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-xl font-bold text-white">Thread Comparison</h3>
+                                <button 
+                                    @click="closeComparison()"
+                                    class="p-2 rounded-full text-x-gray hover:text-white hover:bg-x-hover transition-colors"
+                                >
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Modal Content -->
+                        <div class="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <template x-for="(thread, index) in compareThreads" :key="thread.id">
+                                    <div class="tweet-card rounded-2xl p-6">
+                                        <div class="mb-6">
+                                            <h4 class="text-lg font-semibold text-white mb-2" x-text="thread.title || 'Untitled Thread'"></h4>
+                                            <p class="text-x-gray text-sm" x-text="new Date(thread.created_at).toLocaleDateString()"></p>
+                                        </div>
+                                        
+                                        <!-- Metrics Comparison -->
+                                        <div class="space-y-4 mb-6">
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-x-gray">Total Engagement</span>
+                                                <span class="text-white font-medium" x-text="formatNumber(thread.total_engagement)"></span>
+                                            </div>
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-x-gray">Impressions</span>
+                                                <span class="text-white font-medium" x-text="formatNumber(thread.impressions)"></span>
+                                            </div>
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-x-gray">Engagement Rate</span>
+                                                <span :class="getEngagementColor(thread.engagement_rate)" 
+                                                      class="font-medium"
+                                                      x-text="formatPercentage(thread.engagement_rate)">
+                                                </span>
+                                            </div>
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-x-gray">Thread Length</span>
+                                                <span class="text-white font-medium" x-text="thread.tweet_count + ' tweets'"></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Performance Indicator -->
+                                        <div class="text-center">
+                                            <div class="text-2xl mb-2" x-text="getPerformanceIcon(thread.engagement_rate)"></div>
+                                            <p class="text-sm" 
+                                               :class="getEngagementColor(thread.engagement_rate)"
+                                               x-text="thread.engagement_rate >= 5 ? 'High Performance' : 
+                                                       thread.engagement_rate >= 2 ? 'Good Performance' : 'Needs Improvement'">
+                                            </p>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                            
+                            <!-- Comparison Insights -->
+                            <div x-show="compareThreads.length === 2" class="mt-8 tweet-card rounded-2xl p-6">
+                                <h4 class="text-lg font-semibold text-white mb-4">Comparison Insights</h4>
+                                <div class="space-y-3">
+                                    <div x-show="compareThreads[0] && compareThreads[1]">
+                                        <p class="text-x-gray text-sm">
+                                            <span class="text-white font-medium" x-text="compareThreads[0].title || 'Thread 1'"></span>
+                                            <span x-show="compareThreads[0].engagement_rate > compareThreads[1].engagement_rate"> performed better </span>
+                                            <span x-show="compareThreads[0].engagement_rate <= compareThreads[1].engagement_rate"> performed worse </span>
+                                            than
+                                            <span class="text-white font-medium" x-text="compareThreads[1].title || 'Thread 2'"></span>
+                                            by 
+                                            <span class="text-x-blue font-medium" 
+                                                  x-text="Math.abs(compareThreads[0].engagement_rate - compareThreads[1].engagement_rate).toFixed(1) + '%'">
+                                            </span>
+                                            engagement rate.
+                                        </p>
+                                    </div>
+                                    <div x-show="compareThreads[0] && compareThreads[1]">
+                                        <p class="text-x-gray text-sm">
+                                            The 
+                                            <span x-show="compareThreads[0].tweet_count > compareThreads[1].tweet_count">longer</span>
+                                            <span x-show="compareThreads[0].tweet_count <= compareThreads[1].tweet_count">shorter</span>
+                                            thread had
+                                            <span x-show="compareThreads[0].engagement_rate > compareThreads[1].engagement_rate"> higher </span>
+                                            <span x-show="compareThreads[0].engagement_rate <= compareThreads[1].engagement_rate"> lower </span>
+                                            engagement, suggesting
+                                            <span x-show="Math.abs(compareThreads[0].tweet_count - compareThreads[1].tweet_count) <= 2"> similar optimal length</span>
+                                            <span x-show="Math.abs(compareThreads[0].tweet_count - compareThreads[1].tweet_count) > 2"> length may impact performance</span>
+                                            for your content.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', comparisonModal);
+        });
     </script>
 </body>
 </html>
