@@ -241,16 +241,17 @@ async def lifespan(app: FastAPI):
             app.include_router(thread_router)
             logger.info("Thread history routes added successfully")
             
-            # Add analytics routes (if available)
-            if analytics_router_creator:
-                analytics_router = analytics_router_creator(
-                    auth_dependencies["get_current_user_required"],
-                    auth_dependencies["require_premium_user"]
-                )
-                app.include_router(analytics_router)
-                logger.info("Analytics routes added successfully")
-            else:
-                logger.info("Analytics routes not available - skipping")
+            # Add analytics routes (if available) - temporarily disabled for debugging
+            # if analytics_router_creator:
+            #     analytics_router = analytics_router_creator(
+            #         auth_dependencies["get_current_user_required"],
+            #         auth_dependencies["require_premium_user"]
+            #     )
+            #     app.include_router(analytics_router)
+            #     logger.info("Analytics routes added successfully")
+            # else:
+            #     logger.info("Analytics routes not available - skipping")
+            logger.info("Analytics routes temporarily disabled for debugging")
         else:
             logger.warning("Redis not available - initializing auth service with in-memory fallback")
             # Initialize auth service with unavailable redis_manager (it will use fallbacks)
