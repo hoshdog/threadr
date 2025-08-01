@@ -3183,21 +3183,33 @@
                 },
 
                 getFilteredTemplates() {
+                    console.log('=== getFilteredTemplates DEBUG ===');
+                    console.log('Total templates:', this.templates.length);
+                    console.log('User:', this.user);
+                    console.log('User premium:', this.user?.premium);
+                    console.log('Selected category:', this.selectedCategory);
+                    console.log('Template search:', this.templateSearch);
+                    
                     let filtered = this.templates;
 
                     // CRITICAL FIX: Filter out Pro templates for non-premium users with strict checking
                     filtered = filtered.filter(template => {
                         if (template.isPro) {
                             // Only show Pro templates if user exists AND has premium
-                            return this.user && this.user.premium === true;
+                            const hasAccess = this.user && this.user.premium === true;
+                            console.log(`Template ${template.name} (Pro: ${template.isPro}) - Access: ${hasAccess}`);
+                            return hasAccess;
                         }
+                        console.log(`Template ${template.name} (Pro: ${template.isPro}) - Included (free)`);
                         return true;
                     });
 
+                    console.log('After Pro filter:', filtered.length);
 
                     // Apply category filter
                     if (this.selectedCategory !== 'all') {
                         filtered = filtered.filter(template => template.category === this.selectedCategory);
+                        console.log('After category filter:', filtered.length);
                     }
 
                     // Apply search filter
@@ -3208,9 +3220,12 @@
                             template.description.toLowerCase().includes(searchTerm) ||
                             template.category.toLowerCase().includes(searchTerm)
                         );
+                        console.log('After search filter:', filtered.length);
                     }
 
                     const result = filtered.sort((a, b) => b.popularity - a.popularity);
+                    console.log('Final filtered count:', result.length);
+                    console.log('=== END DEBUG ===');
                     return result;
                 },
 
