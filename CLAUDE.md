@@ -18,7 +18,13 @@ Threadr is a SaaS tool that converts blog articles or pasted content into Twitte
 ✅ **Rate Limiting**: Redis-based IP tracking prevents abuse
 ✅ **Email Capture**: Working system for user engagement and notifications
 
-### Recent Updates (2025-07-31)
+### Recent Updates (2025-08-01)
+- 📁 **Project Reorganization**: Complete directory restructure for better maintainability
+- 📊 **Project Status Report**: Comprehensive analysis showing path to $1K MRR
+- 📚 **Documentation Consolidation**: Merged 16+ Railway docs into single guide
+- 🏗️ **Phase 2 Progress**: User auth, thread history, and analytics features 40% complete
+
+### Previous Updates (2025-07-31)
 - ✅ **Stripe Payment Integration**: Complete webhook-based payment processing
 - ✅ **Premium Access System**: Automatic premium grants on successful payments
 - ✅ **Webhook Security**: HMAC-SHA256 signature verification for Stripe webhooks
@@ -84,14 +90,30 @@ Threadr is a SaaS tool that converts blog articles or pasted content into Twitte
 - **Month 6**: $15K MRR (including enterprise customers)
 - **Year 1**: $50K MRR (established SaaS business)
 
+## Project Status Summary (2025-08-01)
+
+### Key Metrics & Progress
+- **Revenue Goal**: $1K MRR by month end (needs 200 premium users)
+- **Current Status**: Monetization active but no visibility into metrics
+- **Phase 2 Progress**: ~40% complete (backend built, frontend integration needed)
+- **Technical Health**: 95.7% test coverage, production stable
+
+### Critical Path to $1K MRR
+1. **Implement Revenue Tracking** (IMMEDIATE): Add usage/conversion metrics
+2. **Complete User Accounts** (2 weeks): Frontend integration for auth system
+3. **Launch Content Marketing** (30 days): Drive organic user acquisition
+4. **Database Migration** (45 days): PostgreSQL for data persistence
+
+For detailed analysis, see: `THREADR_PROJECT_STATUS_REPORT.md`
+
 ## Next Development Phase
 
-### Phase 2: User Accounts & Data Persistence (Current Priority)
-1. **User Authentication**: JWT-based login system
-2. **Thread History**: Save and manage generated threads
-3. **Usage Analytics**: Personal dashboard with usage stats
-4. **Account Management**: Subscription management and billing history
-5. **Social Features**: Share threads, favorite templates
+### Phase 2: User Accounts & Data Persistence (Current Priority - 40% Complete)
+1. **User Authentication**: JWT-based login system ✅ (backend complete)
+2. **Thread History**: Save and manage generated threads ✅ (backend complete)
+3. **Usage Analytics**: Personal dashboard with usage stats ✅ (backend complete)
+4. **Account Management**: Subscription management and billing history 🔄 (in progress)
+5. **Social Features**: Share threads, favorite templates 📋 (planned)
 
 ### Phase 3: Analytics & Premium Features (30-60 days)
 1. **Advanced Analytics**: Thread performance tracking
@@ -179,26 +201,49 @@ railway up
 
 ## Architecture Considerations
 
-1. **Organized File Structure** (Updated 2025-07-31):
+1. **Organized File Structure** (Updated 2025-08-01):
    ```
    threadr/
    ├── backend/
    │   ├── src/
-   │   │   ├── main.py (FastAPI endpoints)
-   │   │   └── redis_manager.py (Redis utilities)
+   │   │   ├── main.py (FastAPI application)
+   │   │   ├── core/
+   │   │   │   ├── config.py
+   │   │   │   └── redis_manager.py
+   │   │   ├── models/
+   │   │   │   ├── analytics.py
+   │   │   │   ├── auth.py
+   │   │   │   ├── team.py
+   │   │   │   └── thread.py
+   │   │   ├── routes/
+   │   │   │   ├── analytics.py
+   │   │   │   ├── auth.py
+   │   │   │   ├── team.py
+   │   │   │   └── thread.py
+   │   │   ├── services/
+   │   │   │   ├── analytics/
+   │   │   │   ├── auth/
+   │   │   │   ├── team/
+   │   │   │   └── thread/
+   │   │   ├── middleware/
+   │   │   │   └── auth.py
+   │   │   └── utils/
    │   ├── tests/
-   │   │   └── test_*.py (All backend tests)
-   │   ├── scripts/
-   │   │   └── (Utility scripts)
+   │   │   ├── unit/
+   │   │   ├── integration/
+   │   │   └── e2e/
    │   └── requirements.txt
    ├── frontend/
    │   ├── src/
-   │   │   ├── index.html (Alpine.js + Tailwind)
-   │   │   └── config.js
+   │   │   ├── index.html
+   │   │   ├── config.js
+   │   │   └── assets/logos/
+   │   ├── dashboard/
    │   └── tests/
    ├── docs/
    │   ├── deployment/
    │   │   ├── railway/
+   │   │   │   └── RAILWAY_DEPLOYMENT_GUIDE.md
    │   │   └── vercel/
    │   ├── api/
    │   ├── security/
@@ -206,6 +251,10 @@ railway up
    ├── scripts/
    │   ├── deploy/
    │   └── test/
+   ├── archive/
+   │   ├── backend/
+   │   ├── docs/
+   │   └── test_reports/
    └── README.md
    ```
 
@@ -270,9 +319,21 @@ railway up
 - Add Cloudflare from day 1 (free DDoS protection)
 - Start with Stripe Payment Links (no code needed)
 
-## Critical Deployment Learnings (2025-07-31)
+## Critical Deployment Learnings (2025-08-01)
 
-### Railway Deployment Pitfalls & Solutions
+### Consolidated Railway Documentation ✅
+**All Railway deployment knowledge has been consolidated into a single comprehensive guide:**
+`docs/deployment/railway/RAILWAY_DEPLOYMENT_GUIDE.md`
+
+This guide replaces 16+ fragmented documentation files and includes:
+- Complete configuration setup
+- Environment variables
+- Common issues and solutions
+- Redis setup
+- URL scraping configuration
+- Health checks and troubleshooting
+
+### Railway Deployment Pitfalls & Solutions (Historical)
 1. **httpx Configuration Issues**
    - **Problem**: Complex SSL contexts and proxy configs fail in Railway containers
    - **Solution**: Use simple httpx.AsyncClient with just timeout, follow_redirects, and headers
