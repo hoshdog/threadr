@@ -634,11 +634,11 @@
                         headers['Authorization'] = `Bearer ${token}`;
                     }
                     
-                    // Add API key header for non-development environments (fallback for unauthenticated requests)
+                    // Add API key header for non-development environments (ALWAYS needed for /api/generate)
                     const hostname = window.location.hostname;
                     const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
                     
-                    if (!isDevelopment && !token) {
+                    if (!isDevelopment) {
                         headers['X-API-Key'] = config.API_KEY || 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
                     }
                     
