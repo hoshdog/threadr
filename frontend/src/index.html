@@ -2126,6 +2126,9 @@
                 
                 // Initialize authentication on component load
                 init() {
+                    // Set initialization flag to prevent modals during startup
+                    this._isInitializing = true;
+                    
                     // CRITICAL FIX: Force all modals closed and template cleared FIRST
                     this.showTemplateModal = false;
                     this.selectedTemplate = null;
@@ -2137,7 +2140,7 @@
                     this.templateFormData = {};
                     this.currentPage = 'generate';
                     
-                    // Load user data AFTER clearing state
+                    // Load user data AFTER clearing state (will skip token verification during init)
                     this.loadUserFromStorage();
                     
                     // Additional safety check after a brief delay to handle any race conditions
@@ -2146,6 +2149,8 @@
                         this.selectedTemplate = null;
                         this.showPaymentModal = false;
                         this.authModalVisible = false;
+                        // Clear initialization flag after startup is complete
+                        this._isInitializing = false;
                     }, 100);
                     
                     // Emergency close function for debugging - attach to window
@@ -2185,7 +2190,10 @@
                     if (token && userData) {
                         try {
                             this.user = JSON.parse(userData);
-                            this.verifyToken();
+                            // Only verify token if not during initialization to prevent modals
+                            if (this._isInitializing !== true) {
+                                this.verifyToken();
+                            }
                         } catch (error) {
                             console.error('Failed to parse user data:', error);
                             this.clearAuthData();
@@ -2208,7 +2216,7 @@
                         });
                         
                         if (!response.ok) {
-                            // Token is invalid, clear auth data
+                            // Token is invalid, clear auth data silently
                             this.clearAuthData();
                         } else {
                             const userData = await response.json();
@@ -2217,7 +2225,13 @@
                         }
                     } catch (error) {
                         console.error('Token verification failed:', error);
-                        // If token verification fails, try to refresh token
+                        // During initialization, fail silently - no refresh attempts or modals
+                        if (this._isInitializing === true) {
+                            this.clearAuthData();
+                            return;
+                        }
+                        
+                        // If token verification fails, try to refresh token (only when not initializing)
                         if (this.getRefreshToken()) {
                             try {
                                 console.log('Attempting token refresh...');
@@ -2501,20 +2515,26 @@
                                         } catch (refreshError) {
                                             console.error('Token refresh failed:', refreshError);
                                             this.clearAuthData();
-                                            this.showAuthModal('login');
-                                            this.authError = 'Session expired. Please log in again.';
+                                            // Only show auth modal if not during initialization
+                                            if (this._isInitializing !== true) {
+                                                this.showAuthModal('login');
+                                                this.authError = 'Session expired. Please log in again.';
+                                            }
                                             return;
                                         }
                                     } else {
                                         this.clearAuthData();
-                                        this.showAuthModal('login');
-                                        this.authError = 'Please log in to continue';
+                                        // Only show auth modal if not during initialization
+                                        if (this._isInitializing !== true) {
+                                            this.showAuthModal('login');
+                                            this.authError = 'Please log in to continue';
+                                        }
                                         return;
                                     }
                                 }
                                 
-                                // Handle 402 Payment Required specifically
-                                if (response.status === 402) {
+                                // Handle 402 Payment Required specifically (but not during initialization)
+                                if (response.status === 402 && this._isInitializing !== true) {
                                     this.showPaymentRequired(errorData);
                                     return;
                                 }
@@ -2523,8 +2543,11 @@
                             } catch (parseError) {
                                 if (response.status === 401) {
                                     this.clearAuthData();
-                                    this.showAuthModal('login');
-                                    this.authError = 'Please log in to continue';
+                                    // Only show auth modal if not during initialization
+                                    if (this._isInitializing !== true) {
+                                        this.showAuthModal('login');
+                                        this.authError = 'Please log in to continue';
+                                    }
                                     return;
                                 } else if (response.status === 429) {
                                     errorMessage = 'Rate limit exceeded. Please try again later.';
