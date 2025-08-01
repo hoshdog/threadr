@@ -10,7 +10,7 @@ import logging
 
 # Import models and services
 try:
-    from .team_models import (
+    from ..models.team import (
         CreateTeamRequest, UpdateTeamRequest, InviteMemberRequest, 
         UpdateMemberRequest, AcceptInviteRequest, TeamResponse,
         MemberResponse, InviteResponse, TeamStatsResponse,
@@ -18,10 +18,10 @@ try:
         TeamAccessDeniedError, TeamLimitExceededError,
         InviteError, InviteNotFoundError, InviteExpiredError
     )
-    from .team_service import TeamService
-    from .auth_models import User
+    from ..services.team.team_service import TeamService
+    from ..models.auth import User
 except ImportError:
-    from team_models import (
+    from models.team import (
         CreateTeamRequest, UpdateTeamRequest, InviteMemberRequest, 
         UpdateMemberRequest, AcceptInviteRequest, TeamResponse,
         MemberResponse, InviteResponse, TeamStatsResponse,
@@ -29,8 +29,8 @@ except ImportError:
         TeamAccessDeniedError, TeamLimitExceededError,
         InviteError, InviteNotFoundError, InviteExpiredError
     )
-    from team_service import TeamService
-    from auth_models import User
+    from services.team.team_service import TeamService
+    from models.auth import User
 
 
 logger = logging.getLogger(__name__)

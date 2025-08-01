@@ -46,15 +46,17 @@ except ImportError:
     from routes.thread import create_thread_router
 
 # Import analytics components (optional)
-analytics_router = None
+analytics_router_creator = None
 try:
-    from .routes.analytics import router as analytics_router
+    from .routes.analytics import create_analytics_router
+    analytics_router_creator = create_analytics_router
 except ImportError:
     try:
-        from routes.analytics import router as analytics_router
+        from routes.analytics import create_analytics_router
+        analytics_router_creator = create_analytics_router
     except ImportError:
         # Analytics routes not available - will be skipped
-        analytics_router = None
+        analytics_router_creator = None
 import ipaddress
 from urllib.parse import urlparse
 import certifi
@@ -240,7 +242,11 @@ async def lifespan(app: FastAPI):
             logger.info("Thread history routes added successfully")
             
             # Add analytics routes (if available)
-            if analytics_router:
+            if analytics_router_creator:
+                analytics_router = analytics_router_creator(
+                    auth_dependencies["get_current_user_required"],
+                    auth_dependencies["require_premium_user"]
+                )
                 app.include_router(analytics_router)
                 logger.info("Analytics routes added successfully")
             else:
