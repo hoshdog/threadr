@@ -1,18 +1,19 @@
-[phases.build]
-workDir = "backend"
+[providers]
+python = "3.11"
 
 [phases.setup]
 workDir = "backend"
 cmds = [
-  "echo 'Installing Python dependencies...'",
+  "echo 'Installing Python dependencies...'", 
   "pip install --upgrade pip",
   "pip install --no-cache-dir -r requirements.txt",
+  "echo 'Python path setup...'",
   "echo 'Dependencies installed successfully'"
 ]
 
 [start]
 workDir = "backend"
-cmd = "exec uvicorn src.main:app --host 0.0.0.0 --port $PORT --workers 2 --log-level info --access-log"
+cmd = "exec uvicorn src.main:app --host 0.0.0.0 --port $PORT --log-level debug"
 
 [variables]
 PYTHONUNBUFFERED = "1"
