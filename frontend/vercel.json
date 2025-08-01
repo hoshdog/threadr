@@ -12,12 +12,6 @@
       "destination": "/index.html"
     }
   ],
-  "routes": [
-    {
-      "src": "/logos/(.*)",
-      "dest": "/logos/$1"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",
