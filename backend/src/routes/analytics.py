@@ -12,7 +12,7 @@ try:
         ThreadComparison, InsightRecommendation, BenchmarkData, AnalyticsExport
     )
     from ..services.analytics.analytics_service import AnalyticsService
-    from ..core.redis_manager import get_redis_client
+    from ..core.redis_manager import get_redis_manager
 except ImportError:
     from models.auth import User
     from models.analytics import (
@@ -20,7 +20,7 @@ except ImportError:
         ThreadComparison, InsightRecommendation, BenchmarkData, AnalyticsExport
     )
     from services.analytics.analytics_service import AnalyticsService
-    from core.redis_manager import get_redis_client
+    from core.redis_manager import get_redis_manager
 
 
 def create_analytics_router(get_current_user_func: Callable, require_premium_func: Callable) -> APIRouter:
@@ -29,7 +29,9 @@ def create_analytics_router(get_current_user_func: Callable, require_premium_fun
 
     def get_analytics_service():
         """Get analytics service instance"""
-        redis = get_redis_client()
+        redis_manager = get_redis_manager()
+        # Get the underlying Redis client if available
+        redis = redis_manager.client if redis_manager and redis_manager.is_available else None
         return AnalyticsService(redis)
 
     @router.post("/thread/{thread_id}")
