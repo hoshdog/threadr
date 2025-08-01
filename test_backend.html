@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threadr Backend Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { border-left: 5px solid #4CAF50; }
+        .error { border-left: 5px solid #f44336; }
+        .pending { border-left: 5px solid #ff9800; }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #1976D2; }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Threadr Backend Test</h1>
+    <p>Use this page to test if your Railway backend is working correctly.</p>
+
+    <div class="test pending" id="health-test">
+        <h3>Health Check</h3>
+        <button onclick="testHealth()">Test Health Endpoint</button>
+        <pre id="health-result">Click to test...</pre>
+    </div>
+
+    <div class="test pending" id="cors-test">
+        <h3>CORS Test</h3>
+        <button onclick="testCORS()">Test CORS Headers</button>
+        <pre id="cors-result">Click to test...</pre>
+    </div>
+
+    <div class="test pending" id="login-test">
+        <h3>Login Test</h3>
+        <input type="email" id="email" placeholder="Email" value="hoshito@detron.com.au" style="margin: 5px;">
+        <input type="password" id="password" placeholder="Password" value="test123" style="margin: 5px;">
+        <button onclick="testLogin()">Test Login</button>
+        <pre id="login-result">Click to test...</pre>
+    </div>
+
+    <script>
+        const API_URL = 'https://threadr-production.up.railway.app';
+
+        async function testHealth() {
+            const div = document.getElementById('health-test');
+            const result = document.getElementById('health-result');
+            
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    div.className = 'test success';
+                    result.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    div.className = 'test error';
+                    result.textContent = `Error ${response.status}: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                div.className = 'test error';
+                result.textContent = `Failed to connect: ${error.message}\n\nThis usually means:\n1. Backend is not running (502 error)\n2. Railway is running the wrong app`;
+            }
+        }
+
+        async function testCORS() {
+            const div = document.getElementById('cors-test');
+            const result = document.getElementById('cors-result');
+            
+            try {
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': window.location.origin,
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'content-type'
+                    }
+                });
+                
+                const headers = {};
+                response.headers.forEach((value, key) => {
+                    if (key.toLowerCase().includes('access-control')) {
+                        headers[key] = value;
+                    }
+                });
+                
+                if (headers['access-control-allow-origin']) {
+                    div.className = 'test success';
+                    result.textContent = 'CORS is properly configured!\n\n' + JSON.stringify(headers, null, 2);
+                } else {
+                    div.className = 'test error';
+                    result.textContent = 'No CORS headers found. Backend might be running wrong app.';
+                }
+            } catch (error) {
+                div.className = 'test error';
+                result.textContent = `CORS test failed: ${error.message}`;
+            }
+        }
+
+        async function testLogin() {
+            const div = document.getElementById('login-test');
+            const result = document.getElementById('login-result');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': window.location.origin
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    div.className = 'test success';
+                    result.textContent = 'Login successful!\n\n' + JSON.stringify(data, null, 2);
+                } else {
+                    div.className = 'test error';
+                    result.textContent = `Login failed: ${response.status}\n\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                div.className = 'test error';
+                result.textContent = `Login request failed: ${error.message}\n\nThis indicates CORS is blocking the request.`;
+            }
+        }
+
+        // Auto-test health on load
+        window.onload = () => {
+            testHealth();
+        };
+    </script>
+</body>
+</html>

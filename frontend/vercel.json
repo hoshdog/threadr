@@ -2,9 +2,9 @@
   "version": 2,
   "public": true,
   "buildCommand": "echo 'Static site - no build required'",
-  "outputDirectory": "src",
+  "outputDirectory": "public",
   "installCommand": "npm install --production=false",
-  "devCommand": "npx serve src -p 3000",
+  "devCommand": "npx serve public -p 3000",
   "framework": null,
   "rewrites": [
     {
