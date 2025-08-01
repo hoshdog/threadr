@@ -190,22 +190,27 @@ class SecurityUtils:
     @staticmethod
     def get_client_ip(request) -> str:
         """Extract client IP from request"""
-        # Check for forwarded headers (Railway, Cloudflare, etc.)
-        forwarded_for = getattr(request, 'headers', {}).get('x-forwarded-for')
-        if forwarded_for:
-            # Get the first IP in the chain (original client)
-            return forwarded_for.split(',')[0].strip()
-        
-        real_ip = getattr(request, 'headers', {}).get('x-real-ip')
-        if real_ip:
-            return real_ip.strip()
-        
-        # Fallback to direct client IP
-        client_host = getattr(request, 'client', None)
-        if client_host and hasattr(client_host, 'host'):
-            return client_host.host
-        
-        return "unknown"
+        try:
+            # Check for forwarded headers (Railway, Cloudflare, etc.)
+            if hasattr(request, 'headers'):
+                forwarded_for = request.headers.get('x-forwarded-for')
+                if forwarded_for:
+                    # Get the first IP in the chain (original client)
+                    return forwarded_for.split(',')[0].strip()
+                
+                real_ip = request.headers.get('x-real-ip')
+                if real_ip:
+                    return real_ip.strip()
+            
+            # Fallback to direct client IP
+            if hasattr(request, 'client') and request.client and hasattr(request.client, 'host'):
+                return request.client.host
+            
+            return "unknown"
+        except Exception as e:
+            # Log the error but don't fail the request
+            logger.error(f"Error extracting client IP: {e}")
+            return "unknown"
     
     @staticmethod
     def create_session_data(user: User, client_ip: str) -> Dict[str, Any]:
