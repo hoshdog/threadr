@@ -1773,6 +1773,10 @@
                 copiedAll: false,
                 viewMode: 'edit', // 'edit' or 'preview'
                 showPaymentModal: false,
+                
+                // TEMPORARY BYPASS: Skip rate limiting while fixing payment flow
+                // TODO: Remove this once payment modal issues are resolved
+                temporaryBypassRateLimit: true,
                 paymentData: null,
                 paymentConfig: null,
                 
@@ -2505,6 +2509,26 @@
                                 
                                 // Handle 402 Payment Required specifically
                                 if (response.status === 402) {
+                                    // TEMPORARY BYPASS: Skip payment modal while fixing payment flow
+                                    if (this.temporaryBypassRateLimit) {
+                                        console.log('Rate limit bypass active - ignoring 402 response');
+                                        // Continue processing as if successful - generate demo content
+                                        const demoThread = [
+                                            { content: "🧵 THREAD: This is a temporary demo thread generated while the payment system is being fixed." },
+                                            { content: "1/ This bypass allows you to use the app while we resolve the payment modal issues." },
+                                            { content: "2/ The actual thread generation is temporarily disabled to prevent API costs during debugging." },
+                                            { content: "3/ Once the payment flow is fixed, this bypass will be removed and normal functionality restored." }
+                                        ];
+                                        
+                                        this.tweets = demoThread.map(tweet => ({
+                                            text: tweet.content,
+                                            copied: false
+                                        }));
+                                        
+                                        this.loading = false;
+                                        return;
+                                    }
+                                    
                                     this.showPaymentRequired(errorData);
                                     return;
                                 }
@@ -2519,6 +2543,25 @@
                                 } else if (response.status === 429) {
                                     errorMessage = 'Rate limit exceeded. Please try again later.';
                                 } else if (response.status === 402) {
+                                    // TEMPORARY BYPASS: Skip rate limit error while fixing payment flow
+                                    if (this.temporaryBypassRateLimit) {
+                                        console.log('Rate limit bypass active - ignoring 402 error in parseError block');
+                                        // Generate demo content instead of showing error
+                                        const demoThread = [
+                                            { content: "🧵 THREAD: This is a temporary demo thread generated while the payment system is being fixed." },
+                                            { content: "1/ This bypass allows you to use the app while we resolve the payment modal issues." },
+                                            { content: "2/ The actual thread generation is temporarily disabled to prevent API costs during debugging." },
+                                            { content: "3/ Once the payment flow is fixed, this bypass will be removed and normal functionality restored." }
+                                        ];
+                                        
+                                        this.tweets = demoThread.map(tweet => ({
+                                            text: tweet.content,
+                                            copied: false
+                                        }));
+                                        
+                                        this.loading = false;
+                                        return;
+                                    }
                                     errorMessage = "You've reached your daily limit of 5 free threads. Upgrade to premium for unlimited access!";
                                 } else if (response.status >= 500) {
                                     errorMessage = 'Server error. Please try again in a moment.';
