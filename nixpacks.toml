@@ -1,0 +1,23 @@
+[phases.build]
+workDir = "backend"
+
+[phases.setup]
+workDir = "backend"
+cmds = [
+  "echo 'Installing Python dependencies...'",
+  "pip install --upgrade pip",
+  "pip install --no-cache-dir -r requirements.txt",
+  "echo 'Dependencies installed successfully'"
+]
+
+[start]
+workDir = "backend"
+cmd = "exec uvicorn src.main:app --host 0.0.0.0 --port $PORT --workers 2 --log-level info --access-log"
+
+[variables]
+PYTHONUNBUFFERED = "1"
+ENVIRONMENT = "production"
+PYTHONPATH = "/app/backend:/app/backend/src"
+NIXPACKS_PYTHON_WSGI_MODULE = ""
+DISABLE_COLLECTSTATIC = "1"
+WEB_CONCURRENCY = "2"
