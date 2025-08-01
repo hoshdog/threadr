@@ -1796,6 +1796,35 @@ async def test_url_check(url: str):
     
     return result
 
+@app.post("/api/debug/generate")
+async def debug_generate_thread():
+    """Debug version of generate endpoint - TEMPORARY FOR PRODUCTION DEBUGGING"""
+    try:
+        logger.info("DEBUG: Starting debug generate endpoint")
+        
+        # Test basic functionality
+        test_content = "This is a debug test for thread generation"
+        tweets = split_into_tweets(test_content)
+        logger.info(f"DEBUG: split_into_tweets works: {len(tweets)} tweets")
+        
+        # Test user context function
+        from fastapi import Request
+        # Create a mock request for testing
+        request = Request({"type": "http", "method": "POST", "url": "http://test.com"})
+        
+        try:
+            user_context = await get_user_context(request)
+            logger.info(f"DEBUG: get_user_context works: {user_context}")
+        except Exception as e:
+            logger.error(f"DEBUG: get_user_context failed: {e}", exc_info=True)
+            return {"error": "get_user_context failed", "details": str(e)}
+        
+        return {"status": "debug_success", "tweets": tweets, "context": user_context}
+        
+    except Exception as e:
+        logger.error(f"DEBUG: Full error details: {e}", exc_info=True)
+        return {"error": str(e), "type": type(e).__name__}
+
 @app.get("/api/test/railway-network")
 async def test_railway_network():
     """Test Railway network connectivity - comprehensive diagnostics"""
