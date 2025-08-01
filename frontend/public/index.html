@@ -3156,7 +3156,6 @@
 
                 // Template functions
                 getPopularTemplates() {
-                    
                     const filtered = this.templates
                         .filter(template => {
                             // CRITICAL FIX: Always exclude Pro templates for non-premium users
@@ -3184,7 +3183,6 @@
                 },
 
                 getFilteredTemplates() {
-                    
                     let filtered = this.templates;
 
                     // CRITICAL FIX: Filter out Pro templates for non-premium users with strict checking

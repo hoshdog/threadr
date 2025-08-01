@@ -8,7 +8,7 @@
   "framework": null,
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!logos|assets|favicon\\.ico|.*\\.(png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|css|js)).*)",
       "destination": "/index.html"
     }
   ],
