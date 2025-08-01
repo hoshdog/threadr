@@ -1033,6 +1033,7 @@
             x-transition:leave-end="opacity-0"
             class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
             @click.self="closePaymentModal()"
+            @keydown.escape.window="closePaymentModal()"
         >
             <div 
                 x-show="showPaymentModal"
@@ -1044,6 +1045,18 @@
                 x-transition:leave-end="opacity-0 transform scale-95"
                 class="bg-x-black border border-x-border rounded-2xl shadow-2xl p-8 max-w-md w-full"
             >
+                <!-- Close Button -->
+                <div class="flex justify-end mb-4">
+                    <button 
+                        @click="closePaymentModal()"
+                        class="text-x-gray hover:text-white transition-colors duration-200 p-2 rounded-full hover:bg-x-hover"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
                 <div class="text-center">
                     <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 mb-6 p-3">
                         <svg class="w-full h-full" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1324,7 +1337,8 @@
                                 <div class="flex justify-between items-center mb-6">
                                     <h3 class="text-lg font-semibold text-white">Thread Performance</h3>
                                     <div class="flex items-center space-x-2">
-                                        <button 
+                                        <!-- Comparison feature temporarily disabled to fix modal issues -->
+                                        <!-- <button 
                                             x-show="compareThreads.length === 2"
                                             @click="showComparison()"
                                             class="bg-x-blue hover:bg-x-blue-hover text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -1337,7 +1351,7 @@
                                             class="text-x-gray hover:text-white px-4 py-2 rounded-lg text-sm transition-colors"
                                         >
                                             Clear Selection
-                                        </button>
+                                        </button> -->
                                     </div>
                                 </div>
 
@@ -1357,13 +1371,14 @@
                                                 <tr class="border-b border-x-border/50 hover:bg-x-hover/30 transition-colors">
                                                     <td class="py-4 px-4">
                                                         <div class="flex items-center space-x-3">
-                                                            <input 
+                                                            <!-- Comparison checkboxes temporarily disabled -->
+                                                            <!-- <input 
                                                                 type="checkbox"
                                                                 :checked="compareThreads.find(t => t.id === thread.id)"
                                                                 @change="$event.target.checked ? addToComparison(thread) : removeFromComparison(thread.id)"
                                                                 :disabled="!$event.target.checked && compareThreads.length >= 2"
                                                                 class="w-4 h-4 text-x-blue bg-x-black border-x-border rounded"
-                                                            >
+                                                            > -->
                                                             <div>
                                                                 <p class="text-white font-medium cursor-pointer hover:text-x-blue transition-colors" 
                                                                    @click="selectAnalyticsThread(thread)"
@@ -2107,6 +2122,7 @@
                     this.showUpgradeModal = false;
                     this.showComparisonModal = false;
                     this.showThreadModal = false;
+                    this.authModalVisible = false;
                     this.templateFormData = {};
                     this.currentPage = 'generate';
                     
@@ -2118,10 +2134,21 @@
                         this.showTemplateModal = false;
                         this.selectedTemplate = null;
                         this.showPaymentModal = false;
+                        this.authModalVisible = false;
                     }, 100);
+                    
+                    // Emergency close function for debugging - attach to window
+                    window.emergencyCloseModal = () => {
+                        console.log('Emergency close triggered');
+                        this.showPaymentModal = false;
+                        this.showTemplateModal = false;
+                        this.authModalVisible = false;
+                        this.showThreadModal = false;
+                    };
                     
                     // Log successful initialization
                     console.log('Threadr app initialized successfully');
+                    console.log('Emergency close available: window.emergencyCloseModal()');
                 },
                 
                 // Check if user is authenticated
@@ -2575,9 +2602,20 @@
                         
                         if (response.ok) {
                             this.paymentConfig = await response.json();
+                        } else {
+                            // If payment config fails, provide fallback
+                            this.paymentConfig = {
+                                payment_url: 'https://buy.stripe.com/test_placeholder',
+                                price: '$4.99'
+                            };
                         }
                     } catch (error) {
                         console.error('Failed to fetch payment config:', error);
+                        // Provide fallback payment config to prevent modal from being broken
+                        this.paymentConfig = {
+                            payment_url: 'https://buy.stripe.com/test_placeholder',
+                            price: '$4.99'
+                        };
                     }
                     
                     this.showPaymentModal = true;
@@ -2602,9 +2640,15 @@
                 },
 
                 closePaymentModal() {
+                    console.log('Closing payment modal');
                     this.showPaymentModal = false;
                     this.paymentData = null;
                     this.paymentConfig = null;
+                    
+                    // Force Alpine.js to re-evaluate the modal state
+                    this.$nextTick(() => {
+                        console.log('Payment modal state after close:', this.showPaymentModal);
+                    });
                 },
 
                 async openPaymentModal() {
@@ -3254,156 +3298,29 @@
                     }, 100);
                 },
 
+                // Comparison methods temporarily disabled to fix modal issues
                 addToComparison(thread) {
-                    if (this.compareThreads.length < 2 && !this.compareThreads.find(t => t.id === thread.id)) {
-                        this.compareThreads.push(thread);
-                    }
+                    // Temporarily disabled
+                    console.log('Comparison feature temporarily disabled');
                 },
 
                 removeFromComparison(threadId) {
-                    this.compareThreads = this.compareThreads.filter(t => t.id !== threadId);
+                    // Temporarily disabled
+                    console.log('Comparison feature temporarily disabled');
                 },
 
                 showComparison() {
-                    if (this.compareThreads.length === 2) {
-                        this.showComparisonModal = true;
-                    }
+                    // Temporarily disabled
+                    console.log('Comparison feature temporarily disabled');
                 },
 
                 closeComparison() {
+                    // Temporarily disabled
                     this.showComparisonModal = false;
                 }
             }
         }
 
-        // Thread Comparison Modal (add after the main app div)
-        document.addEventListener('alpine:init', () => {
-            // Add comparison modal HTML to the body
-            const comparisonModal = `
-                <!-- Thread Comparison Modal -->
-                <div 
-                    x-show="showComparisonModal" 
-                    x-transition:enter="transition ease-out duration-300"
-                    x-transition:enter-start="opacity-0"
-                    x-transition:enter-end="opacity-100"
-                    x-transition:leave="transition ease-in duration-200"
-                    x-transition:leave-start="opacity-100"
-                    x-transition:leave-end="opacity-0"
-                    class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
-                    @click.self="closeComparison()"
-                    style="display: none;"
-                >
-                    <div 
-                        x-show="showComparisonModal"
-                        x-transition:enter="transition ease-out duration-300"
-                        x-transition:enter-start="opacity-0 transform scale-95"
-                        x-transition:enter-end="opacity-100 transform scale-100"
-                        x-transition:leave="transition ease-in duration-200"
-                        x-transition:leave-start="opacity-100 transform scale-100"
-                        x-transition:leave-end="opacity-0 transform scale-95"
-                        class="bg-x-black border border-x-border rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden"
-                    >
-                        <!-- Modal Header -->
-                        <div class="p-6 border-b border-x-border">
-                            <div class="flex justify-between items-center">
-                                <h3 class="text-xl font-bold text-white">Thread Comparison</h3>
-                                <button 
-                                    @click="closeComparison()"
-                                    class="p-2 rounded-full text-x-gray hover:text-white hover:bg-x-hover transition-colors"
-                                >
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Modal Content -->
-                        <div class="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <template x-for="(thread, index) in compareThreads" :key="thread.id">
-                                    <div class="tweet-card rounded-2xl p-6">
-                                        <div class="mb-6">
-                                            <h4 class="text-lg font-semibold text-white mb-2" x-text="thread.title || 'Untitled Thread'"></h4>
-                                            <p class="text-x-gray text-sm" x-text="new Date(thread.created_at).toLocaleDateString()"></p>
-                                        </div>
-                                        
-                                        <!-- Metrics Comparison -->
-                                        <div class="space-y-4 mb-6">
-                                            <div class="flex justify-between items-center">
-                                                <span class="text-x-gray">Total Engagement</span>
-                                                <span class="text-white font-medium" x-text="formatNumber(thread.total_engagement)"></span>
-                                            </div>
-                                            <div class="flex justify-between items-center">
-                                                <span class="text-x-gray">Impressions</span>
-                                                <span class="text-white font-medium" x-text="formatNumber(thread.impressions)"></span>
-                                            </div>
-                                            <div class="flex justify-between items-center">
-                                                <span class="text-x-gray">Engagement Rate</span>
-                                                <span :class="getEngagementColor(thread.engagement_rate)" 
-                                                      class="font-medium"
-                                                      x-text="formatPercentage(thread.engagement_rate)">
-                                                </span>
-                                            </div>
-                                            <div class="flex justify-between items-center">
-                                                <span class="text-x-gray">Thread Length</span>
-                                                <span class="text-white font-medium" x-text="thread.tweet_count + ' tweets'"></span>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Performance Indicator -->
-                                        <div class="text-center">
-                                            <div class="text-2xl mb-2" x-text="getPerformanceIcon(thread.engagement_rate)"></div>
-                                            <p class="text-sm" 
-                                               :class="getEngagementColor(thread.engagement_rate)"
-                                               x-text="thread.engagement_rate >= 5 ? 'High Performance' : 
-                                                       thread.engagement_rate >= 2 ? 'Good Performance' : 'Needs Improvement'">
-                                            </p>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-                            
-                            <!-- Comparison Insights -->
-                            <div x-show="compareThreads.length === 2" class="mt-8 tweet-card rounded-2xl p-6">
-                                <h4 class="text-lg font-semibold text-white mb-4">Comparison Insights</h4>
-                                <div class="space-y-3">
-                                    <div x-show="compareThreads && compareThreads.length >= 2 && compareThreads[0] && compareThreads[1]">
-                                        <p class="text-x-gray text-sm">
-                                            <span class="text-white font-medium" x-text="compareThreads[0]?.title || 'Thread 1'"></span>
-                                            <span x-show="compareThreads[0]?.engagement_rate > compareThreads[1]?.engagement_rate"> performed better </span>
-                                            <span x-show="compareThreads[0]?.engagement_rate <= compareThreads[1]?.engagement_rate"> performed worse </span>
-                                            than
-                                            <span class="text-white font-medium" x-text="compareThreads[1]?.title || 'Thread 2'"></span>
-                                            by 
-                                            <span class="text-x-blue font-medium" 
-                                                  x-text="Math.abs((compareThreads[0]?.engagement_rate || 0) - (compareThreads[1]?.engagement_rate || 0)).toFixed(1) + '%'">
-                                            </span>
-                                            engagement rate.
-                                        </p>
-                                    </div>
-                                    <div x-show="compareThreads && compareThreads.length >= 2 && compareThreads[0] && compareThreads[1]">
-                                        <p class="text-x-gray text-sm">
-                                            The 
-                                            <span x-show="compareThreads[0]?.tweet_count > compareThreads[1]?.tweet_count">longer</span>
-                                            <span x-show="compareThreads[0]?.tweet_count <= compareThreads[1]?.tweet_count">shorter</span>
-                                            thread had
-                                            <span x-show="compareThreads[0]?.engagement_rate > compareThreads[1]?.engagement_rate"> higher </span>
-                                            <span x-show="compareThreads[0]?.engagement_rate <= compareThreads[1]?.engagement_rate"> lower </span>
-                                            engagement, suggesting
-                                            <span x-show="Math.abs((compareThreads[0]?.tweet_count || 0) - (compareThreads[1]?.tweet_count || 0)) <= 2"> similar optimal length</span>
-                                            <span x-show="Math.abs((compareThreads[0]?.tweet_count || 0) - (compareThreads[1]?.tweet_count || 0)) > 2"> length may impact performance</span>
-                                            for your content.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', comparisonModal);
-        });
     </script>
 </body>
 </html>
