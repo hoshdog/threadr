@@ -1337,7 +1337,6 @@
                                 <div class="flex justify-between items-center mb-6">
                                     <h3 class="text-lg font-semibold text-white">Thread Performance</h3>
                                     <div class="flex items-center space-x-2">
-                                        <!-- Comparison feature temporarily disabled to fix modal issues -->
                                         <!-- <button 
                                             x-show="compareThreads.length === 2"
                                             @click="showComparison()"
@@ -1371,7 +1370,6 @@
                                                 <tr class="border-b border-x-border/50 hover:bg-x-hover/30 transition-colors">
                                                     <td class="py-4 px-4">
                                                         <div class="flex items-center space-x-3">
-                                                            <!-- Comparison checkboxes temporarily disabled -->
                                                             <!-- <input 
                                                                 type="checkbox"
                                                                 :checked="compareThreads.find(t => t.id === thread.id)"
@@ -1774,9 +1772,6 @@
                 viewMode: 'edit', // 'edit' or 'preview'
                 showPaymentModal: false,
                 
-                // TEMPORARY BYPASS: Skip rate limiting while fixing payment flow
-                // TODO: Remove this once payment modal issues are resolved
-                temporaryBypassRateLimit: true,
                 paymentData: null,
                 paymentConfig: null,
                 
@@ -2178,10 +2173,7 @@
                     if (token && userData) {
                         try {
                             this.user = JSON.parse(userData);
-                            // TEMPORARY FIX: Skip token verification to prevent payment modal popup
-                            // TODO: Re-enable once backend 402 issue is resolved
-                            // this.verifyToken();
-                            console.log('Token verification temporarily disabled to prevent modal popup');
+                            this.verifyToken();
                         } catch (error) {
                             console.error('Failed to parse user data:', error);
                             this.clearAuthData();
@@ -2511,26 +2503,6 @@
                                 
                                 // Handle 402 Payment Required specifically
                                 if (response.status === 402) {
-                                    // TEMPORARY BYPASS: Skip payment modal while fixing payment flow
-                                    if (this.temporaryBypassRateLimit) {
-                                        console.log('Rate limit bypass active - ignoring 402 response');
-                                        // Continue processing as if successful - generate demo content
-                                        const demoThread = [
-                                            { content: "🧵 THREAD: This is a temporary demo thread generated while the payment system is being fixed." },
-                                            { content: "1/ This bypass allows you to use the app while we resolve the payment modal issues." },
-                                            { content: "2/ The actual thread generation is temporarily disabled to prevent API costs during debugging." },
-                                            { content: "3/ Once the payment flow is fixed, this bypass will be removed and normal functionality restored." }
-                                        ];
-                                        
-                                        this.tweets = demoThread.map(tweet => ({
-                                            text: tweet.content,
-                                            copied: false
-                                        }));
-                                        
-                                        this.loading = false;
-                                        return;
-                                    }
-                                    
                                     this.showPaymentRequired(errorData);
                                     return;
                                 }
@@ -2545,25 +2517,6 @@
                                 } else if (response.status === 429) {
                                     errorMessage = 'Rate limit exceeded. Please try again later.';
                                 } else if (response.status === 402) {
-                                    // TEMPORARY BYPASS: Skip rate limit error while fixing payment flow
-                                    if (this.temporaryBypassRateLimit) {
-                                        console.log('Rate limit bypass active - ignoring 402 error in parseError block');
-                                        // Generate demo content instead of showing error
-                                        const demoThread = [
-                                            { content: "🧵 THREAD: This is a temporary demo thread generated while the payment system is being fixed." },
-                                            { content: "1/ This bypass allows you to use the app while we resolve the payment modal issues." },
-                                            { content: "2/ The actual thread generation is temporarily disabled to prevent API costs during debugging." },
-                                            { content: "3/ Once the payment flow is fixed, this bypass will be removed and normal functionality restored." }
-                                        ];
-                                        
-                                        this.tweets = demoThread.map(tweet => ({
-                                            text: tweet.content,
-                                            copied: false
-                                        }));
-                                        
-                                        this.loading = false;
-                                        return;
-                                    }
                                     errorMessage = "You've reached your daily limit of 5 free threads. Upgrade to premium for unlimited access!";
                                 } else if (response.status >= 500) {
                                     errorMessage = 'Server error. Please try again in a moment.';
@@ -3343,24 +3296,27 @@
                     }, 100);
                 },
 
-                // Comparison methods temporarily disabled to fix modal issues
+                // Comparison methods
                 addToComparison(thread) {
-                    // Temporarily disabled
-                    console.log('Comparison feature temporarily disabled');
+                    if (this.compareThreads.length < 2) {
+                        this.compareThreads.push(thread);
+                        console.log('Added thread to comparison');
+                    }
                 },
 
                 removeFromComparison(threadId) {
-                    // Temporarily disabled
-                    console.log('Comparison feature temporarily disabled');
+                    this.compareThreads = this.compareThreads.filter(t => t.id !== threadId);
+                    console.log('Removed thread from comparison');
                 },
 
                 showComparison() {
-                    // Temporarily disabled
-                    console.log('Comparison feature temporarily disabled');
+                    if (this.compareThreads.length === 2) {
+                        this.showComparisonModal = true;
+                        console.log('Showing comparison modal');
+                    }
                 },
 
                 closeComparison() {
-                    // Temporarily disabled
                     this.showComparisonModal = false;
                 }
             }
