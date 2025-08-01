@@ -18,6 +18,7 @@ deployment_logs/
 # Local development
 *.local.*
 *_local.*
+.claude/
 
 # Temporary debugging files
 *_debug.*

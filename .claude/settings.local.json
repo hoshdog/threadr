@@ -52,7 +52,6 @@
       "Bash(railway variables:*)",
       "WebFetch(domain:x.com)",
       "WebFetch(domain:www.color-hex.com)",
-      "Bash(REFRESH_TOKEN_NEW=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX1lhYTVnb3FZZDFFUGU4Nnl3UFA4M1EiLCJlbWFpbCI6InRlc3QtcGVyc2lzdGVuY2VAZXhhbXBsZS5jb20iLCJyb2xlIjoidXNlciIsImV4cCI6MTc1NjYwNjQxMSwiaWF0IjoxNzU0MDE0NDExLCJ0eXBlIjoicmVmcmVzaCJ9.aPUZnMbVoMNBc_IT7S1blVoqyVg8TErWzUwh9hq7sa8\")",
       "Bash(copy:*)"
     ],
     "deny": []
