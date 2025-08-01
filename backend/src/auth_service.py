@@ -138,9 +138,16 @@ class AuthService:
             user.updated_at = datetime.utcnow()
             await self._store_user(user)
             
-            # Create tokens
-            access_token = create_access_token(user)
-            refresh_token = create_refresh_token(user)
+            # Create tokens with extended expiration if remember_me is True
+            extended_delta = timedelta(days=30) if login_data.remember_me else None
+            if login_data.remember_me:
+                # Extended token expiration: 30 days for remember me
+                access_token = create_access_token(user, extended_delta)
+                refresh_token = create_refresh_token(user)  # Refresh token already has 30 days
+            else:
+                # Standard token expiration: 1 hour
+                access_token = create_access_token(user)
+                refresh_token = create_refresh_token(user)
             
             # Create session
             await self._create_session(user, client_ip, access_token)
@@ -151,11 +158,12 @@ class AuthService:
             # Get usage stats
             usage_stats = await self.redis_manager.get_usage_count(client_ip, user.email)
             
-            # Create response
+            # Create response with correct expiration time
+            expires_in = TokenService.get_token_expiry_seconds(extended_delta) if extended_delta else TokenService.get_token_expiry_seconds()
             token_response = TokenResponse(
                 access_token=access_token,
                 token_type="bearer",
-                expires_in=TokenService.get_token_expiry_seconds(),
+                expires_in=expires_in,
                 refresh_token=refresh_token,
                 user=user.to_response(
                     is_premium=premium_info.get("has_premium", False),

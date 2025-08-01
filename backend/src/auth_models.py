@@ -80,6 +80,7 @@ class UserLoginRequest(BaseModel):
     """User login request schema"""
     email: EmailStr
     password: str = Field(..., min_length=1, max_length=128)
+    remember_me: bool = Field(default=False, description="Extended session duration for 30 days")
     
     @field_validator('email')
     @classmethod

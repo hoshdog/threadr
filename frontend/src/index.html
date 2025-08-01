@@ -487,6 +487,19 @@
                         >
                     </div>
                     
+                    <!-- Remember Me Checkbox (only for login) -->
+                    <div x-show="authMode === 'login'" x-transition class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            x-model="authForm.rememberMe"
+                            id="remember-me"
+                            class="w-4 h-4 text-x-blue bg-x-black border-x-border rounded focus:ring-x-blue focus:ring-2"
+                        >
+                        <label for="remember-me" class="ml-2 text-sm text-x-gray">
+                            Keep me signed in for 30 days
+                        </label>
+                    </div>
+                    
                     <!-- Confirm Password (only for signup) -->
                     <div x-show="authMode === 'signup'" x-transition>
                         <label class="block text-sm font-semibold text-white mb-3">Confirm Password</label>
@@ -676,7 +689,8 @@
                 authForm: {
                     email: '',
                     password: '',
-                    confirmPassword: ''
+                    confirmPassword: '',
+                    rememberMe: false
                 },
                 authLoading: false,
                 authError: '',
@@ -696,6 +710,11 @@
                 // Get stored JWT token
                 getAuthToken() {
                     return localStorage.getItem('threadr_token');
+                },
+                
+                // Get stored refresh token
+                getRefreshToken() {
+                    return localStorage.getItem('threadr_refresh_token');
                 },
                 
                 // Load user data from localStorage
@@ -739,7 +758,20 @@
                         }
                     } catch (error) {
                         console.error('Token verification failed:', error);
-                        // Don't clear auth data on network errors
+                        // If token verification fails, try to refresh token
+                        if (this.getRefreshToken()) {
+                            try {
+                                console.log('Attempting token refresh...');
+                                await this.refreshAccessToken();
+                                console.log('Token refreshed successfully');
+                            } catch (refreshError) {
+                                console.error('Token refresh failed, clearing auth data:', refreshError);
+                                this.clearAuthData();
+                            }
+                        } else {
+                            // No refresh token available, clear auth data
+                            this.clearAuthData();
+                        }
                     }
                 },
                 
@@ -747,6 +779,7 @@
                 clearAuthData() {
                     this.user = null;
                     localStorage.removeItem('threadr_token');
+                    localStorage.removeItem('threadr_refresh_token');
                     localStorage.removeItem('threadr_user');
                 },
                 
@@ -756,6 +789,7 @@
                     this.authForm.email = '';
                     this.authForm.password = '';
                     this.authForm.confirmPassword = '';
+                    this.authForm.rememberMe = false;
                     this.authError = '';
                     this.authModalVisible = true;
                 },
@@ -812,7 +846,8 @@
                                     }
                                     : {
                                         email: this.authForm.email,
-                                        password: this.authForm.password
+                                        password: this.authForm.password,
+                                        remember_me: this.authForm.rememberMe
                                     }
                             )
                         });
@@ -849,6 +884,9 @@
                         
                         // Store token and user data
                         localStorage.setItem('threadr_token', data.access_token);
+                        if (data.refresh_token) {
+                            localStorage.setItem('threadr_refresh_token', data.refresh_token);
+                        }
                         localStorage.setItem('threadr_user', JSON.stringify(data.user));
                         this.user = data.user;
                         
@@ -885,6 +923,49 @@
                     
                     // Clear local auth data
                     this.clearAuthData();
+                },
+                
+                // Refresh access token using refresh token
+                async refreshAccessToken() {
+                    const refreshToken = this.getRefreshToken();
+                    if (!refreshToken) {
+                        throw new Error('No refresh token available');
+                    }
+                    
+                    try {
+                        const response = await fetch(`${config.API_URL}/api/auth/refresh`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                refresh_token: refreshToken
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error('Token refresh failed');
+                        }
+                        
+                        const data = await response.json();
+                        
+                        // Update stored tokens and user data
+                        localStorage.setItem('threadr_token', data.access_token);
+                        if (data.refresh_token) {
+                            localStorage.setItem('threadr_refresh_token', data.refresh_token);
+                        }
+                        localStorage.setItem('threadr_user', JSON.stringify(data.user));
+                        this.user = data.user;
+                        
+                        return data.access_token;
+                        
+                    } catch (error) {
+                        console.error('Token refresh failed:', error);
+                        // Clear auth data if refresh fails
+                        this.clearAuthData();
+                        throw error;
+                    }
                 },
 
                 getHeaders() {
@@ -949,12 +1030,28 @@
                             try {
                                 const errorData = await response.json();
                                 
-                                // Handle 401 Unauthorized - redirect to login
+                                // Handle 401 Unauthorized - try refresh token first
                                 if (response.status === 401) {
-                                    this.clearAuthData();
-                                    this.showAuthModal('login');
-                                    this.authError = 'Please log in to continue';
-                                    return;
+                                    if (this.getRefreshToken()) {
+                                        try {
+                                            console.log('401 error, attempting token refresh...');
+                                            await this.refreshAccessToken();
+                                            // Retry the original request with new token
+                                            console.log('Token refreshed, retrying request...');
+                                            return await this.generateThread();
+                                        } catch (refreshError) {
+                                            console.error('Token refresh failed:', refreshError);
+                                            this.clearAuthData();
+                                            this.showAuthModal('login');
+                                            this.authError = 'Session expired. Please log in again.';
+                                            return;
+                                        }
+                                    } else {
+                                        this.clearAuthData();
+                                        this.showAuthModal('login');
+                                        this.authError = 'Please log in to continue';
+                                        return;
+                                    }
                                 }
                                 
                                 // Handle 402 Payment Required specifically

@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 # Security scheme for JWT tokens
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 
 class AuthMiddleware:
@@ -27,7 +28,7 @@ class AuthMiddleware:
     async def get_current_user_optional(
         self, 
         request: Request,
-        credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+        credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_security)
     ) -> Optional[User]:
         """Get current user from token (optional - doesn't raise on failure)"""
         if not credentials:
