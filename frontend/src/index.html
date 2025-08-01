@@ -1599,6 +1599,115 @@
 
     </div>
 
+    <!-- Template Selection Modal -->
+    <div 
+        x-show="showTemplateModal" 
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-end="opacity-0"
+        @click.self="closeTemplateModal()"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+    >
+        <div 
+            x-show="showTemplateModal"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 transform scale-95"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-end="opacity-0 transform scale-95"
+            @click.stop
+            class="bg-x-black border border-x-border rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+        >
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-6 border-b border-x-border">
+                <div>
+                    <h3 class="text-xl font-bold text-white" x-text="selectedTemplate?.name"></h3>
+                    <p class="text-x-gray text-sm mt-1" x-text="selectedTemplate?.description"></p>
+                </div>
+                <button @click="closeTemplateModal()" class="p-2 hover:bg-x-dark rounded-lg transition-colors">
+                    <svg class="w-5 h-5 text-x-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+                <!-- Pro Gate -->
+                <div x-show="selectedTemplate?.isPro && !user?.premium" class="text-center py-8">
+                    <div class="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                    </div>
+                    <h4 class="text-lg font-bold text-white mb-2">Pro Template</h4>
+                    <p class="text-x-gray mb-6">This template is only available for Pro users. Upgrade to unlock premium templates and features.</p>
+                    <div class="flex gap-3 justify-center">
+                        <button @click="closeTemplateModal()" class="px-4 py-2 text-x-gray hover:text-white transition-colors">
+                            Cancel
+                        </button>
+                        <button @click="openPaymentModal()" class="bg-amber-500 hover:bg-amber-600 text-black px-6 py-2 rounded-lg font-medium transition-colors">
+                            Upgrade to Pro
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Template Form -->
+                <div x-show="!selectedTemplate?.isPro || user?.premium">
+                    <div class="mb-6">
+                        <h4 class="text-sm font-medium text-white mb-4">Fill in the details below to customize your thread:</h4>
+                        
+                        <!-- Template Variables Form -->
+                        <div class="space-y-4">
+                            <template x-for="variable in selectedTemplate?.variables || []" :key="variable">
+                                <div>
+                                    <label class="block text-sm font-medium text-white mb-2" x-text="formatVariableLabel(variable)"></label>
+                                    <textarea 
+                                        x-model="templateFormData[variable]"
+                                        :placeholder="getVariablePlaceholder(variable)"
+                                        rows="2"
+                                        class="w-full bg-x-dark border border-x-border rounded-lg px-3 py-2 text-white placeholder-x-gray focus:outline-none focus:border-x-blue resize-none"
+                                    ></textarea>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Template Preview -->
+                    <div class="mb-6">
+                        <h4 class="text-sm font-medium text-white mb-4">Preview:</h4>
+                        <div class="space-y-2 max-h-40 overflow-y-auto">
+                            <template x-for="(tweet, index) in generatePreviewTweets()" :key="index">
+                                <div class="bg-x-dark/50 rounded-lg p-3">
+                                    <div class="text-xs text-x-gray mb-1">Tweet <span x-text="index + 1"></span></div>
+                                    <div class="text-sm text-white" x-text="tweet"></div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex gap-3 justify-end">
+                        <button 
+                            @click="closeTemplateModal()" 
+                            class="px-4 py-2 text-x-gray hover:text-white transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            @click="useTemplate()" 
+                            :disabled="!isTemplateFormValid()"
+                            :class="isTemplateFormValid() ? 'bg-x-blue hover:bg-x-blue-hover' : 'bg-x-gray cursor-not-allowed'"
+                            class="px-6 py-2 text-white rounded-lg font-medium transition-colors"
+                        >
+                            Use Template
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         function threadrApp() {
             return {
@@ -3192,116 +3301,6 @@
             `;
             document.body.insertAdjacentHTML('beforeend', comparisonModal);
         });
-
-        <!-- Template Selection Modal -->
-        <div 
-            x-show="showTemplateModal" 
-            x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0"
-            x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-end="opacity-0"
-            @click.self="closeTemplateModal()"
-            class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-        >
-            <div 
-                x-show="showTemplateModal"
-                x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 transform scale-95"
-                x-transition:leave="transition ease-in duration-200"
-                x-transition:leave-end="opacity-0 transform scale-95"
-                @click.stop
-                class="bg-x-black border border-x-border rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
-            >
-                <!-- Modal Header -->
-                <div class="flex justify-between items-center p-6 border-b border-x-border">
-                    <div>
-                        <h3 class="text-xl font-bold text-white" x-text="selectedTemplate?.name"></h3>
-                        <p class="text-x-gray text-sm mt-1" x-text="selectedTemplate?.description"></p>
-                    </div>
-                    <button @click="closeTemplateModal()" class="p-2 hover:bg-x-dark rounded-lg transition-colors">
-                        <svg class="w-5 h-5 text-x-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-
-                <!-- Modal Content -->
-                <div class="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-                    <!-- Pro Gate -->
-                    <div x-show="selectedTemplate?.isPro && !user?.premium" class="text-center py-8">
-                        <div class="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                            </svg>
-                        </div>
-                        <h4 class="text-lg font-bold text-white mb-2">Pro Template</h4>
-                        <p class="text-x-gray mb-6">This template is only available for Pro users. Upgrade to unlock premium templates and features.</p>
-                        <div class="flex gap-3 justify-center">
-                            <button @click="closeTemplateModal()" class="px-4 py-2 text-x-gray hover:text-white transition-colors">
-                                Cancel
-                            </button>
-                            <button @click="openPaymentModal()" class="bg-amber-500 hover:bg-amber-600 text-black px-6 py-2 rounded-lg font-medium transition-colors">
-                                Upgrade to Pro
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Template Form -->
-                    <div x-show="!selectedTemplate?.isPro || user?.premium">
-                        <div class="mb-6">
-                            <h4 class="text-sm font-medium text-white mb-4">Fill in the details below to customize your thread:</h4>
-                            
-                            <!-- Template Variables Form -->
-                            <div class="space-y-4">
-                                <template x-for="variable in selectedTemplate?.variables || []" :key="variable">
-                                    <div>
-                                        <label class="block text-sm font-medium text-white mb-2" x-text="formatVariableLabel(variable)"></label>
-                                        <textarea 
-                                            x-model="templateFormData[variable]"
-                                            :placeholder="getVariablePlaceholder(variable)"
-                                            rows="2"
-                                            class="w-full bg-x-dark border border-x-border rounded-lg px-3 py-2 text-white placeholder-x-gray focus:outline-none focus:border-x-blue resize-none"
-                                        ></textarea>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-
-                        <!-- Template Preview -->
-                        <div class="mb-6">
-                            <h4 class="text-sm font-medium text-white mb-4">Preview:</h4>
-                            <div class="space-y-2 max-h-40 overflow-y-auto">
-                                <template x-for="(tweet, index) in generatePreviewTweets()" :key="index">
-                                    <div class="bg-x-dark/50 rounded-lg p-3">
-                                        <div class="text-xs text-x-gray mb-1">Tweet <span x-text="index + 1"></span></div>
-                                        <div class="text-sm text-white" x-text="tweet"></div>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-
-                        <!-- Action Buttons -->
-                        <div class="flex gap-3 justify-end">
-                            <button 
-                                @click="closeTemplateModal()" 
-                                class="px-4 py-2 text-x-gray hover:text-white transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                @click="useTemplate()" 
-                                :disabled="!isTemplateFormValid()"
-                                :class="isTemplateFormValid() ? 'bg-x-blue hover:bg-x-blue-hover' : 'bg-x-gray cursor-not-allowed'"
-                                class="px-6 py-2 text-white rounded-lg font-medium transition-colors"
-                            >
-                                Use Template
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    });
     </script>
 </body>
 </html>
