@@ -24,6 +24,16 @@ try:
     from .redis_manager import initialize_redis, get_redis_manager
 except ImportError:
     from redis_manager import initialize_redis, get_redis_manager
+
+# Import authentication components
+try:
+    from .auth_service import AuthService
+    from .auth_routes import create_auth_router
+    from .auth_middleware import create_auth_dependencies
+except ImportError:
+    from auth_service import AuthService
+    from auth_routes import create_auth_router
+    from auth_middleware import create_auth_dependencies
 import ipaddress
 from urllib.parse import urlparse
 import certifi
@@ -37,6 +47,9 @@ rate_limiter_lock = asyncio.Lock()
 # Initialize in-memory usage tracking storage (fallback for when Redis is unavailable)
 usage_tracking_storage: Dict[str, List[datetime]] = defaultdict(list)
 usage_tracking_lock = asyncio.Lock()
+
+# Global authentication service
+auth_service: Optional[AuthService] = None
 
 # Production Configuration
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
@@ -177,6 +190,20 @@ async def lifespan(app: FastAPI):
         else:
             logger.warning("Redis not available - falling back to in-memory rate limiting")
         
+        # Initialize authentication service
+        logger.info("Initializing authentication service...")
+        global auth_service
+        if redis_manager:
+            auth_service = AuthService(redis_manager)
+            logger.info("Authentication service initialized successfully")
+            
+            # Add authentication routes
+            auth_router = create_auth_router(auth_service)
+            app.include_router(auth_router)
+            logger.info("Authentication routes added successfully")
+        else:
+            logger.warning("Authentication service cannot be initialized without Redis - auth features disabled")
+        
         # Log OpenAI availability
         if openai_available:
             logger.info("OpenAI client is available - full functionality enabled")
@@ -269,9 +296,58 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Initialize authentication router when auth service is available
+def get_auth_service():
+    """Get the global auth service instance"""
+    return auth_service
+
+# Authentication routes will be added in the lifespan function after auth_service is initialized
+
+# Enhanced dependencies that support both authenticated and anonymous users
+async def get_current_user_optional_enhanced(request: Request) -> Optional[Dict[str, Any]]:
+    """Get current user from token (optional) with backward compatibility"""
+    global auth_service
+    if not auth_service:
+        return None
+    
+    try:
+        # Check for Authorization header
+        auth_header = request.headers.get("authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return None
+        
+        token = auth_header[7:]  # Remove "Bearer " prefix
+        user = await auth_service.get_current_user_from_token(token)
+        
+        if user:
+            return {
+                "user_id": user.user_id,
+                "email": user.email,
+                "role": user.role.value,
+                "is_authenticated": True
+            }
+    except Exception:
+        pass  # Silently fail for optional auth
+    
+    return None
+
+async def get_user_context(request: Request) -> Dict[str, Any]:
+    """Get user context (authenticated user info + client IP)"""
+    from auth_utils import SecurityUtils
+    
+    client_ip = SecurityUtils.get_client_ip(request)
+    user_info = await get_current_user_optional_enhanced(request)
+    
+    return {
+        "client_ip": client_ip,
+        "user_info": user_info,
+        "email": user_info["email"] if user_info else None,
+        "is_authenticated": user_info is not None
+    }
 
 # Pydantic models
 class GenerateThreadRequest(BaseModel):
@@ -647,11 +723,7 @@ async def track_thread_usage(client_ip: str, email: Optional[str] = None) -> boo
     
     return await redis_manager.track_thread_generation(client_ip, email)
 
-def extract_email_from_request_context() -> Optional[str]:
-    """Extract email from request context if available (for future email auth)"""
-    # This is a placeholder for future email-based authentication
-    # For now, we only track email if it's provided in the request
-    return None
+# Note: extract_email_from_request_context function removed - now using enhanced user context with authentication
 
 # Utility functions
 def extract_content_with_readability(html_content: str) -> Optional[Dict[str, str]]:
@@ -1833,15 +1905,21 @@ async def generate_thread(
     request: GenerateThreadRequest,
     client_request: Request,
     _: None = Depends(check_rate_limit),
-    api_key: str = Depends(verify_api_key)
+    api_key: str = Depends(verify_api_key),
+    user_context: Dict[str, Any] = Depends(get_user_context)
 ):
     """Generate a Twitter/X thread from URL or text content"""
     global openai_available
     redis_manager = get_redis_manager()
-    client_ip = client_request.client.host
+    client_ip = user_context["client_ip"]
     
-    # Extract email from context (future feature)
-    user_email = extract_email_from_request_context()
+    # Extract email from authenticated user or context
+    user_email = user_context["email"]
+    user_info = user_context["user_info"]
+    
+    # Log request with authentication status
+    auth_status = "authenticated" if user_context["is_authenticated"] else "anonymous"
+    logger.info(f"Thread generation request from {auth_status} user (IP: {client_ip}, Email: {user_email or 'None'})")
     
     # Check usage limits and reserve usage slot BEFORE processing to prevent race conditions
     if FREE_TIER_ENABLED:
@@ -2111,11 +2189,12 @@ async def subscribe_email(
     request: EmailSubscribeRequest,
     client_request: Request,
     _: None = Depends(check_rate_limit),
-    api_key: str = Depends(verify_api_key)
+    api_key: str = Depends(verify_api_key),
+    user_context: Dict[str, Any] = Depends(get_user_context)
 ):
     """Subscribe email for notifications and updates"""
     redis_manager = get_redis_manager()
-    client_ip = client_request.client.host
+    client_ip = user_context["client_ip"]
     
     try:
         # Extract email from validated request
@@ -2231,10 +2310,13 @@ async def email_stats(
         }
 
 @app.get("/api/premium/check", response_model=PremiumCheckResponse)
-async def check_premium_status(request: Request):
+async def check_premium_status(
+    request: Request,
+    user_context: Dict[str, Any] = Depends(get_user_context)
+):
     """Check user's premium status and usage limits for frontend payment logic"""
-    client_ip = request.client.host
-    user_email = extract_email_from_request_context()  # Future: get from auth
+    client_ip = user_context["client_ip"]
+    user_email = user_context["email"]
     
     # Get comprehensive usage status
     usage_status = await get_user_usage_status(client_ip, user_email)
@@ -2353,10 +2435,13 @@ async def get_usage_analytics(
     return analytics
 
 @app.get("/api/usage/status")
-async def get_current_usage_status(request: Request):
+async def get_current_usage_status(
+    request: Request,
+    user_context: Dict[str, Any] = Depends(get_user_context)
+):
     """Get current user's usage status without API key requirement"""
-    client_ip = request.client.host
-    user_email = extract_email_from_request_context()
+    client_ip = user_context["client_ip"]
+    user_email = user_context["email"]
     
     usage_status = await get_user_usage_status(client_ip, user_email)
     
