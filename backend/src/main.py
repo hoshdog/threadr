@@ -48,10 +48,10 @@ except ImportError:
 # Import analytics components (optional)
 analytics_router = None
 try:
-    from .routes.analytics_routes import router as analytics_router
+    from .routes.analytics import router as analytics_router
 except ImportError:
     try:
-        from routes.analytics_routes import router as analytics_router
+        from routes.analytics import router as analytics_router
     except ImportError:
         # Analytics routes not available - will be skipped
         analytics_router = None
