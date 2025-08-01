@@ -36,6 +36,14 @@ except ImportError:
     from auth_service import AuthService
     from auth_routes import create_auth_router
     from auth_middleware import create_auth_dependencies
+
+# Import thread history components
+try:
+    from .thread_service import ThreadHistoryService
+    from .thread_routes import create_thread_router
+except ImportError:
+    from thread_service import ThreadHistoryService
+    from thread_routes import create_thread_router
 import ipaddress
 from urllib.parse import urlparse
 import certifi
@@ -52,6 +60,9 @@ usage_tracking_lock = asyncio.Lock()
 
 # Global authentication service
 auth_service: Optional[AuthService] = None
+
+# Global thread history service
+thread_history_service: Optional[ThreadHistoryService] = None
 
 # Production Configuration
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
@@ -194,15 +205,28 @@ async def lifespan(app: FastAPI):
         
         # Initialize authentication service
         logger.info("Initializing authentication service...")
-        global auth_service
+        global auth_service, thread_history_service
         if redis_manager:
             auth_service = AuthService(redis_manager)
             logger.info("Authentication service initialized successfully")
+            
+            # Initialize thread history service
+            thread_history_service = ThreadHistoryService(redis_manager)
+            logger.info("Thread history service initialized successfully")
             
             # Add authentication routes
             auth_router = create_auth_router(auth_service)
             app.include_router(auth_router)
             logger.info("Authentication routes added successfully")
+            
+            # Add thread history routes
+            auth_dependencies = create_auth_dependencies(auth_service)
+            thread_router = create_thread_router(
+                thread_history_service, 
+                auth_dependencies["get_current_user_required"]
+            )
+            app.include_router(thread_router)
+            logger.info("Thread history routes added successfully")
         else:
             logger.warning("Authentication service cannot be initialized without Redis - auth features disabled")
         
@@ -449,6 +473,7 @@ class GenerateThreadResponse(BaseModel):
     source_type: str
     title: Optional[str] = None
     error: Optional[str] = None
+    saved_thread_id: Optional[str] = None  # Thread ID if saved to history
 
 class UsageStatus(BaseModel):
     daily_usage: int
@@ -2056,6 +2081,45 @@ async def generate_thread(
             source_type=source_type,
             title=title
         )
+        
+        # Save thread history for authenticated users
+        if user_context["is_authenticated"] and user_info and thread_history_service:
+            try:
+                # Create thread title from source
+                thread_title = title if title else f"Thread from {source_type}"
+                if len(thread_title) > 200:
+                    thread_title = thread_title[:200] + "..."
+                
+                # Convert tweets to save format
+                tweets_data = [{"content": tweet.content} for tweet in thread]
+                
+                # Create metadata
+                metadata = {
+                    "source_url": str(request.url) if request.url else None,
+                    "source_type": source_type,
+                    "ai_model": "gpt-3.5-turbo" if openai_available else "fallback",
+                    "content_length": len(content),
+                    "generation_time_ms": None  # Could add timing later
+                }
+                
+                # Save the thread
+                saved_thread = await thread_history_service.save_thread(
+                    user_id=user_info["user_id"],
+                    title=thread_title,
+                    original_content=content[:50000],  # Limit content size
+                    tweets=tweets_data,
+                    metadata=metadata,
+                    client_ip=client_ip
+                )
+                
+                logger.info(f"Thread automatically saved to history: {saved_thread.id} for user {user_info['user_id']}")
+                
+                # Add saved thread ID to response for frontend reference
+                response.saved_thread_id = saved_thread.id
+                
+            except Exception as e:
+                logger.warning(f"Failed to save thread to history: {e}")
+                # Don't fail the request if saving fails
         
         # Usage already tracked before processing to prevent race conditions
         # This ensures limits are enforced even with concurrent requests
