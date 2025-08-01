@@ -23,35 +23,35 @@ import hashlib
 import json
 # Import redis_manager - try relative import first, then absolute
 try:
-    from .redis_manager import initialize_redis, get_redis_manager
+    from .core.redis_manager import initialize_redis, get_redis_manager
 except ImportError:
-    from redis_manager import initialize_redis, get_redis_manager
+    from core.redis_manager import initialize_redis, get_redis_manager
 
 # Import authentication components
 try:
-    from .auth_service import AuthService
-    from .auth_routes import create_auth_router
-    from .auth_middleware import create_auth_dependencies
+    from .services.auth.auth_service import AuthService
+    from .routes.auth import create_auth_router
+    from .middleware.auth import create_auth_dependencies
 except ImportError:
-    from auth_service import AuthService
-    from auth_routes import create_auth_router
-    from auth_middleware import create_auth_dependencies
+    from services.auth.auth_service import AuthService
+    from routes.auth import create_auth_router
+    from middleware.auth import create_auth_dependencies
 
 # Import thread history components
 try:
-    from .thread_service import ThreadHistoryService
-    from .thread_routes import create_thread_router
+    from .services.thread.thread_service import ThreadHistoryService
+    from .routes.thread import create_thread_router
 except ImportError:
-    from thread_service import ThreadHistoryService
-    from thread_routes import create_thread_router
+    from services.thread.thread_service import ThreadHistoryService
+    from routes.thread import create_thread_router
 
 # Import analytics components (optional)
 analytics_router = None
 try:
-    from .analytics_routes import router as analytics_router
+    from .routes.analytics_routes import router as analytics_router
 except ImportError:
     try:
-        from analytics_routes import router as analytics_router
+        from routes.analytics_routes import router as analytics_router
     except ImportError:
         # Analytics routes not available - will be skipped
         analytics_router = None
@@ -246,7 +246,16 @@ async def lifespan(app: FastAPI):
             else:
                 logger.info("Analytics routes not available - skipping")
         else:
-            logger.warning("Authentication service cannot be initialized without Redis - auth features disabled")
+            logger.warning("Redis not available - initializing auth service with in-memory fallback")
+            # Initialize auth service with unavailable redis_manager (it will use fallbacks)
+            redis_manager = get_redis_manager()  # This will be unavailable but not None
+            auth_service = AuthService(redis_manager)
+            logger.info("Authentication service initialized with in-memory fallback")
+            
+            # Add authentication routes even in fallback mode
+            auth_router = create_auth_router(auth_service)
+            app.include_router(auth_router)
+            logger.info("Authentication routes added successfully (in-memory fallback mode)")
         
         # Log OpenAI availability
         if openai_available:
@@ -2138,8 +2147,8 @@ async def generate_thread(
                 # Create mock analytics for the generated thread (if analytics available)
                 if redis_manager and redis_manager.is_available and analytics_router:
                     try:
-                        from analytics_models import ThreadAnalytics, ContentType, TweetMetrics
-                        from analytics_service import AnalyticsService
+                        from models.analytics import ThreadAnalytics, ContentType, TweetMetrics
+                        from services.analytics.analytics_service import AnalyticsService
                         import random
                         
                         analytics_service = AnalyticsService(redis_manager.redis)
