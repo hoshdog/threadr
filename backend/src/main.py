@@ -217,54 +217,8 @@ async def lifespan(app: FastAPI):
         else:
             logger.warning("Redis not available - falling back to in-memory rate limiting")
         
-        # Initialize authentication service
-        logger.info("Initializing authentication service...")
-        global auth_service, thread_history_service
-        if redis_manager:
-            auth_service = AuthService(redis_manager)
-            logger.info("Authentication service initialized successfully")
-            
-            # Initialize thread history service
-            thread_history_service = ThreadHistoryService(redis_manager)
-            logger.info("Thread history service initialized successfully")
-            
-            # Add authentication routes
-            auth_router = create_auth_router(auth_service)
-            app.include_router(auth_router)
-            logger.info("Authentication routes added successfully")
-            
-            # Add thread history routes - temporarily disabled for debugging
-            # auth_dependencies = create_auth_dependencies(auth_service)
-            # thread_router = create_thread_router(
-            #     thread_history_service, 
-            #     auth_dependencies["get_current_user_required"]
-            # )
-            # app.include_router(thread_router)
-            # logger.info("Thread history routes added successfully")
-            logger.info("Thread routes temporarily disabled for debugging")
-            
-            # Add analytics routes (if available) - temporarily disabled for debugging
-            # if analytics_router_creator:
-            #     analytics_router = analytics_router_creator(
-            #         auth_dependencies["get_current_user_required"],
-            #         auth_dependencies["require_premium_user"]
-            #     )
-            #     app.include_router(analytics_router)
-            #     logger.info("Analytics routes added successfully")
-            # else:
-            #     logger.info("Analytics routes not available - skipping")
-            logger.info("Analytics routes temporarily disabled for debugging")
-        else:
-            logger.warning("Redis not available - initializing auth service with in-memory fallback")
-            # Initialize auth service with unavailable redis_manager (it will use fallbacks)
-            redis_manager = get_redis_manager()  # This will be unavailable but not None
-            auth_service = AuthService(redis_manager)
-            logger.info("Authentication service initialized with in-memory fallback")
-            
-            # Add authentication routes even in fallback mode
-            auth_router = create_auth_router(auth_service)
-            app.include_router(auth_router)
-            logger.info("Authentication routes added successfully (in-memory fallback mode)")
+        # Services and routes are now initialized outside lifespan for proper FastAPI registration
+        logger.info("Services and routes initialized outside lifespan - skipping duplicate initialization")
         
         # Log OpenAI availability
         if openai_available:
@@ -326,6 +280,79 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Add CORS middleware FIRST, before any routes
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
+
+# Add a simple test route IMMEDIATELY to verify route registration works
+@app.get("/api/simple-immediate-test")
+async def simple_immediate_test():
+    """Immediate test route to verify route registration timing"""
+    return {"message": "Immediate test route works!", "success": True}
+
+print(f"DEBUG: Added immediate test route. Total app routes: {len(app.routes)}")
+
+# Initialize services and add routes AFTER app creation and middleware setup
+print("DEBUG: Initializing services and routes...")
+redis_manager = initialize_redis()
+
+if redis_manager:
+    # Initialize services
+    auth_service = AuthService(redis_manager)
+    thread_history_service = ThreadHistoryService(redis_manager)
+    
+    # Add authentication routes
+    auth_router = create_auth_router(auth_service)
+    app.include_router(auth_router)
+    print("DEBUG: Authentication routes added")
+    
+    # Add thread history routes
+    auth_dependencies = create_auth_dependencies(auth_service)
+    thread_router = create_thread_router(
+        thread_history_service, 
+        auth_dependencies["get_current_user_required"]
+    )
+    app.include_router(thread_router, prefix="/api/threads")
+    print(f"DEBUG: Thread routes added. Total app routes: {len(app.routes)}")
+    
+    # Verify thread routes
+    thread_routes = []
+    for route in app.routes:
+        if hasattr(route, 'path') and '/api/threads' in route.path:
+            thread_routes.append(f"{getattr(route, 'methods', 'N/A')} {route.path}")
+    print(f"DEBUG: Thread routes in app: {thread_routes}")
+else:
+    print("DEBUG: Redis not available - using fallback mode")
+    redis_manager = get_redis_manager()
+    auth_service = AuthService(redis_manager)
+    thread_history_service = ThreadHistoryService(redis_manager)
+    
+    # Add authentication routes
+    auth_router = create_auth_router(auth_service)
+    app.include_router(auth_router)
+    
+    # Add thread history routes
+    auth_dependencies = create_auth_dependencies(auth_service)
+    thread_router = create_thread_router(
+        thread_history_service, 
+        auth_dependencies["get_current_user_required"]
+    )
+    app.include_router(thread_router, prefix="/api/threads")
+    print(f"DEBUG: Thread routes added (fallback). Total app routes: {len(app.routes)}")
+
+# Add a direct test route to main.py to verify route registration works
+@app.get("/api/direct-test")
+async def direct_test():
+    """Direct test route in main.py to verify basic route registration"""
+    return {"message": "Direct test route works!", "success": True}
+
+print(f"DEBUG: Added direct test route. Total app routes: {len(app.routes)}")
 
 # Custom exception handler for validation errors
 @app.exception_handler(RequestValidationError)
@@ -394,15 +421,7 @@ async def security_headers_middleware(request: Request, call_next):
     
     return response
 
-# CORS configuration already done above
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-)
+# CORS configuration already done above (after app creation)
 
 # Initialize authentication router when auth service is available
 def get_auth_service():
@@ -1690,6 +1709,11 @@ Generate the thread as a list of tweets, each on a new line."""
 
 # API endpoints
 
+@app.get("/api/threads-test-here")
+async def threads_test_route():
+    """Test route added next to working health route"""
+    return {"message": "Test route next to health works!", "success": True}
+
 @app.get("/health")
 @app.get("/")  # Railway sometimes checks root path
 async def health_check():
@@ -1701,7 +1725,7 @@ async def health_check():
             "timestamp": datetime.now().isoformat(),
             "version": "1.0.0",
             "environment": ENVIRONMENT,
-            "message": "Threadr API is running"
+            "message": "Threadr API is running - UNIQUE DEBUG ID 12345"
         }
         
     except Exception as e:

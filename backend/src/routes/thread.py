@@ -38,7 +38,7 @@ def create_thread_router(thread_service: ThreadHistoryService, get_current_user)
     """Create and configure the thread API router"""
     
     router = APIRouter(
-        prefix="/api/threads",
+        prefix="",
         tags=["Thread History"],
         responses={404: {"description": "Not found"}}
     )
@@ -346,6 +346,15 @@ def create_thread_router(thread_service: ThreadHistoryService, get_current_user)
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update copy count"
             )
+    
+    @router.get("/test")
+    async def test_thread_routes():
+        """Test endpoint to verify thread routes are working - no auth required"""
+        return {
+            "success": True,
+            "message": "Thread routes are working!",
+            "timestamp": datetime.utcnow().isoformat()
+        }
     
     @router.get("/stats/summary", response_model=Dict[str, Any])
     async def get_thread_stats(
