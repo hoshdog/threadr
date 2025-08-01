@@ -1,23 +1,9 @@
-# Railway deployment ignore file
-# Prevent Railway from using these files for deployment decisions
-
-# Backup files that might contain conflicting configurations
-*_backup*
-*_minimal*
-nixpacks_backup.toml
-requirements_backup.txt
-
-# Development and debugging files
-railway_debug.py
-verify_railway_config.py
-fix_railway_deployment.py
-
-# Test files
-test_*.py
-*_test.py
-
-# Logs and temporary files
-*.log
-.DS_Store
-__pycache__/
-*.pyc
+# Railway ignore file - use Docker deployment
+nixpacks.toml
+railway.json
+backend/test_deploy.py
+config/
+docs/
+scripts/
+frontend/
+archive/
