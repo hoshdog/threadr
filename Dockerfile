@@ -45,5 +45,4 @@ CMD exec uvicorn src.main:app \
     --port ${PORT} \
     --workers 2 \
     --log-level info \
-    --access-log \
-    --no-use-colors
+    --access-log
