@@ -106,6 +106,12 @@
         .form-input::placeholder {
             color: #71767b;
         }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
     </style>
 </head>
 <body class="bg-x-black text-white min-h-screen font-inter">
@@ -142,7 +148,11 @@
 
                 <!-- Navigation -->
                 <nav class="flex-1 p-4 space-y-2">
-                    <div class="nav-item rounded-xl p-3 bg-x-blue text-white">
+                    <div 
+                        @click="switchToPage('generate')"
+                        :class="currentPage === 'generate' ? 'bg-x-blue text-white' : 'text-x-gray hover:text-white'"
+                        class="nav-item rounded-xl p-3 cursor-pointer"
+                    >
                         <div class="flex items-center space-x-3">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
@@ -151,13 +161,16 @@
                         </div>
                     </div>
                     
-                    <div class="nav-item rounded-xl p-3 text-x-gray hover:text-white cursor-pointer">
+                    <div 
+                        @click="switchToPage('history')"
+                        :class="currentPage === 'history' ? 'bg-x-blue text-white' : 'text-x-gray hover:text-white'"
+                        class="nav-item rounded-xl p-3 cursor-pointer"
+                    >
                         <div class="flex items-center space-x-3">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                             <span class="font-medium">History</span>
-                            <span class="text-xs bg-x-gray text-x-black px-2 py-1 rounded-full">Soon</span>
                         </div>
                     </div>
                     
@@ -248,11 +261,13 @@
         <!-- Main Content -->
         <div class="flex-1 lg:ml-0">
             <div class="max-w-2xl mx-auto p-6 lg:p-8">
-                <!-- Header -->
-                <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white mb-2">Create Your Thread</h2>
-                    <p class="text-x-gray">Transform any article or content into an engaging X thread</p>
-                </div>
+                <!-- Generate Thread Page -->
+                <div x-show="currentPage === 'generate'" x-transition>
+                    <!-- Header -->
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-white mb-2">Create Your Thread</h2>
+                        <p class="text-x-gray">Transform any article or content into an engaging X thread</p>
+                    </div>
 
                 <!-- Main Form Card -->
                 <div class="tweet-card rounded-2xl p-6 mb-6">
@@ -421,6 +436,219 @@
                             </div>
                         </template>
                     </div>
+                </div>
+                </div>
+
+                <!-- History Page -->
+                <div x-show="currentPage === 'history'" x-transition>
+                    <!-- Header -->
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-white mb-2">Thread History</h2>
+                        <p class="text-x-gray">View and manage your saved threads</p>
+                    </div>
+
+                    <!-- Search Bar -->
+                    <div class="tweet-card rounded-2xl p-6 mb-6">
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                x-model="searchQuery"
+                                @input="debounceSearch()"
+                                placeholder="Search your threads..."
+                                class="form-input w-full px-4 py-4 pl-12 rounded-xl text-lg"
+                            >
+                            <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-x-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div x-show="historyLoading" class="tweet-card rounded-2xl p-12 text-center">
+                        <div class="loading-spinner mx-auto mb-4"></div>
+                        <p class="text-x-gray">Loading your threads...</p>
+                    </div>
+
+                    <!-- Error State -->
+                    <div x-show="historyError && !historyLoading" class="tweet-card rounded-2xl p-6 mb-6">
+                        <div class="flex items-center space-x-2 text-red-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p x-text="historyError"></p>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div x-show="!historyLoading && !historyError && threadHistory.length === 0" class="tweet-card rounded-2xl p-12 text-center">
+                        <div class="w-16 h-16 bg-x-dark rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg class="w-8 h-8 text-x-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-2">No threads yet</h3>
+                        <p class="text-x-gray mb-6">Create your first thread to see it here</p>
+                        <button 
+                            @click="switchToPage('generate')"
+                            class="button-primary text-white font-semibold py-3 px-6 rounded-full"
+                        >
+                            Create Thread
+                        </button>
+                    </div>
+
+                    <!-- Thread List -->
+                    <div x-show="!historyLoading && !historyError && threadHistory.length > 0" class="space-y-4">
+                        <template x-for="thread in filteredThreads()" :key="thread.id">
+                            <div class="tweet-card rounded-2xl p-6 hover:border-x-gray/50 transition-all duration-200">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="flex-1">
+                                        <h3 class="text-lg font-semibold text-white mb-2 cursor-pointer hover:text-x-blue transition-colors" 
+                                            @click="viewThread(thread)" 
+                                            x-text="thread.title || 'Untitled Thread'">
+                                        </h3>
+                                        <div class="flex items-center space-x-4 text-sm text-x-gray">
+                                            <span x-text="formatDate(thread.created_at)"></span>
+                                            <span x-text="`${thread.tweet_count} tweets`"></span>
+                                            <span x-show="thread.source_url" class="truncate max-w-xs">
+                                                <span x-text="thread.source_url"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2 ml-4">
+                                        <!-- Favorite Button -->
+                                        <button 
+                                            @click="toggleFavorite(thread)"
+                                            :class="thread.is_favorite ? 'text-yellow-400' : 'text-x-gray hover:text-yellow-400'"
+                                            class="p-2 rounded-full hover:bg-x-hover transition-colors"
+                                        >
+                                            <svg class="w-5 h-5" :fill="thread.is_favorite ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                                            </svg>
+                                        </button>
+                                        <!-- Copy Thread Button -->
+                                        <button 
+                                            @click="copyThread(thread)"
+                                            class="p-2 rounded-full text-x-gray hover:text-x-blue hover:bg-x-hover transition-colors"
+                                        >
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                            </svg>
+                                        </button>
+                                        <!-- Delete Button -->
+                                        <button 
+                                            @click="deleteThread(thread)"
+                                            class="p-2 rounded-full text-x-gray hover:text-red-400 hover:bg-x-hover transition-colors"
+                                        >
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Thread Preview -->
+                                <div class="text-x-gray text-sm line-clamp-2" x-text="thread.preview"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thread Detail Modal -->
+        <div 
+            x-show="showThreadModal" 
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
+            @click.self="closeThreadModal()"
+        >
+            <div 
+                x-show="showThreadModal"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 transform scale-95"
+                x-transition:enter-end="opacity-100 transform scale-100"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100 transform scale-100"
+                x-transition:leave-end="opacity-0 transform scale-95"
+                class="bg-x-black border border-x-border rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden"
+            >
+                <!-- Modal Header -->
+                <div class="flex justify-between items-center p-6 border-b border-x-border">
+                    <div>
+                        <h3 class="text-xl font-bold text-white" x-text="selectedThread?.title || 'Thread Details'"></h3>
+                        <div class="flex items-center space-x-4 text-sm text-x-gray mt-1">
+                            <span x-text="formatDate(selectedThread?.created_at)"></span>
+                            <span x-text="`${selectedThread?.tweet_count} tweets`"></span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <!-- Copy Thread Button -->
+                        <button 
+                            @click="copyThread(selectedThread)"
+                            class="p-2 rounded-full text-x-gray hover:text-x-blue hover:bg-x-hover transition-colors"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                        </button>
+                        <!-- Close Button -->
+                        <button 
+                            @click="closeThreadModal()"
+                            class="p-2 rounded-full text-x-gray hover:text-white hover:bg-x-hover transition-colors"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Modal Content -->
+                <div class="p-6 overflow-y-auto max-h-[calc(90vh-8rem)]">
+                    <template x-if="selectedThread && selectedThread.tweets">
+                        <div class="space-y-4">
+                            <template x-for="(tweet, index) in selectedThread.tweets" :key="index">
+                                <div class="bg-x-dark rounded-xl p-4">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="text-xs text-x-gray font-semibold bg-x-black px-2 py-1 rounded-full" x-text="`${index + 1}/${selectedThread.tweets.length}`"></span>
+                                            <div class="w-8 h-8 bg-x-blue rounded-full flex items-center justify-center">
+                                                <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            @click="copyTweetFromModal(tweet, index)"
+                                            class="text-xs text-x-blue hover:text-x-blue-hover font-semibold px-3 py-1 rounded-full border border-x-blue/20 hover:border-x-blue/40 transition-all duration-200"
+                                        >
+                                            <span x-show="!tweet.copied" class="flex items-center space-x-1">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                                </svg>
+                                                <span>Copy</span>
+                                            </span>
+                                            <span x-show="tweet.copied" class="flex items-center space-x-1">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                                <span>Copied!</span>
+                                            </span>
+                                        </button>
+                                    </div>
+                                    <div class="text-white leading-relaxed" x-text="tweet.content || tweet.text"></div>
+                                    <div class="mt-3 text-sm text-x-gray">
+                                        <span x-text="(tweet.content || tweet.text).length"></span><span>/280</span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
                 </div>
             </div>
         </div>
@@ -696,6 +924,18 @@
                 authError: '',
                 
                 sidebarOpen: false,
+                
+                // Page state
+                currentPage: 'generate', // 'generate' or 'history'
+                
+                // History state
+                threadHistory: [],
+                historyLoading: false,
+                historyError: '',
+                searchQuery: '',
+                searchTimeout: null,
+                selectedThread: null,
+                showThreadModal: false,
                 
                 // Initialize authentication on component load
                 init() {
@@ -1094,6 +1334,15 @@
                             throw new Error('No tweets were generated. Please try with different content.');
                         }
 
+                        // Save thread to history if user is authenticated
+                        if (this.isAuthenticated() && data.thread_id) {
+                            // Thread should be automatically saved by backend
+                            // Optionally refresh history if we're on history page
+                            if (this.currentPage === 'history') {
+                                this.loadThreadHistory();
+                            }
+                        }
+
                     } catch (error) {
                         console.error('Thread generation error:', error);
                         this.error = error.message || 'An unexpected error occurred. Please try again.';
@@ -1213,6 +1462,245 @@
                         }, 2000);
                     } catch (err) {
                         this.error = 'Failed to copy thread';
+                    }
+                },
+
+                // Page navigation
+                switchToPage(page) {
+                    this.currentPage = page;
+                    this.sidebarOpen = false; // Close mobile sidebar
+                    
+                    if (page === 'history') {
+                        this.loadThreadHistory();
+                    }
+                },
+
+                // History functions
+                async loadThreadHistory() {
+                    if (!this.isAuthenticated()) {
+                        this.historyError = 'Please log in to view your thread history';
+                        return;
+                    }
+
+                    this.historyLoading = true;
+                    this.historyError = '';
+
+                    try {
+                        const response = await fetch(`${config.API_URL}/api/threads`, {
+                            method: 'GET',
+                            headers: this.getHeaders(),
+                            mode: 'cors',
+                            credentials: 'omit'
+                        });
+
+                        if (!response.ok) {
+                            if (response.status === 401) {
+                                // Try to refresh token
+                                if (this.getRefreshToken()) {
+                                    try {
+                                        await this.refreshAccessToken();
+                                        return await this.loadThreadHistory(); // Retry
+                                    } catch (refreshError) {
+                                        this.clearAuthData();
+                                        this.historyError = 'Session expired. Please log in again.';
+                                        return;
+                                    }
+                                } else {
+                                    this.clearAuthData();
+                                    this.historyError = 'Please log in to view your history';
+                                    return;
+                                }
+                            }
+                            throw new Error('Failed to load thread history');
+                        }
+
+                        const data = await response.json();
+                        this.threadHistory = data.threads || [];
+                    } catch (error) {
+                        console.error('Failed to load thread history:', error);
+                        this.historyError = error.message || 'Failed to load thread history';
+                    } finally {
+                        this.historyLoading = false;
+                    }
+                },
+
+                filteredThreads() {
+                    if (!this.searchQuery) {
+                        return this.threadHistory;
+                    }
+                    
+                    const query = this.searchQuery.toLowerCase();
+                    return this.threadHistory.filter(thread => 
+                        (thread.title && thread.title.toLowerCase().includes(query)) ||
+                        (thread.preview && thread.preview.toLowerCase().includes(query)) ||
+                        (thread.source_url && thread.source_url.toLowerCase().includes(query))
+                    );
+                },
+
+                debounceSearch() {
+                    if (this.searchTimeout) {
+                        clearTimeout(this.searchTimeout);
+                    }
+                    this.searchTimeout = setTimeout(() => {
+                        // Search is handled by filteredThreads() reactively
+                    }, 300);
+                },
+
+                formatDate(dateString) {
+                    if (!dateString) return '';
+                    const date = new Date(dateString);
+                    const now = new Date();
+                    const diffTime = Math.abs(now - date);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays === 1) return 'Today';
+                    if (diffDays === 2) return 'Yesterday';
+                    if (diffDays <= 7) return `${diffDays - 1} days ago`;
+                    
+                    return date.toLocaleDateString();
+                },
+
+                async viewThread(thread) {
+                    try {
+                        // Fetch full thread details if not already loaded
+                        if (!thread.tweets) {
+                            const response = await fetch(`${config.API_URL}/api/threads/${thread.id}`, {
+                                method: 'GET',
+                                headers: this.getHeaders(),
+                                mode: 'cors',
+                                credentials: 'omit'
+                            });
+
+                            if (response.ok) {
+                                const fullThread = await response.json();
+                                thread.tweets = fullThread.tweets;
+                            }
+                        }
+                        
+                        this.selectedThread = thread;
+                        this.showThreadModal = true;
+                    } catch (error) {
+                        console.error('Failed to load thread details:', error);
+                        this.historyError = 'Failed to load thread details';
+                    }
+                },
+
+                closeThreadModal() {
+                    this.showThreadModal = false;
+                    this.selectedThread = null;
+                },
+
+                async copyThread(thread) {
+                    if (!thread) return;
+                    
+                    try {
+                        let tweetsText = '';
+                        
+                        if (thread.tweets && Array.isArray(thread.tweets)) {
+                            tweetsText = thread.tweets.map((tweet, index) => 
+                                `${index + 1}/${thread.tweets.length}\n${tweet.content || tweet.text}`
+                            ).join('\n\n');
+                        } else if (thread.preview) {
+                            tweetsText = thread.preview;
+                        } else {
+                            tweetsText = thread.title || 'Thread content not available';
+                        }
+                        
+                        await navigator.clipboard.writeText(tweetsText);
+                        
+                        // Track copy action with backend if thread has ID
+                        if (thread.id) {
+                            try {
+                                await fetch(`${config.API_URL}/api/threads/${thread.id}/copy`, {
+                                    method: 'POST',
+                                    headers: this.getHeaders(),
+                                    mode: 'cors',
+                                    credentials: 'omit'
+                                });
+                            } catch (trackError) {
+                                // Don't fail the copy operation if tracking fails
+                                console.error('Failed to track copy action:', trackError);
+                            }
+                        }
+                        
+                        // Show success feedback
+                        thread.copied = true;
+                        setTimeout(() => {
+                            thread.copied = false;
+                        }, 2000);
+                        
+                    } catch (err) {
+                        console.error('Failed to copy thread:', err);
+                        this.historyError = 'Failed to copy thread';
+                    }
+                },
+
+                async copyTweetFromModal(tweet, index) {
+                    try {
+                        await navigator.clipboard.writeText(tweet.content || tweet.text);
+                        tweet.copied = true;
+                        setTimeout(() => {
+                            tweet.copied = false;
+                        }, 2000);
+                    } catch (err) {
+                        console.error('Failed to copy tweet:', err);
+                    }
+                },
+
+                async toggleFavorite(thread) {
+                    if (!thread.id) return;
+                    
+                    try {
+                        const response = await fetch(`${config.API_URL}/api/threads/${thread.id}`, {
+                            method: 'PATCH',
+                            headers: this.getHeaders(),
+                            mode: 'cors',
+                            credentials: 'omit',
+                            body: JSON.stringify({
+                                is_favorite: !thread.is_favorite
+                            })
+                        });
+
+                        if (response.ok) {
+                            thread.is_favorite = !thread.is_favorite;
+                        } else {
+                            throw new Error('Failed to update favorite status');
+                        }
+                    } catch (error) {
+                        console.error('Failed to toggle favorite:', error);
+                        this.historyError = 'Failed to update favorite status';
+                    }
+                },
+
+                async deleteThread(thread) {
+                    if (!thread.id) return;
+                    
+                    if (!confirm('Are you sure you want to delete this thread? This action cannot be undone.')) {
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch(`${config.API_URL}/api/threads/${thread.id}`, {
+                            method: 'DELETE',
+                            headers: this.getHeaders(),
+                            mode: 'cors',
+                            credentials: 'omit'
+                        });
+
+                        if (response.ok) {
+                            // Remove from local array
+                            this.threadHistory = this.threadHistory.filter(t => t.id !== thread.id);
+                            
+                            // Close modal if this thread was being viewed
+                            if (this.selectedThread && this.selectedThread.id === thread.id) {
+                                this.closeThreadModal();
+                            }
+                        } else {
+                            throw new Error('Failed to delete thread');
+                        }
+                    } catch (error) {
+                        console.error('Failed to delete thread:', error);
+                        this.historyError = 'Failed to delete thread';
                     }
                 }
             }
