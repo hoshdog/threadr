@@ -228,10 +228,10 @@ async def lifespan(app: FastAPI):
             thread_history_service = ThreadHistoryService(redis_manager)
             logger.info("Thread history service initialized successfully")
             
-            # Add authentication routes - temporarily disabled for debugging
-            # auth_router = create_auth_router(auth_service)
-            # app.include_router(auth_router)
-            # logger.info("Authentication routes added successfully")
+            # Add authentication routes
+            auth_router = create_auth_router(auth_service)
+            app.include_router(auth_router)
+            logger.info("Authentication routes added successfully")
             
             # Add thread history routes - temporarily disabled for debugging
             # auth_dependencies = create_auth_dependencies(auth_service)
@@ -241,7 +241,7 @@ async def lifespan(app: FastAPI):
             # )
             # app.include_router(thread_router)
             # logger.info("Thread history routes added successfully")
-            logger.info("Auth and thread routes temporarily disabled for debugging")
+            logger.info("Thread routes temporarily disabled for debugging")
             
             # Add analytics routes (if available) - temporarily disabled for debugging
             # if analytics_router_creator:
@@ -261,11 +261,10 @@ async def lifespan(app: FastAPI):
             auth_service = AuthService(redis_manager)
             logger.info("Authentication service initialized with in-memory fallback")
             
-            # Add authentication routes even in fallback mode - temporarily disabled for debugging
-            # auth_router = create_auth_router(auth_service)
-            # app.include_router(auth_router)
-            # logger.info("Authentication routes added successfully (in-memory fallback mode)")
-            logger.info("Auth routes disabled in fallback mode for debugging")
+            # Add authentication routes even in fallback mode
+            auth_router = create_auth_router(auth_service)
+            app.include_router(auth_router)
+            logger.info("Authentication routes added successfully (in-memory fallback mode)")
         
         # Log OpenAI availability
         if openai_available:
