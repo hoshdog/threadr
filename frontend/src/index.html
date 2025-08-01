@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,195 +9,419 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'x-black': '#000000',
+                        'x-dark': '#15202b',
+                        'x-darker': '#192734', 
+                        'x-darkest': '#22303c',
+                        'x-gray': '#8899ac',
+                        'x-light-gray': '#e1e8ed',
+                        'x-blue': '#1d9bf0',
+                        'x-blue-hover': '#1a8cd8',
+                        'x-border': '#38444d',
+                        'x-hover': '#1d2d3a'
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'system-ui', '-apple-system', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .tweet-editor:focus { outline: none; }
+        * {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        body {
+            background-color: #000000;
+            color: #ffffff;
+        }
+        .tweet-editor:focus { 
+            outline: none; 
+            background-color: #0a0a0a;
+        }
         .loading-spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #1DA1F2;
+            border: 2px solid #38444d;
+            border-top: 2px solid #1d9bf0;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 20px;
+            height: 20px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .sidebar-transition {
+            transition: all 0.2s ease-in-out;
+        }
+        .nav-item {
+            transition: all 0.2s ease-in-out;
+        }
+        .nav-item:hover {
+            background-color: #1d2d3a;
+        }
+        .glass-effect {
+            backdrop-filter: blur(12px);
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        .tweet-card {
+            background-color: #000000;
+            border: 1px solid #2f3336;
+            transition: all 0.2s ease-in-out;
+        }
+        .tweet-card:hover {
+            border-color: #536471;
+        }
+        .button-primary {
+            background-color: #1d9bf0;
+            transition: all 0.2s ease-in-out;
+        }
+        .button-primary:hover {
+            background-color: #1a8cd8;
+        }
+        .button-secondary {
+            background-color: #0f1419;
+            border: 1px solid #536471;
+            transition: all 0.2s ease-in-out;
+        }
+        .button-secondary:hover {
+            background-color: #1d2d3a;
+        }
+        .form-input {
+            background-color: #000000;
+            border: 1px solid #333639;
+            color: #ffffff;
+            transition: all 0.2s ease-in-out;
+        }
+        .form-input:focus {
+            border-color: #1d9bf0;
+            box-shadow: 0 0 0 1px #1d9bf0;
+        }
+        .form-input::placeholder {
+            color: #71767b;
+        }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div x-data="threadrApp()" class="container mx-auto px-4 py-8 max-w-4xl">
-        <!-- Header -->
-        <header class="flex justify-between items-center mb-10">
-            <div class="text-center flex-1">
-                <h1 class="text-4xl font-bold text-gray-900 mb-2">Threadr</h1>
-                <p class="text-lg text-gray-600">Convert any article into an engaging X thread instantly</p>
-            </div>
-            
-            <!-- User Authentication Section -->
-            <div class="ml-6">
-                <div x-show="!user" class="flex space-x-2">
-                    <button 
-                        @click="showAuthModal('login')"
-                        class="px-4 py-2 text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
-                    >
-                        Login
-                    </button>
-                    <button 
-                        @click="showAuthModal('signup')"
-                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200"
-                    >
-                        Sign Up
-                    </button>
-                </div>
-                
-                <div x-show="user" class="relative" x-data="{ showDropdown: false }">
-                    <button 
-                        @click="showDropdown = !showDropdown"
-                        class="flex items-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
-                    >
-                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
-                            <span x-text="user?.email?.charAt(0).toUpperCase()"></span>
-                        </div>
-                        <span class="text-gray-700 font-medium" x-text="user?.email"></span>
-                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+<body class="bg-x-black text-white min-h-screen font-inter">
+    <!-- Mobile Header -->
+    <div class="lg:hidden flex items-center justify-between p-4 border-b border-x-border">
+        <div class="flex items-center space-x-3">
+            <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+            <h1 class="text-xl font-bold">Threadr</h1>
+        </div>
+        <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-full hover:bg-x-hover">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+    </div>
+
+    <div x-data="threadrApp()" class="flex min-h-screen">
+        <!-- Sidebar -->
+        <div class="sidebar-transition fixed lg:relative inset-y-0 left-0 z-50 w-64 lg:w-72 transform lg:transform-none" 
+             :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
+            <div class="glass-effect lg:bg-x-black h-full border-r border-x-border flex flex-col">
+                <!-- Logo -->
+                <div class="p-6 border-b border-x-border">
+                    <div class="flex items-center space-x-3">
+                        <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                         </svg>
-                    </button>
+                        <h1 class="text-2xl font-bold text-white">Threadr</h1>
+                    </div>
+                    <p class="text-x-gray text-sm mt-2">Convert articles to X threads</p>
+                </div>
+
+                <!-- Navigation -->
+                <nav class="flex-1 p-4 space-y-2">
+                    <div class="nav-item rounded-xl p-3 bg-x-blue text-white">
+                        <div class="flex items-center space-x-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
+                            </svg>
+                            <span class="font-medium">Generate Thread</span>
+                        </div>
+                    </div>
                     
-                    <div 
-                        x-show="showDropdown" 
-                        @click.away="showDropdown = false"
-                        x-transition:enter="transition ease-out duration-100"
-                        x-transition:enter-start="transform opacity-0 scale-95"
-                        x-transition:enter-end="transform opacity-100 scale-100"
-                        x-transition:leave="transition ease-in duration-75"
-                        x-transition:leave-start="transform opacity-100 scale-100"
-                        x-transition:leave-end="transform opacity-0 scale-95"
-                        class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
-                    >
+                    <div class="nav-item rounded-xl p-3 text-x-gray hover:text-white cursor-pointer">
+                        <div class="flex items-center space-x-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="font-medium">History</span>
+                            <span class="text-xs bg-x-gray text-x-black px-2 py-1 rounded-full">Soon</span>
+                        </div>
+                    </div>
+                    
+                    <div class="nav-item rounded-xl p-3 text-x-gray hover:text-white cursor-pointer">
+                        <div class="flex items-center space-x-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            <span class="font-medium">Analytics</span>
+                            <span class="text-xs bg-x-gray text-x-black px-2 py-1 rounded-full">Soon</span>
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- User Section -->
+                <div class="p-4 border-t border-x-border">
+                    <div x-show="!user" class="space-y-2">
                         <button 
-                            @click="logout(); showDropdown = false"
-                            class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                            @click="showAuthModal('signup')"
+                            class="w-full button-primary text-white font-semibold py-3 px-4 rounded-full"
                         >
-                            Logout
+                            Sign Up
+                        </button>
+                        <button 
+                            @click="showAuthModal('login')"
+                            class="w-full button-secondary text-white font-medium py-3 px-4 rounded-full"
+                        >
+                            Login
                         </button>
                     </div>
+                    
+                    <div x-show="user" class="relative" x-data="{ showDropdown: false }">
+                        <button 
+                            @click="showDropdown = !showDropdown"
+                            class="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-x-hover transition-colors duration-200"
+                        >
+                            <div class="w-10 h-10 bg-x-blue rounded-full flex items-center justify-center text-white font-semibold">
+                                <span x-text="user?.email?.charAt(0).toUpperCase()"></span>
+                            </div>
+                            <div class="flex-1 text-left">
+                                <div class="text-white font-semibold text-sm" x-text="user?.email"></div>
+                                <div class="text-x-gray text-xs">Free Plan</div>
+                            </div>
+                            <svg class="w-4 h-4 text-x-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        
+                        <div 
+                            x-show="showDropdown" 
+                            @click.away="showDropdown = false"
+                            x-transition:enter="transition ease-out duration-100"
+                            x-transition:enter-start="transform opacity-0 scale-95"
+                            x-transition:enter-end="transform opacity-100 scale-100"
+                            x-transition:leave="transition ease-in duration-75"
+                            x-transition:leave-start="transform opacity-100 scale-100"
+                            x-transition:leave-end="transform opacity-0 scale-95"
+                            class="absolute bottom-full left-0 right-0 mb-2 bg-x-dark rounded-xl border border-x-border shadow-2xl py-2 z-50"
+                        >
+                            <button 
+                                @click="logout(); showDropdown = false"
+                                class="block w-full text-left px-4 py-3 text-white hover:bg-x-hover transition-colors duration-200"
+                            >
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                    </svg>
+                                    <span>Logout</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </header>
-
-        <!-- Main Content -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <!-- Input Type Toggle -->
-            <div class="flex justify-center mb-6">
-                <div class="inline-flex rounded-lg border border-gray-200 p-1">
-                    <button 
-                        @click="inputType = 'url'"
-                        :class="inputType === 'url' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'"
-                        class="px-4 py-2 rounded-md font-medium transition-colors duration-200"
-                    >
-                        URL
-                    </button>
-                    <button 
-                        @click="inputType = 'text'"
-                        :class="inputType === 'text' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'"
-                        class="px-4 py-2 rounded-md font-medium transition-colors duration-200"
-                    >
-                        Paste Text
-                    </button>
-                </div>
-            </div>
-
-            <!-- URL Input -->
-            <div x-show="inputType === 'url'" x-transition>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Article URL</label>
-                <input 
-                    type="url" 
-                    x-model="urlInput"
-                    id="url-input"
-                    placeholder="https://example.com/article"
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    @keyup.enter="generateThread()"
-                    @input="urlInput = $event.target.value"
-                    @paste="setTimeout(() => { urlInput = $event.target.value }, 10)"
-                >
-            </div>
-
-            <!-- Text Input -->
-            <div x-show="inputType === 'text'" x-transition>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Paste your content</label>
-                <textarea 
-                    x-model="textInput"
-                    id="text-input"
-                    placeholder="Paste your article content here..."
-                    rows="6"
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    @input="textInput = $event.target.value"
-                    @paste="setTimeout(() => { textInput = $event.target.value }, 10)"
-                ></textarea>
-            </div>
-
-            <!-- Generate Button -->
-            <button 
-                @click="generateThread()"
-                :disabled="loading || (!urlInput && inputType === 'url') || (!textInput && inputType === 'text')"
-                class="w-full mt-6 bg-blue-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
-            >
-                <span x-show="!loading">Generate Thread</span>
-                <span x-show="loading" class="flex items-center justify-center">
-                    <div class="loading-spinner mr-3"></div>
-                    Generating...
-                </span>
-            </button>
-
-            <!-- Error Message -->
-            <div x-show="error" x-transition class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p class="text-red-700" x-text="error"></p>
             </div>
         </div>
 
-        <!-- Generated Thread -->
-        <div x-show="tweets.length > 0" x-transition class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-900">Your Thread</h2>
-                <button 
-                    @click="copyAllTweets()"
-                    class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-                >
-                    <span x-show="!copiedAll">Copy All</span>
-                    <span x-show="copiedAll">Copied!</span>
-                </button>
-            </div>
+        <!-- Overlay for mobile -->
+        <div x-show="sidebarOpen" 
+             @click="sidebarOpen = false"
+             x-transition:enter="transition-opacity ease-linear duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition-opacity ease-linear duration-300"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"></div>
 
-            <!-- Tweet List -->
-            <div class="space-y-4">
-                <template x-for="(tweet, index) in tweets" :key="index">
-                    <div class="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
-                        <div class="flex justify-between items-start mb-2">
-                            <span class="text-sm text-gray-500 font-medium" x-text="`${index + 1}/${tweets.length}`"></span>
+        <!-- Main Content -->
+        <div class="flex-1 lg:ml-0">
+            <div class="max-w-2xl mx-auto p-6 lg:p-8">
+                <!-- Header -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-white mb-2">Create Your Thread</h2>
+                    <p class="text-x-gray">Transform any article or content into an engaging X thread</p>
+                </div>
+
+                <!-- Main Form Card -->
+                <div class="tweet-card rounded-2xl p-6 mb-6">
+                    <!-- Input Type Toggle -->
+                    <div class="flex justify-center mb-8">
+                        <div class="inline-flex rounded-full bg-x-dark border border-x-border p-2">
                             <button 
-                                @click="copyTweet(index)"
-                                class="text-sm text-blue-500 hover:text-blue-600 font-medium"
+                                @click="inputType = 'url'"
+                                :class="inputType === 'url' ? 'bg-x-blue text-white' : 'text-x-gray hover:text-white'"
+                                class="px-6 py-2 rounded-full font-semibold transition-all duration-200"
                             >
-                                <span x-show="!tweet.copied">Copy</span>
-                                <span x-show="tweet.copied">Copied!</span>
+                                URL
+                            </button>
+                            <button 
+                                @click="inputType = 'text'"
+                                :class="inputType === 'text' ? 'bg-x-blue text-white' : 'text-x-gray hover:text-white'"
+                                class="px-6 py-2 rounded-full font-semibold transition-all duration-200"
+                            >
+                                Paste Text
                             </button>
                         </div>
-                        <div 
-                            contenteditable="true"
-                            @input="updateTweet(index, $event)"
-                            @blur="validateTweetLength(index)"
-                            class="tweet-editor text-gray-900 leading-relaxed min-h-[60px] focus:ring-2 focus:ring-blue-100 rounded p-2"
-                            x-text="tweet.text"
-                        ></div>
-                        <div class="mt-2 text-sm" :class="tweet.text.length > 280 ? 'text-red-500' : 'text-gray-500'">
-                            <span x-text="tweet.text.length"></span>/280 characters
+                    </div>
+
+                    <!-- URL Input -->
+                    <div x-show="inputType === 'url'" x-transition>
+                        <label class="block text-sm font-semibold text-white mb-3">Article URL</label>
+                        <input 
+                            type="url" 
+                            x-model="urlInput"
+                            id="url-input"
+                            placeholder="https://medium.com/article-title"
+                            class="form-input w-full px-4 py-4 rounded-xl text-lg"
+                            @keyup.enter="generateThread()"
+                            @input="urlInput = $event.target.value"
+                            @paste="setTimeout(() => { urlInput = $event.target.value }, 10)"
+                        >
+                        <p class="text-x-gray text-sm mt-2">Supports Medium, Dev.to, Substack, and more</p>
+                    </div>
+
+                    <!-- Text Input -->
+                    <div x-show="inputType === 'text'" x-transition>
+                        <label class="block text-sm font-semibold text-white mb-3">Paste your content</label>
+                        <textarea 
+                            x-model="textInput"
+                            id="text-input"
+                            placeholder="Paste your article content here..."
+                            rows="8"
+                            class="form-input w-full px-4 py-4 rounded-xl text-lg resize-none"
+                            @input="textInput = $event.target.value"
+                            @paste="setTimeout(() => { textInput = $event.target.value }, 10)"
+                        ></textarea>
+                        <p class="text-x-gray text-sm mt-2">Paste any text content to convert into a thread</p>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <button 
+                        @click="generateThread()"
+                        :disabled="loading || (!urlInput && inputType === 'url') || (!textInput && inputType === 'text')"
+                        class="w-full mt-8 button-primary text-white font-bold py-4 px-8 rounded-full text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <span x-show="!loading" class="flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            <span>Generate Thread</span>
+                        </span>
+                        <span x-show="loading" class="flex items-center justify-center space-x-3">
+                            <div class="loading-spinner"></div>
+                            <span>Generating...</span>
+                        </span>
+                    </button>
+
+                    <!-- Error Message -->
+                    <div x-show="error" x-transition class="mt-6 p-4 bg-red-900/20 border border-red-800/30 rounded-xl">
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p class="text-red-300" x-text="error"></p>
                         </div>
                     </div>
-                </template>
+                </div>
+
+                <!-- Generated Thread -->
+                <div x-show="tweets.length > 0" x-transition class="tweet-card rounded-2xl p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-xl font-bold text-white">Your Thread</h2>
+                            <p class="text-x-gray text-sm">Edit any tweet by clicking on it</p>
+                        </div>
+                        <button 
+                            @click="copyAllTweets()"
+                            class="button-secondary text-white font-semibold py-2 px-4 rounded-full flex items-center space-x-2"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            <span x-show="!copiedAll">Copy All</span>
+                            <span x-show="copiedAll">Copied!</span>
+                        </button>
+                    </div>
+
+                    <!-- Tweet List -->
+                    <div class="space-y-4">
+                        <template x-for="(tweet, index) in tweets" :key="index">
+                            <div class="bg-x-black border border-x-border rounded-xl p-4 hover:border-x-gray/50 transition-all duration-200">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-xs text-x-gray font-semibold bg-x-dark px-2 py-1 rounded-full" x-text="`${index + 1}/${tweets.length}`"></span>
+                                        <div class="w-8 h-8 bg-x-blue rounded-full flex items-center justify-center">
+                                            <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        @click="copyTweet(index)"
+                                        class="text-xs text-x-blue hover:text-x-blue-hover font-semibold px-3 py-1 rounded-full border border-x-blue/20 hover:border-x-blue/40 transition-all duration-200"
+                                    >
+                                        <span x-show="!tweet.copied" class="flex items-center space-x-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                            </svg>
+                                            <span>Copy</span>
+                                        </span>
+                                        <span x-show="tweet.copied" class="flex items-center space-x-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            <span>Copied!</span>
+                                        </span>
+                                    </button>
+                                </div>
+                                <div 
+                                    contenteditable="true"
+                                    @input="updateTweet(index, $event)"
+                                    @blur="validateTweetLength(index)"
+                                    class="tweet-editor text-white leading-relaxed min-h-[80px] p-3 rounded-lg focus:bg-x-dark/50 transition-colors duration-200"
+                                    x-text="tweet.text"
+                                ></div>
+                                <div class="mt-3 flex justify-between items-center">
+                                    <div class="flex items-center space-x-4 text-x-gray">
+                                        <div class="flex items-center space-x-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                            </svg>
+                                            <span class="text-sm">0</span>
+                                        </div>
+                                        <div class="flex items-center space-x-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                            </svg>
+                                            <span class="text-sm">0</span>
+                                        </div>
+                                        <div class="flex items-center space-x-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                            </svg>
+                                            <span class="text-sm">0</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-sm" :class="tweet.text.length > 280 ? 'text-red-400' : 'text-x-gray'">
+                                        <span x-text="tweet.text.length"></span><span class="text-x-gray">/280</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -210,7 +434,7 @@
             x-transition:leave="transition ease-in duration-200"
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
-            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
             @click.self="closeAuthModal()"
         >
             <div 
@@ -221,83 +445,91 @@
                 x-transition:leave="transition ease-in duration-200"
                 x-transition:leave-start="opacity-100 transform scale-100"
                 x-transition:leave-end="opacity-0 transform scale-95"
-                class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full"
+                class="bg-x-black border border-x-border rounded-2xl shadow-2xl p-8 max-w-md w-full"
             >
                 <!-- Modal Header -->
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl font-semibold text-gray-900" x-text="authMode === 'login' ? 'Welcome back' : 'Create account'"></h3>
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h3 class="text-2xl font-bold text-white" x-text="authMode === 'login' ? 'Welcome back' : 'Join Threadr'"></h3>
+                        <p class="text-x-gray text-sm mt-1" x-text="authMode === 'login' ? 'Sign in to your account' : 'Create your account'"></p>
+                    </div>
                     <button 
                         @click="closeAuthModal()"
-                        class="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                        class="text-x-gray hover:text-white transition-colors duration-200 p-2 rounded-full hover:bg-x-hover"
                     >
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
                 </div>
 
                 <!-- Auth Form -->
-                <form @submit.prevent="handleAuth()" class="space-y-4">
+                <form @submit.prevent="handleAuth()" class="space-y-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <label class="block text-sm font-semibold text-white mb-3">Email</label>
                         <input 
                             type="email" 
                             x-model="authForm.email"
                             placeholder="your@email.com"
                             required
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            class="form-input w-full px-4 py-4 rounded-xl"
                         >
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <label class="block text-sm font-semibold text-white mb-3">Password</label>
                         <input 
                             type="password" 
                             x-model="authForm.password"
                             placeholder="Password"
                             required
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            class="form-input w-full px-4 py-4 rounded-xl"
                         >
                     </div>
                     
                     <!-- Confirm Password (only for signup) -->
                     <div x-show="authMode === 'signup'" x-transition>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                        <label class="block text-sm font-semibold text-white mb-3">Confirm Password</label>
                         <input 
                             type="password" 
                             x-model="authForm.confirmPassword"
                             placeholder="Confirm Password"
                             x-bind:required="authMode === 'signup'"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            class="form-input w-full px-4 py-4 rounded-xl"
                         >
                     </div>
                     
                     <!-- Error Message -->
-                    <div x-show="authError" x-transition class="p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <p class="text-red-700 text-sm" x-text="authError"></p>
+                    <div x-show="authError" x-transition class="p-4 bg-red-900/20 border border-red-800/30 rounded-xl">
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p class="text-red-300 text-sm" x-text="authError"></p>
+                        </div>
                     </div>
                     
                     <!-- Submit Button -->
                     <button 
                         type="submit"
                         :disabled="authLoading"
-                        class="w-full bg-blue-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
+                        class="w-full button-primary text-white font-bold py-4 px-6 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <span x-show="!authLoading" x-text="authMode === 'login' ? 'Sign In' : 'Create Account'"></span>
-                        <span x-show="authLoading" class="flex items-center justify-center">
-                            <div class="loading-spinner mr-3 w-4 h-4 border-2"></div>
+                        <span x-show="authLoading" class="flex items-center justify-center space-x-2">
+                            <div class="loading-spinner"></div>
                             <span x-text="authMode === 'login' ? 'Signing in...' : 'Creating account...'"></span>
                         </span>
                     </button>
                 </form>
                 
                 <!-- Toggle Auth Mode -->
-                <div class="mt-6 text-center">
-                    <p class="text-gray-600">
+                <div class="mt-8 text-center">
+                    <p class="text-x-gray">
                         <span x-text="authMode === 'login' ? 'Don\'t have an account?' : 'Already have an account?'"></span>
                         <button 
                             @click="toggleAuthMode()"
-                            class="text-blue-500 hover:text-blue-600 font-medium ml-1"
+                            class="text-x-blue hover:text-x-blue-hover font-semibold ml-2 transition-colors duration-200"
                             x-text="authMode === 'login' ? 'Sign up' : 'Sign in'"
                         ></button>
                     </p>
@@ -314,7 +546,7 @@
             x-transition:leave="transition ease-in duration-200"
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
-            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
             @click.self="closePaymentModal()"
         >
             <div 
@@ -325,65 +557,96 @@
                 x-transition:leave="transition ease-in duration-200"
                 x-transition:leave-start="opacity-100 transform scale-100"
                 x-transition:leave-end="opacity-0 transform scale-95"
-                class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full"
+                class="bg-x-black border border-x-border rounded-2xl shadow-2xl p-8 max-w-md w-full"
             >
                 <div class="text-center">
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
-                        <svg class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 mb-6">
+                        <svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                         </svg>
                     </div>
                     
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Upgrade to Premium</h3>
+                    <h3 class="text-2xl font-bold text-white mb-2">Upgrade to Premium</h3>
                     
-                    <p class="text-gray-600 mb-4">
-                        You've reached your daily limit of <span x-text="paymentData?.limit || 5"></span> free threads.
+                    <p class="text-x-gray mb-6">
+                        You've reached your daily limit of <span class="text-white font-semibold" x-text="paymentData?.limit || 5"></span> free threads.
                     </p>
                     
-                    <div x-show="paymentData?.usage" class="bg-gray-50 rounded-lg p-3 mb-4 text-sm">
-                        <p class="text-gray-700">
-                            Today's usage: <span x-text="paymentData?.usage?.threads_today || 0"></span> / <span x-text="paymentData?.limit || 5"></span> threads
+                    <div x-show="paymentData?.usage" class="bg-x-dark rounded-xl p-4 mb-6 text-sm">
+                        <p class="text-x-gray">
+                            Today's usage: <span class="text-white font-semibold" x-text="paymentData?.usage?.threads_today || 0"></span> / <span x-text="paymentData?.limit || 5"></span> threads
                         </p>
-                        <p class="text-gray-700" x-show="paymentData?.usage?.total_threads">
-                            Total threads created: <span x-text="paymentData?.usage?.total_threads"></span>
+                        <p class="text-x-gray mt-1" x-show="paymentData?.usage?.total_threads">
+                            Total threads created: <span class="text-white font-semibold" x-text="paymentData?.usage?.total_threads"></span>
                         </p>
                     </div>
                     
-                    <div class="mb-6">
-                        <h4 class="font-medium text-gray-900 mb-2">Premium Benefits:</h4>
-                        <ul class="text-sm text-gray-600 text-left space-y-1">
-                            <li>✅ Unlimited threads per day</li>
-                            <li>✅ Priority processing</li>
-                            <li>✅ Advanced editing features</li>
-                            <li>✅ Export to multiple formats</li>
+                    <div class="mb-8">
+                        <h4 class="font-semibold text-white mb-4">Premium Benefits:</h4>
+                        <ul class="text-sm text-x-gray text-left space-y-3">
+                            <li class="flex items-center space-x-3">
+                                <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                </div>
+                                <span>Unlimited threads per day</span>
+                            </li>
+                            <li class="flex items-center space-x-3">
+                                <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                </div>
+                                <span>Priority processing</span>
+                            </li>
+                            <li class="flex items-center space-x-3">
+                                <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                </div>
+                                <span>Advanced editing features</span>
+                            </li>
+                            <li class="flex items-center space-x-3">
+                                <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                </div>
+                                <span>Export to multiple formats</span>
+                            </li>
                         </ul>
                     </div>
                     
-                    <div x-show="paymentData?.price" class="mb-4">
-                        <p class="text-2xl font-bold text-gray-900">
-                            $<span x-text="paymentData?.price"></span><span class="text-sm font-normal text-gray-600">/month</span>
-                        </p>
+                    <div x-show="paymentData?.price" class="mb-8">
+                        <div class="bg-gradient-to-r from-x-blue to-purple-600 rounded-xl p-4">
+                            <p class="text-3xl font-bold text-white">
+                                $<span x-text="paymentData?.price"></span><span class="text-lg font-normal text-white/80">/month</span>
+                            </p>
+                            <p class="text-white/80 text-sm mt-1">Cancel anytime</p>
+                        </div>
                     </div>
                     
                     <div class="flex space-x-3">
                         <button 
                             @click="closePaymentModal()"
-                            class="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+                            class="flex-1 px-6 py-3 button-secondary text-white font-semibold rounded-full transition-colors duration-200"
                         >
                             Maybe Later
                         </button>
                         <button 
                             @click="upgradeNow()"
                             :disabled="!paymentConfig?.payment_url"
-                            :class="paymentConfig?.payment_url ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-400 cursor-not-allowed'"
-                            class="flex-1 px-4 py-2 text-white rounded-lg transition-colors duration-200 text-center"
+                            :class="paymentConfig?.payment_url ? 'button-primary' : 'bg-x-gray cursor-not-allowed'"
+                            class="flex-1 px-6 py-3 text-white font-bold rounded-full transition-colors duration-200 text-center"
                         >
                             <span x-show="paymentConfig?.payment_url">Upgrade Now</span>
                             <span x-show="!paymentConfig?.payment_url">Coming Soon</span>
                         </button>
                     </div>
                     
-                    <p class="text-xs text-gray-500 mt-3">
+                    <p class="text-xs text-x-gray mt-4">
                         Try again tomorrow for more free threads!
                     </p>
                 </div>
@@ -417,6 +680,8 @@
                 },
                 authLoading: false,
                 authError: '',
+                
+                sidebarOpen: false,
                 
                 // Initialize authentication on component load
                 init() {
