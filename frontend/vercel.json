@@ -1,4 +1,5 @@
 {
+  "_comment": "Deploy trigger for critical fixes 2025-08-01",
   "version": 2,
   "public": true,
   "buildCommand": "echo 'Static site - no build required'",
