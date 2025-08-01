@@ -31,7 +31,7 @@ cmds = [
 # Using exec to ensure proper signal handling
 [start]
 workDir = "backend"
-cmd = "exec python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT --workers 1 --log-level info --access-log --timeout-keep-alive 30"
+cmd = "exec python -m uvicorn src.minimal_test:app --host 0.0.0.0 --port $PORT --workers 1 --log-level info --access-log --timeout-keep-alive 30"
 
 # Environment variables to force uvicorn usage
 [variables]
