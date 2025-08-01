@@ -147,6 +147,11 @@
             transition: all 0.2s ease-in-out;
         }
         
+        /* Alpine.js cloak - CRITICAL: Hide elements before Alpine.js loads */
+        [x-cloak] {
+            display: none !important;
+        }
+        
         .x-engagement-btn:hover:not(:disabled) {
             transform: scale(1.05);
         }
@@ -890,6 +895,7 @@
 
         <!-- Authentication Modal -->
         <div 
+            x-cloak
             x-show="authModalVisible" 
             x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0"
@@ -1028,6 +1034,7 @@
 
         <!-- Payment Required Modal -->
         <div 
+            x-cloak
             x-show="showPaymentModal" 
             x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0"
@@ -1656,6 +1663,7 @@
 
     <!-- Template Selection Modal -->
     <div 
+        x-cloak
         x-show="showTemplateModal && selectedTemplate" 
         x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="opacity-0"
