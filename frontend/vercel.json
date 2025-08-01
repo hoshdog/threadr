@@ -8,7 +8,15 @@
   "framework": null,
   "rewrites": [
     {
-      "source": "/((?!logos|assets|favicon\\.ico|.*\\.(png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|css|js)).*)",
+      "source": "/logos/(.*)",
+      "destination": "/logos/$1"
+    },
+    {
+      "source": "/config.js",
+      "destination": "/config.js"
+    },
+    {
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
