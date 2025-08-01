@@ -441,7 +441,10 @@ async def get_current_user_optional_enhanced(request: Request) -> Optional[Dict[
 
 async def get_user_context(request: Request) -> Dict[str, Any]:
     """Get user context (authenticated user info + client IP)"""
-    from auth_utils import SecurityUtils
+    try:
+        from .services.auth.auth_utils import SecurityUtils
+    except ImportError:
+        from services.auth.auth_utils import SecurityUtils
     
     client_ip = SecurityUtils.get_client_ip(request)
     user_info = await get_current_user_optional_enhanced(request)
@@ -2154,10 +2157,14 @@ async def generate_thread(
                 response.saved_thread_id = saved_thread.id
                 
                 # Create mock analytics for the generated thread (if analytics available)
-                if redis_manager and redis_manager.is_available and analytics_router:
+                if redis_manager and redis_manager.is_available and analytics_router_creator:
                     try:
-                        from models.analytics import ThreadAnalytics, ContentType, TweetMetrics
-                        from services.analytics.analytics_service import AnalyticsService
+                        try:
+                            from .models.analytics import ThreadAnalytics, ContentType, TweetMetrics
+                            from .services.analytics.analytics_service import AnalyticsService
+                        except ImportError:
+                            from models.analytics import ThreadAnalytics, ContentType, TweetMetrics
+                            from services.analytics.analytics_service import AnalyticsService
                         import random
                         
                         analytics_service = AnalyticsService(redis_manager.redis)
