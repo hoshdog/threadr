@@ -2178,8 +2178,10 @@
                     if (token && userData) {
                         try {
                             this.user = JSON.parse(userData);
-                            // Verify token is still valid by checking with backend
-                            this.verifyToken();
+                            // TEMPORARY FIX: Skip token verification to prevent payment modal popup
+                            // TODO: Re-enable once backend 402 issue is resolved
+                            // this.verifyToken();
+                            console.log('Token verification temporarily disabled to prevent modal popup');
                         } catch (error) {
                             console.error('Failed to parse user data:', error);
                             this.clearAuthData();
