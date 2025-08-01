@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
       "Bash(find:*)",
@@ -52,7 +53,14 @@
       "Bash(railway variables:*)",
       "WebFetch(domain:x.com)",
       "WebFetch(domain:www.color-hex.com)",
-      "Bash(copy:*)"
+      "Bash(copy:*)",
+      "Bash(touch:*)",
+      "Bash(git config:*)",
+      "Bash(rg:*)",
+      "Bash(del:*)",
+      "Bash(git reset:*)",
+      "Bash(gh:*)",
+      "Bash(start index.html)"
     ],
     "deny": []
   }
