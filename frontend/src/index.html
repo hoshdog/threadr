@@ -1639,7 +1639,7 @@
 
     <!-- Template Selection Modal -->
     <div 
-        x-show="showTemplateModal" 
+        x-show="showTemplateModal && selectedTemplate" 
         x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="opacity-0"
         x-transition:leave="transition ease-in duration-200"
@@ -1648,7 +1648,7 @@
         class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
     >
         <div 
-            x-show="showTemplateModal"
+            x-show="showTemplateModal && selectedTemplate"
             x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0 transform scale-95"
             x-transition:leave="transition ease-in duration-200"
@@ -2100,18 +2100,25 @@
                 
                 // Initialize authentication on component load
                 init() {
-                    this.loadUserFromStorage();
-                    // CRITICAL: Ensure no modals are open on startup and no template is selected
+                    // CRITICAL FIX: Force all modals closed and template cleared FIRST
                     this.showTemplateModal = false;
                     this.selectedTemplate = null;
                     this.showPaymentModal = false;
                     this.showUpgradeModal = false;
                     this.showComparisonModal = false;
                     this.showThreadModal = false;
-                    // Reset any template form data
                     this.templateFormData = {};
-                    // Ensure we start on the generate page
                     this.currentPage = 'generate';
+                    
+                    // Load user data AFTER clearing state
+                    this.loadUserFromStorage();
+                    
+                    // Additional safety check after a brief delay to handle any race conditions
+                    setTimeout(() => {
+                        this.showTemplateModal = false;
+                        this.selectedTemplate = null;
+                        this.showPaymentModal = false;
+                    }, 100);
                     
                     // Log successful initialization
                     console.log('Threadr app initialized successfully');
@@ -2601,6 +2608,7 @@
                 },
 
                 async openPaymentModal() {
+                    console.log('Opening payment modal');
                     // Close template modal first
                     this.closeTemplateModal();
                     
@@ -3091,10 +3099,11 @@
                 getPopularTemplates() {
                     return this.templates
                         .filter(template => {
-                            // CRITICAL: Always exclude Pro templates for non-premium users
+                            // CRITICAL FIX: Always exclude Pro templates for non-premium users
                             // Use strict checking to handle undefined/null user states
-                            if (template.isPro && (!this.user || !this.user.premium)) {
-                                return false;
+                            if (template.isPro) {
+                                // Only show Pro templates if user exists AND has premium
+                                return this.user && this.user.premium === true;
                             }
                             return template.popularity >= 85;
                         })
@@ -3105,10 +3114,11 @@
                 getFilteredTemplates() {
                     let filtered = this.templates;
 
-                    // CRITICAL: Filter out Pro templates for non-premium users with strict checking
+                    // CRITICAL FIX: Filter out Pro templates for non-premium users with strict checking
                     filtered = filtered.filter(template => {
-                        if (template.isPro && (!this.user || !this.user.premium)) {
-                            return false;
+                        if (template.isPro) {
+                            // Only show Pro templates if user exists AND has premium
+                            return this.user && this.user.premium === true;
                         }
                         return true;
                     });
@@ -3134,9 +3144,12 @@
                 selectTemplate(template) {
                     console.log('Selecting template:', template.name, 'isPro:', template.isPro, 'user premium:', this.user?.premium);
                     
-                    // CRITICAL: Block selection of Pro templates for non-premium users
-                    if (template.isPro && !this.user?.premium) {
+                    // CRITICAL FIX: Block selection of Pro templates for non-premium users
+                    if (template.isPro && (!this.user || !this.user.premium)) {
                         console.warn('Attempted to select Pro template without premium access - blocking');
+                        // Close any existing modals first
+                        this.showTemplateModal = false;
+                        this.selectedTemplate = null;
                         // Show payment modal for upgrade
                         this.openPaymentModal();
                         return;
@@ -3152,6 +3165,7 @@
                 },
 
                 closeTemplateModal() {
+                    console.log('Closing template modal');
                     this.showTemplateModal = false;
                     this.selectedTemplate = null;
                     this.templateFormData = {};
