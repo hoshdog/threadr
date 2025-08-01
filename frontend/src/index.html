@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Threadr - Convert Articles to X Threads</title>
-    <link rel="icon" type="image/png" href="../logos/threadrLogo_White.png">
-    <link rel="apple-touch-icon" href="../logos/threadrLogo_White.png">
+    <link rel="icon" type="image/png" href="./logos/threadrLogo_White.png">
+    <link rel="apple-touch-icon" href="./logos/threadrLogo_White.png">
     <script src="config.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -134,7 +134,7 @@
     <!-- Mobile Header -->
     <div class="lg:hidden flex items-center justify-between p-4 border-b border-x-border">
         <div class="flex items-center space-x-3">
-            <img src="../logos/threadrLogo_White.png" alt="Threadr Logo" class="w-8 h-8 object-contain">
+            <img src="./logos/threadrLogo_White.png" alt="Threadr Logo" class="w-8 h-8 object-contain">
             <h1 class="text-xl font-bold">Threadr</h1>
         </div>
         <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-full hover:bg-x-hover">
@@ -152,7 +152,7 @@
                 <!-- Logo -->
                 <div class="p-6 border-b border-x-border">
                     <div class="flex items-center space-x-3">
-                        <img src="../logos/threadrBanner_White.png" alt="Threadr" class="h-8 w-auto object-contain transition-all duration-200 hover:scale-105 cursor-pointer">
+                        <img src="./logos/threadrBanner_White.png" alt="Threadr" class="h-8 w-auto object-contain transition-all duration-200 hover:scale-105 cursor-pointer">
                     </div>
                     <p class="text-x-gray text-sm mt-2">Convert articles to X threads</p>
                 </div>
@@ -347,7 +347,7 @@
                         </span>
                         <span x-show="loading" class="flex items-center justify-center space-x-3">
                             <div class="w-5 h-5 logo-loading">
-                                <img src="../logos/threadrLogo_White.png" alt="Loading" class="w-full h-full object-contain">
+                                <img src="./logos/threadrLogo_White.png" alt="Loading" class="w-full h-full object-contain">
                             </div>
                             <span>Generating...</span>
                         </span>
@@ -391,7 +391,7 @@
                                     <div class="flex items-center space-x-2">
                                         <span class="text-xs text-x-gray font-semibold bg-x-dark px-2 py-1 rounded-full" x-text="`${index + 1}/${tweets.length}`"></span>
                                         <div class="w-8 h-8 bg-x-blue rounded-full flex items-center justify-center p-1.5">
-                                            <img src="../logos/threadrLogo_White.png" alt="Thread" class="w-full h-full object-contain">
+                                            <img src="./logos/threadrLogo_White.png" alt="Thread" class="w-full h-full object-contain">
                                         </div>
                                     </div>
                                     <button 
@@ -477,7 +477,7 @@
                     <!-- Loading State -->
                     <div x-show="historyLoading" class="tweet-card rounded-2xl p-12 text-center">
                         <div class="mx-auto mb-4 w-8 h-8 logo-loading">
-                            <img src="../logos/threadrLogo_White.png" alt="Loading" class="w-full h-full object-contain">
+                            <img src="./logos/threadrLogo_White.png" alt="Loading" class="w-full h-full object-contain">
                         </div>
                         <p class="text-x-gray">Loading your threads...</p>
                     </div>
@@ -631,7 +631,7 @@
                                         <div class="flex items-center space-x-2">
                                             <span class="text-xs text-x-gray font-semibold bg-x-black px-2 py-1 rounded-full" x-text="`${index + 1}/${selectedThread.tweets.length}`"></span>
                                             <div class="w-8 h-8 bg-x-blue rounded-full flex items-center justify-center p-1.5">
-                                                <img src="../logos/threadrLogo_White.png" alt="Thread" class="w-full h-full object-contain">
+                                                <img src="./logos/threadrLogo_White.png" alt="Thread" class="w-full h-full object-contain">
                                             </div>
                                         </div>
                                         <button 
@@ -689,7 +689,7 @@
                 <!-- Modal Header -->
                 <div class="flex justify-between items-center mb-8">
                     <div class="flex items-center space-x-4">
-                        <img src="../logos/threadrLogo_White.png" alt="Threadr Logo" class="w-10 h-10 object-contain">
+                        <img src="./logos/threadrLogo_White.png" alt="Threadr Logo" class="w-10 h-10 object-contain">
                         <div>
                             <h3 class="text-2xl font-bold text-white" x-text="authMode === 'login' ? 'Welcome back' : 'Join Threadr'"></h3>
                             <p class="text-x-gray text-sm mt-1" x-text="authMode === 'login' ? 'Sign in to your account' : 'Create your account'"></p>
@@ -773,7 +773,7 @@
                         <span x-show="!authLoading" x-text="authMode === 'login' ? 'Sign In' : 'Create Account'"></span>
                         <span x-show="authLoading" class="flex items-center justify-center space-x-2">
                             <div class="w-5 h-5 logo-loading">
-                                <img src="../logos/threadrLogo_White.png" alt="Loading" class="w-full h-full object-contain">
+                                <img src="./logos/threadrLogo_White.png" alt="Loading" class="w-full h-full object-contain">
                             </div>
                             <span x-text="authMode === 'login' ? 'Signing in...' : 'Creating account...'"></span>
                         </span>
@@ -818,7 +818,7 @@
             >
                 <div class="text-center">
                     <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 mb-6 p-3">
-                        <img src="../logos/threadrLogo_White.png" alt="Threadr Logo" class="w-full h-full object-contain">
+                        <img src="./logos/threadrLogo_White.png" alt="Threadr Logo" class="w-full h-full object-contain">
                     </div>
                     
                     <h3 class="text-2xl font-bold text-white mb-2">Upgrade to Premium</h3>

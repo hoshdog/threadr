@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logo Test - Threadr</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #000;
+            color: #fff;
+        }
+        .logo-test {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        img {
+            max-width: 200px;
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .error {
+            color: #ff6b6b;
+        }
+        .success {
+            color: #51cf66;
+        }
+    </style>
+</head>
+<body>
+    <h1>Threadr Logo Path Test</h1>
+    <p>This test page verifies that all logo files are accessible with the correct paths.</p>
+    
+    <div class="logo-test">
+        <h3>threadrLogo_White.png (Main Logo)</h3>
+        <img src="./logos/threadrLogo_White.png" alt="Threadr Logo White" 
+             onload="this.nextElementSibling.className='success'; this.nextElementSibling.textContent='✓ Loaded successfully'" 
+             onerror="this.nextElementSibling.className='error'; this.nextElementSibling.textContent='✗ Failed to load'">
+        <div>Loading...</div>
+    </div>
+    
+    <div class="logo-test">
+        <h3>threadrLogo_Black.png</h3>
+        <img src="./logos/threadrLogo_Black.png" alt="Threadr Logo Black" 
+             onload="this.nextElementSibling.className='success'; this.nextElementSibling.textContent='✓ Loaded successfully'" 
+             onerror="this.nextElementSibling.className='error'; this.nextElementSibling.textContent='✗ Failed to load'">
+        <div>Loading...</div>
+    </div>
+    
+    <div class="logo-test">
+        <h3>threadrBanner_White.png (Banner Logo)</h3>
+        <img src="./logos/threadrBanner_White.png" alt="Threadr Banner White" 
+             onload="this.nextElementSibling.className='success'; this.nextElementSibling.textContent='✓ Loaded successfully'" 
+             onerror="this.nextElementSibling.className='error'; this.nextElementSibling.textContent='✗ Failed to load'">
+        <div>Loading...</div>
+    </div>
+    
+    <div class="logo-test">
+        <h3>threadrBanner_Black.png</h3>
+        <img src="./logos/threadrBanner_Black.png" alt="Threadr Banner Black" 
+             onload="this.nextElementSibling.className='success'; this.nextElementSibling.textContent='✓ Loaded successfully'" 
+             onerror="this.nextElementSibling.className='error'; this.nextElementSibling.textContent='✗ Failed to load'">
+        <div>Loading...</div>
+    </div>
+    
+    <div class="logo-test">
+        <h3>Path Information</h3>
+        <p><strong>Current URL:</strong> <span id="currentUrl"></span></p>
+        <p><strong>Base URL:</strong> <span id="baseUrl"></span></p>
+        <p><strong>Logo path should resolve to:</strong> <span id="logoPath"></span></p>
+    </div>
+    
+    <script>
+        document.getElementById('currentUrl').textContent = window.location.href;
+        document.getElementById('baseUrl').textContent = window.location.origin + window.location.pathname;
+        document.getElementById('logoPath').textContent = new URL('./logos/threadrLogo_White.png', window.location.href).href;
+    </script>
+</body>
+</html>
