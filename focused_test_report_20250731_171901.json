@@ -1,0 +1,433 @@
+{
+  "summary": {
+    "total_tests": 23,
+    "passed": 22,
+    "failed": 1,
+    "success_rate": 95.65217391304348
+  },
+  "performance": {
+    "average_response_time_ms": 260.6093572533649,
+    "max_response_time_ms": 627.4199485778809,
+    "min_response_time_ms": 62.801361083984375
+  },
+  "categories": {
+    "Public API": {
+      "pass": 10,
+      "fail": 0
+    },
+    "Auth Check": {
+      "pass": 5,
+      "fail": 0
+    },
+    "Dev Blocking": {
+      "pass": 2,
+      "fail": 1
+    },
+    "CORS Configuration": {
+      "pass": 1,
+      "fail": 0
+    },
+    "Frontend Integration": {
+      "pass": 1,
+      "fail": 0
+    },
+    "Usage Limits Display": {
+      "pass": 1,
+      "fail": 0
+    },
+    "Premium Check Display": {
+      "pass": 1,
+      "fail": 0
+    },
+    "Stripe Configuration": {
+      "pass": 1,
+      "fail": 0
+    }
+  },
+  "test_results": [
+    {
+      "test_name": "Public API - Basic health check",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:55.256070",
+      "details": {
+        "status_code": 200,
+        "has_json_response": true,
+        "endpoint": "/health",
+        "response_keys": [
+          "status",
+          "timestamp",
+          "version",
+          "environment",
+          "message"
+        ]
+      },
+      "response_time_ms": 627.4199485778809
+    },
+    {
+      "test_name": "Public API - Root endpoint",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:55.416518",
+      "details": {
+        "status_code": 200,
+        "has_json_response": true,
+        "endpoint": "/",
+        "response_keys": [
+          "status",
+          "timestamp",
+          "version",
+          "environment",
+          "message"
+        ]
+      },
+      "response_time_ms": 160.4020595550537
+    },
+    {
+      "test_name": "Public API - Readiness probe",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:55.575699",
+      "details": {
+        "status_code": 200,
+        "has_json_response": true,
+        "endpoint": "/readiness",
+        "response_keys": [
+          "status",
+          "timestamp",
+          "checks"
+        ]
+      },
+      "response_time_ms": 159.13963317871094
+    },
+    {
+      "test_name": "Public API - Test endpoint",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:55.736770",
+      "details": {
+        "status_code": 200,
+        "has_json_response": true,
+        "endpoint": "/api/test",
+        "response_keys": [
+          "status",
+          "message",
+          "tweet_count",
+          "tweets"
+        ]
+      },
+      "response_time_ms": 161.01932525634766
+    },
+    {
+      "test_name": "Public API - Rate limit status",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:55.899696",
+      "details": {
+        "status_code": 200,
+        "has_json_response": true,
+        "endpoint": "/api/rate-limit-status",
+        "response_keys": [
+          "requests_used",
+          "requests_remaining",
+          "total_limit",
+          "window_hours",
+          "minutes_until_reset",
+          "using_redis"
+        ]
+      },
+      "response_time_ms": 162.8711223602295
+    },
+    {
+      "test_name": "Public API - Cache statistics",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:56.065077",
+      "details": {
+        "status_code": 200,
+        "has_json_response": true,
+        "endpoint": "/api/cache/stats",
+        "response_keys": [
+          "available",
+          "cache_entries",
+          "rate_limit_entries",
+          "memory_used",
+          "connected_clients",
+          "uptime_seconds"
+        ]
+      },
+      "response_time_ms": 165.32611846923828
+    },
+    {
+      "test_name": "Public API - Comprehensive health",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:56.227835",
+      "details": {
+        "status_code": 200,
+        "has_json_response": true,
+        "endpoint": "/api/monitor/health",
+        "response_keys": [
+          "timestamp",
+          "status",
+          "services",
+          "details"
+        ]
+      },
+      "response_time_ms": 162.69159317016602
+    },
+    {
+      "test_name": "Public API - Premium status check",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:56.397966",
+      "details": {
+        "status_code": 200,
+        "has_json_response": true,
+        "endpoint": "/api/premium/check",
+        "response_keys": [
+          "has_premium",
+          "usage_status",
+          "needs_payment",
+          "premium_price",
+          "message"
+        ]
+      },
+      "response_time_ms": 170.06158828735352
+    },
+    {
+      "test_name": "Public API - Usage status",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:56.573045",
+      "details": {
+        "status_code": 200,
+        "has_json_response": true,
+        "endpoint": "/api/usage/status",
+        "response_keys": [
+          "daily_usage",
+          "daily_limit",
+          "daily_remaining",
+          "monthly_usage",
+          "monthly_limit",
+          "monthly_remaining",
+          "has_premium",
+          "premium_expires_at",
+          "free_tier_enabled"
+        ]
+      },
+      "response_time_ms": 175.02856254577637
+    },
+    {
+      "test_name": "Public API - Payment configuration",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:56.733477",
+      "details": {
+        "status_code": 200,
+        "has_json_response": true,
+        "endpoint": "/api/payment/config",
+        "response_keys": [
+          "stripe_configured",
+          "webhook_configured",
+          "premium_price",
+          "display_price",
+          "currency",
+          "price_id",
+          "payment_url",
+          "payment_methods",
+          "pricing_type"
+        ]
+      },
+      "response_time_ms": 160.38012504577637
+    },
+    {
+      "test_name": "Auth Check - /api/generate",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:57.425087",
+      "details": {
+        "status_code": 401,
+        "message": "Correctly requires authentication",
+        "auth_message": "API key required. Please provide X-API-Key header.",
+        "endpoint": "/api/generate"
+      },
+      "response_time_ms": 514.4290924072266
+    },
+    {
+      "test_name": "Auth Check - /api/subscribe",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:57.601747",
+      "details": {
+        "status_code": 401,
+        "message": "Correctly requires authentication",
+        "auth_message": "API key required. Please provide X-API-Key header.",
+        "endpoint": "/api/subscribe"
+      },
+      "response_time_ms": 176.5899658203125
+    },
+    {
+      "test_name": "Auth Check - /api/emails/stats",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:57.765365",
+      "details": {
+        "status_code": 401,
+        "message": "Correctly requires authentication",
+        "auth_message": "API key required. Please provide X-API-Key header.",
+        "endpoint": "/api/emails/stats"
+      },
+      "response_time_ms": 163.5599136352539
+    },
+    {
+      "test_name": "Auth Check - /api/premium/grant",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:57.928112",
+      "details": {
+        "status_code": 401,
+        "message": "Correctly requires authentication",
+        "auth_message": "API key required. Please provide X-API-Key header.",
+        "endpoint": "/api/premium/grant"
+      },
+      "response_time_ms": 162.70208358764648
+    },
+    {
+      "test_name": "Auth Check - /api/usage/analytics",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:58.092238",
+      "details": {
+        "status_code": 401,
+        "message": "Correctly requires authentication",
+        "auth_message": "API key required. Please provide X-API-Key header.",
+        "endpoint": "/api/usage/analytics"
+      },
+      "response_time_ms": 164.06726837158203
+    },
+    {
+      "test_name": "Dev Blocking - /api/security/config",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:58.780624",
+      "details": {
+        "status_code": 404,
+        "message": "Correctly blocked in production",
+        "endpoint": "/api/security/config"
+      },
+      "response_time_ms": 506.4663887023926
+    },
+    {
+      "test_name": "Dev Blocking - /api/test/url-check",
+      "status": "FAIL",
+      "timestamp": "2025-07-31T17:18:58.944790",
+      "details": {
+        "status_code": 422,
+        "error": "Expected 404, got 422",
+        "response_data": {
+          "detail": [
+            {
+              "type": "missing",
+              "loc": [
+                "query",
+                "url"
+              ],
+              "msg": "Field required",
+              "input": null,
+              "url": "https://errors.pydantic.dev/2.5/v/missing"
+            }
+          ]
+        },
+        "endpoint": "/api/test/url-check"
+      },
+      "response_time_ms": 164.1089916229248
+    },
+    {
+      "test_name": "Dev Blocking - /api/test/railway-network",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:59.111527",
+      "details": {
+        "status_code": 404,
+        "message": "Correctly blocked in production",
+        "endpoint": "/api/test/railway-network"
+      },
+      "response_time_ms": 166.71299934387207
+    },
+    {
+      "test_name": "CORS Configuration",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:18:59.797731",
+      "details": {
+        "status_code": 200,
+        "cors_working": true,
+        "allow_origin": "https://threadr-plum.vercel.app",
+        "allow_methods": "GET, POST, OPTIONS",
+        "allow_headers": "Content-Type",
+        "all_cors_headers": {
+          "access-control-allow-credentials": "true",
+          "access-control-allow-headers": "Content-Type",
+          "access-control-allow-methods": "GET, POST, OPTIONS",
+          "access-control-allow-origin": "https://threadr-plum.vercel.app",
+          "access-control-max-age": "600"
+        }
+      },
+      "response_time_ms": 507.0774555206299
+    },
+    {
+      "test_name": "Frontend Integration",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:19:00.036713",
+      "details": {
+        "status_code": 200,
+        "content_length": 40285,
+        "checks_passed": "6/7",
+        "integration_score": "85.7%",
+        "checks": {
+          "has_threadr_title": true,
+          "has_alpine_js": true,
+          "has_tailwind": true,
+          "has_api_endpoint": false,
+          "has_form_elements": true,
+          "has_usage_display": true,
+          "has_payment_modal": true
+        }
+      },
+      "response_time_ms": 62.801361083984375
+    },
+    {
+      "test_name": "Usage Limits Display",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:19:00.830845",
+      "details": {
+        "status_code": 200,
+        "has_all_fields": true,
+        "valid_data": true,
+        "daily_limit": 5,
+        "monthly_limit": 20,
+        "daily_remaining": 5,
+        "monthly_remaining": 20,
+        "missing_fields": []
+      },
+      "response_time_ms": 613.9750480651855
+    },
+    {
+      "test_name": "Premium Check Display",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:19:00.994201",
+      "details": {
+        "status_code": 200,
+        "has_premium_fields": true,
+        "user_friendly_message": true,
+        "premium_price": 4.99,
+        "message_preview": "You have 5 free threads remaining today. Upgrade to premium for unlimited access!"
+      },
+      "response_time_ms": 163.2990837097168
+    },
+    {
+      "test_name": "Stripe Configuration",
+      "status": "PASS",
+      "timestamp": "2025-07-31T17:19:01.695118",
+      "details": {
+        "status_code": 200,
+        "has_all_fields": true,
+        "valid_config": true,
+        "stripe_configured": true,
+        "webhook_configured": true,
+        "premium_price": 4.99,
+        "payment_methods": [
+          "stripe_payment_links"
+        ],
+        "missing_fields": []
+      },
+      "response_time_ms": 523.8854885101318
+    }
+  ],
+  "timestamp": "2025-07-31T17:19:01.696168",
+  "backend_url": "https://threadr-production.up.railway.app",
+  "frontend_url": "https://threadr-plum.vercel.app"
+}
