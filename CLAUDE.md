@@ -6,15 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Threadr is a SaaS tool that converts blog articles or pasted content into Twitter threads. This is a greenfield project with the specification defined in MVP.md.
 
-## Project Status
+## Current Production Status
 
-✅ **Backend Implementation**: FastAPI backend is complete with thread generation, rate limiting, and health checks
-✅ **Railway Deployment**: Fully functional at https://threadr-production.up.railway.app
-✅ **OpenAI Integration**: GPT-3.5-turbo integration with graceful fallback when API key unavailable
-✅ **URL Scraping**: Working for all allowed domains (Medium, Dev.to, Substack, etc.)
-✅ **Frontend Deployment**: Live at https://threadr-plum.vercel.app
-✅ **Full Integration**: Frontend successfully communicates with backend, complete E2E functionality
-✅ **Stripe Payment Integration**: Secure webhook-based payment processing for premium access
+✅ **Live Production App**: https://threadr-plum.vercel.app - Fully functional SaaS
+✅ **Backend API**: https://threadr-production.up.railway.app - 95.7% test coverage
+✅ **Monetization Active**: Stripe payments ($4.99 for 30 days premium access)
+✅ **Free Tier Limits**: 5 daily / 20 monthly thread generations enforced
+✅ **URL Scraping**: Working for 15+ domains (Medium, Dev.to, Substack, etc.)
+✅ **Thread Generation**: OpenAI GPT-3.5-turbo with smart content splitting
+✅ **Payment Processing**: Secure webhook-based Stripe integration with HMAC verification
+✅ **Rate Limiting**: Redis-based IP tracking prevents abuse
+✅ **Email Capture**: Working system for user engagement and notifications
 
 ### Recent Updates (2025-07-31)
 - ✅ **Stripe Payment Integration**: Complete webhook-based payment processing
@@ -35,6 +37,83 @@ Threadr is a SaaS tool that converts blog articles or pasted content into Twitte
 - Removed complex SSL context and proxy configurations that failed on Railway
 - Successfully deployed URL scraping functionality
 
+## Monetization Implementation
+
+### Current Payment Flow
+1. **Free Tier**: 5 daily / 20 monthly thread generations
+2. **Payment Trigger**: Users hit limits and see upgrade prompt
+3. **Stripe Checkout**: $4.99 for 30 days premium access
+4. **Webhook Processing**: Secure HMAC-SHA256 signature verification
+5. **Premium Grant**: Automatic unlimited access for 30 days
+6. **Renewal**: Users can purchase additional 30-day periods
+
+### Payment Infrastructure
+- **Stripe Integration**: Complete webhook-based processing
+- **Security**: HMAC signature verification for all webhooks
+- **Error Handling**: Comprehensive payment processing error logging
+- **Environment Config**: Separate dev/prod Stripe API keys
+- **Database**: Redis-based premium access tracking with expiration
+
+### Key Metrics Tracking
+- Daily/monthly usage per IP address
+- Premium conversion rates
+- Payment success/failure rates
+- API cost monitoring (OpenAI usage)
+- User engagement patterns
+
+## Revenue Roadmap
+
+### Current Tier (Phase 1 - Validated)
+- **Free**: 5 daily / 20 monthly generations
+- **Premium**: $4.99 for 30 days unlimited access
+- **Target**: $1,000 MRR by end of month
+
+### Phase 2: Tiered Pricing (Next 30 days)
+- **Starter**: $9.99/month - 100 threads/month + basic analytics
+- **Pro**: $19.99/month - Unlimited threads + advanced features
+- **Team**: $49.99/month - Team accounts + collaboration tools
+
+### Phase 3: Enterprise Features (60-90 days)
+- **API Access**: $99/month - Direct API access for developers
+- **White Label**: $299/month - Custom branding and domain
+- **Enterprise**: Custom pricing - Volume licensing and support
+
+### Revenue Targets
+- **Month 1**: $1K MRR (200 premium users @ $4.99)
+- **Month 3**: $5K MRR (mix of monthly subscriptions)
+- **Month 6**: $15K MRR (including enterprise customers)
+- **Year 1**: $50K MRR (established SaaS business)
+
+## Next Development Phase
+
+### Phase 2: User Accounts & Data Persistence (Current Priority)
+1. **User Authentication**: JWT-based login system
+2. **Thread History**: Save and manage generated threads
+3. **Usage Analytics**: Personal dashboard with usage stats
+4. **Account Management**: Subscription management and billing history
+5. **Social Features**: Share threads, favorite templates
+
+### Phase 3: Analytics & Premium Features (30-60 days)
+1. **Advanced Analytics**: Thread performance tracking
+2. **Template System**: Pre-built thread templates
+3. **Scheduled Publishing**: Direct posting to Twitter/X
+4. **Team Collaboration**: Shared workspaces and approval workflows
+5. **API Access**: Developer API for integrations
+
+### Phase 4: Enterprise & Scale (60-90 days)
+1. **White Labeling**: Custom branding options
+2. **Advanced Integrations**: CRM, marketing tools, etc.
+3. **Bulk Processing**: Handle multiple URLs simultaneously
+4. **Advanced AI**: Custom models and fine-tuning
+5. **Enterprise Security**: SSO, audit logs, compliance
+
+### Technical Debt & Infrastructure
+1. **Database Migration**: Move from Redis to PostgreSQL
+2. **Caching Layer**: Implement proper caching strategy
+3. **Monitoring**: Set up comprehensive logging and alerting
+4. **Performance**: Optimize for scale (1000+ concurrent users)
+5. **Testing**: Expand test coverage to 98%+
+
 ## Technology Stack (Expert-Verified Decision)
 
 Final technology decisions after expert review:
@@ -47,15 +126,17 @@ Final technology decisions after expert review:
   - Backend: Railway (excellent Python support)
   - Protection: Cloudflare free tier (DDoS + rate limiting)
 
-## Core Features to Implement
+## Core Features (Completed)
 
-1. URL/content input interface (critical - 80% of users will paste URLs)
-2. AI-powered content summarization and tweet splitting (280 chars each)
-3. Inline editing functionality for generated tweets (users need to refine AI output)
-4. Copy individual tweets or entire thread functionality
-5. Email capture after first use (essential for future monetization)
-6. IP-based rate limiting (prevent abuse and API cost explosion)
-7. Phased monetization: Week 1 (free), Week 2 (limits), Week 3 (Stripe payment links)
+✅ **URL/Content Input**: Supports 15+ domains plus direct text input
+✅ **AI Thread Generation**: GPT-3.5-turbo with intelligent 280-char splitting  
+✅ **Inline Editing**: Full WYSIWYG editing of generated tweets
+✅ **Copy Functionality**: Individual tweets and entire thread copying
+✅ **Email Capture**: Working system with user engagement tracking
+✅ **Rate Limiting**: Redis-based IP tracking (5 daily/20 monthly free)
+✅ **Monetization**: Active Stripe payments ($4.99 for 30-day premium)
+✅ **Premium Access**: Automatic unlimited access after payment
+✅ **Usage Analytics**: Real-time tracking of user consumption
 
 ## Development Commands
 
@@ -129,9 +210,13 @@ railway up
    ```
 
 2. **API Endpoints**:
-   - `POST /api/generate` - Convert content/URL to thread
-   - `POST /api/capture-email` - Store user email
-   - Rate limiting via IP address (no auth needed)
+   - `POST /api/generate` - Convert content/URL to thread (with rate limiting)
+   - `POST /api/capture-email` - Store user email for updates
+   - `POST /api/stripe/webhook` - Process Stripe payment webhooks
+   - `GET /api/premium-status` - Check premium access status
+   - `GET /api/usage-stats` - Get current usage statistics
+   - `GET /health` - Health check with detailed diagnostics
+   - `GET /readiness` - Kubernetes readiness probe
 
 3. **Key Implementation Details**:
    - Use BeautifulSoup for URL content extraction
