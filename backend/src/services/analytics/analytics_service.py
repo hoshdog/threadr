@@ -635,7 +635,7 @@ class AnalyticsService:
             category="content",
             priority="medium",
             title=f"{best_length[0].capitalize()}-form threads perform best",
-            description=f"Your {best_length[0]} threads ({"1-5" if best_length[0] == "short" else "6-10" if best_length[0] == "medium" else "11+"} tweets) achieve {best_length[1]:.1f}% average engagement rate",
+            description=f"Your {best_length[0]} threads ({'1-5' if best_length[0] == 'short' else '6-10' if best_length[0] == 'medium' else '11+'} tweets) achieve {best_length[1]:.1f}% average engagement rate",
             action_items=[
                 f"Focus on creating {best_length[0]}-form threads",
                 "Test varying lengths within the optimal range",
