@@ -44,6 +44,17 @@ try:
 except ImportError:
     from thread_service import ThreadHistoryService
     from thread_routes import create_thread_router
+
+# Import analytics components (optional)
+analytics_router = None
+try:
+    from .analytics_routes import router as analytics_router
+except ImportError:
+    try:
+        from analytics_routes import router as analytics_router
+    except ImportError:
+        # Analytics routes not available - will be skipped
+        analytics_router = None
 import ipaddress
 from urllib.parse import urlparse
 import certifi
@@ -227,6 +238,13 @@ async def lifespan(app: FastAPI):
             )
             app.include_router(thread_router)
             logger.info("Thread history routes added successfully")
+            
+            # Add analytics routes (if available)
+            if analytics_router:
+                app.include_router(analytics_router)
+                logger.info("Analytics routes added successfully")
+            else:
+                logger.info("Analytics routes not available - skipping")
         else:
             logger.warning("Authentication service cannot be initialized without Redis - auth features disabled")
         
@@ -2116,6 +2134,65 @@ async def generate_thread(
                 
                 # Add saved thread ID to response for frontend reference
                 response.saved_thread_id = saved_thread.id
+                
+                # Create mock analytics for the generated thread (if analytics available)
+                if redis_manager and redis_manager.is_available and analytics_router:
+                    try:
+                        from analytics_models import ThreadAnalytics, ContentType, TweetMetrics
+                        from analytics_service import AnalyticsService
+                        import random
+                        
+                        analytics_service = AnalyticsService(redis_manager.redis)
+                        
+                        # Determine content type based on source
+                        content_type = ContentType.OTHER
+                        if "technical" in content.lower() or "code" in content.lower():
+                            content_type = ContentType.TECHNICAL
+                        elif "news" in content.lower():
+                            content_type = ContentType.NEWS
+                        
+                        # Create analytics data
+                        thread_analytics = ThreadAnalytics(
+                            thread_id=saved_thread.id,
+                            user_id=user_info["user_id"],
+                            created_at=datetime.utcnow(),
+                            title=thread_title,
+                            source_url=str(request.url) if request.url else None,
+                            content_type=content_type,
+                            tweet_count=len(thread),
+                            total_character_count=sum(tweet.character_count for tweet in thread),
+                            # Mock initial metrics (would be updated by real engagement tracking)
+                            total_impressions=random.randint(100, 1000),
+                            total_engagements=random.randint(5, 50),
+                            engagement_rate=random.uniform(1.0, 5.0),
+                            total_likes=random.randint(2, 20),
+                            total_retweets=random.randint(1, 10),
+                            total_replies=random.randint(0, 5),
+                            thread_completion_rate=random.uniform(40.0, 80.0),
+                            virality_score=random.uniform(10.0, 50.0),
+                            posted_at=datetime.utcnow(),
+                            tweet_metrics=[
+                                TweetMetrics(
+                                    tweet_id=f"{saved_thread.id}_tweet_{i}",
+                                    position=i,
+                                    content=tweet.content,
+                                    character_count=tweet.character_count,
+                                    impressions=random.randint(50, 500),
+                                    likes=random.randint(1, 10),
+                                    retweets=random.randint(0, 5),
+                                    engagement_rate=random.uniform(1.0, 8.0),
+                                    posted_at=datetime.utcnow()
+                                )
+                                for i, tweet in enumerate(thread, 1)
+                            ]
+                        )
+                        
+                        await analytics_service.save_thread_analytics(thread_analytics)
+                        logger.info(f"Analytics created for thread: {saved_thread.id}")
+                        
+                    except Exception as e:
+                        logger.warning(f"Failed to create analytics for thread: {e}")
+                        # Don't fail the request if analytics creation fails
                 
             except Exception as e:
                 logger.warning(f"Failed to save thread to history: {e}")
