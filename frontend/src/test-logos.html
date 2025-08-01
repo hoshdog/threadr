@@ -37,7 +37,7 @@
     
     <div class="logo-test">
         <h3>threadrLogo_White.png (Main Logo)</h3>
-        <img src="./logos/threadrLogo_White.png" alt="Threadr Logo White" 
+        <img src="/logos/threadrLogo_White.png" alt="Threadr Logo White" 
              onload="this.nextElementSibling.className='success'; this.nextElementSibling.textContent='✓ Loaded successfully'" 
              onerror="this.nextElementSibling.className='error'; this.nextElementSibling.textContent='✗ Failed to load'">
         <div>Loading...</div>
@@ -45,7 +45,7 @@
     
     <div class="logo-test">
         <h3>threadrLogo_Black.png</h3>
-        <img src="./logos/threadrLogo_Black.png" alt="Threadr Logo Black" 
+        <img src="/logos/threadrLogo_Black.png" alt="Threadr Logo Black" 
              onload="this.nextElementSibling.className='success'; this.nextElementSibling.textContent='✓ Loaded successfully'" 
              onerror="this.nextElementSibling.className='error'; this.nextElementSibling.textContent='✗ Failed to load'">
         <div>Loading...</div>
@@ -53,7 +53,7 @@
     
     <div class="logo-test">
         <h3>threadrBanner_White.png (Banner Logo)</h3>
-        <img src="./logos/threadrBanner_White.png" alt="Threadr Banner White" 
+        <img src="/logos/threadrBanner_White.png" alt="Threadr Banner White" 
              onload="this.nextElementSibling.className='success'; this.nextElementSibling.textContent='✓ Loaded successfully'" 
              onerror="this.nextElementSibling.className='error'; this.nextElementSibling.textContent='✗ Failed to load'">
         <div>Loading...</div>
@@ -61,7 +61,7 @@
     
     <div class="logo-test">
         <h3>threadrBanner_Black.png</h3>
-        <img src="./logos/threadrBanner_Black.png" alt="Threadr Banner Black" 
+        <img src="/logos/threadrBanner_Black.png" alt="Threadr Banner Black" 
              onload="this.nextElementSibling.className='success'; this.nextElementSibling.textContent='✓ Loaded successfully'" 
              onerror="this.nextElementSibling.className='error'; this.nextElementSibling.textContent='✗ Failed to load'">
         <div>Loading...</div>
@@ -77,7 +77,7 @@
     <script>
         document.getElementById('currentUrl').textContent = window.location.href;
         document.getElementById('baseUrl').textContent = window.location.origin + window.location.pathname;
-        document.getElementById('logoPath').textContent = new URL('./logos/threadrLogo_White.png', window.location.href).href;
+        document.getElementById('logoPath').textContent = new URL('/logos/threadrLogo_White.png', window.location.href).href;
     </script>
 </body>
 </html>

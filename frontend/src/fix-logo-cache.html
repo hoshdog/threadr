@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logo Cache Fix - Threadr</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #000;
+            color: #fff;
+            text-align: center;
+        }
+        .logo-test {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        img {
+            max-width: 200px;
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px;
+        }
+        .success { color: #51cf66; }
+        .error { color: #ff6b6b; }
+        button {
+            background: #1d4ed8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Threadr Logo Cache Fix</h1>
+    <p>This page tests logo loading with cache-busting and provides manual cache clearing.</p>
+    
+    <div class="logo-test">
+        <h3>Current Logo (with cache busting)</h3>
+        <img id="cacheBustLogo" alt="Threadr Logo" 
+             onload="document.getElementById('cacheBustResult').className='success'; document.getElementById('cacheBustResult').textContent='✓ Cache-bust version loaded successfully'" 
+             onerror="document.getElementById('cacheBustResult').className='error'; document.getElementById('cacheBustResult').textContent='✗ Cache-bust version failed to load'">
+        <div id="cacheBustResult">Loading...</div>
+    </div>
+    
+    <div class="logo-test">
+        <h3>Regular Logo (no cache busting)</h3>
+        <img src="/logos/threadrLogo_White.png" alt="Threadr Logo" 
+             onload="document.getElementById('regularResult').className='success'; document.getElementById('regularResult').textContent='✓ Regular version loaded successfully'" 
+             onerror="document.getElementById('regularResult').className='error'; document.getElementById('regularResult').textContent='✗ Regular version failed to load'">
+        <div id="regularResult">Loading...</div>
+    </div>
+    
+    <div class="logo-test">
+        <button onclick="clearCacheAndReload()">Clear Cache & Reload</button>
+        <button onclick="testWithTimestamp()">Test with New Timestamp</button>
+        <button onclick="window.location.href='/'">Go to Main Site</button>
+    </div>
+    
+    <div class="logo-test">
+        <h3>Debug Information</h3>
+        <p><strong>Current URL:</strong> <span id="currentUrl"></span></p>
+        <p><strong>Logo URL (cache-bust):</strong> <span id="cacheBustUrl"></span></p>
+        <p><strong>Logo URL (regular):</strong> <span id="regularUrl"></span></p>
+        <p><strong>Timestamp:</strong> <span id="timestamp"></span></p>
+    </div>
+    
+    <script>
+        function updateLogos() {
+            const timestamp = Date.now();
+            const cacheBustUrl = `/logos/threadrLogo_White.png?v=${timestamp}`;
+            
+            document.getElementById('cacheBustLogo').src = cacheBustUrl;
+            document.getElementById('currentUrl').textContent = window.location.href;
+            document.getElementById('cacheBustUrl').textContent = cacheBustUrl;
+            document.getElementById('regularUrl').textContent = '/logos/threadrLogo_White.png';
+            document.getElementById('timestamp').textContent = new Date(timestamp).toISOString();
+        }
+        
+        function clearCacheAndReload() {
+            // Force cache clear by using hard reload
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    names.forEach(function(name) {
+                        caches.delete(name);
+                    });
+                });
+            }
+            
+            // Clear localStorage
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // Hard reload
+            window.location.reload(true);
+        }
+        
+        function testWithTimestamp() {
+            updateLogos();
+        }
+        
+        // Initialize on load
+        updateLogos();
+    </script>
+</body>
+</html>
