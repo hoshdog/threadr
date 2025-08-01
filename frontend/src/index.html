@@ -1552,12 +1552,6 @@
                             <span class="ml-2 text-sm text-x-gray">(<span x-text="getPopularTemplates().length"></span>)</span>
                         </h3>
                         
-                        <!-- Debug Info (Remove after fixing) -->
-                        <div x-show="true" class="text-xs text-x-gray mb-4 p-2 bg-x-dark/50 rounded">
-                            Debug: Total templates: <span x-text="templates.length"></span> | 
-                            Popular: <span x-text="getPopularTemplates().length"></span> | 
-                            User premium: <span x-text="user?.premium || 'false'"></span>
-                        </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <template x-for="template in getPopularTemplates()" :key="template.id">
                                 <div class="tweet-card rounded-2xl p-6 hover:border-x-gray/50 transition-all duration-200 cursor-pointer"
@@ -3187,10 +3181,6 @@
 
                 // Template functions
                 getPopularTemplates() {
-                    console.log('getPopularTemplates called', { 
-                        templatesLength: this.templates.length, 
-                        userPremium: this.user?.premium 
-                    });
                     
                     const filtered = this.templates
                         .filter(template => {
@@ -3205,7 +3195,6 @@
                         .sort((a, b) => b.popularity - a.popularity)
                         .slice(0, 6);
                     
-                    console.log('Popular templates filtered:', filtered.length);
                     
                     // Fallback: if no popular templates, show first 6 non-pro templates
                     if (filtered.length === 0) {
@@ -3213,7 +3202,6 @@
                             .filter(template => !template.isPro)
                             .sort((a, b) => b.popularity - a.popularity)
                             .slice(0, 6);
-                        console.log('Using fallback templates:', fallback.length);
                         return fallback;
                     }
                     
@@ -3221,12 +3209,6 @@
                 },
 
                 getFilteredTemplates() {
-                    console.log('getFilteredTemplates called', { 
-                        templatesLength: this.templates.length,
-                        selectedCategory: this.selectedCategory,
-                        templateSearch: this.templateSearch,
-                        userPremium: this.user?.premium 
-                    });
                     
                     let filtered = this.templates;
 
@@ -3239,12 +3221,10 @@
                         return true;
                     });
 
-                    console.log('After Pro filter:', filtered.length);
 
                     // Apply category filter
                     if (this.selectedCategory !== 'all') {
                         filtered = filtered.filter(template => template.category === this.selectedCategory);
-                        console.log('After category filter:', filtered.length);
                     }
 
                     // Apply search filter
@@ -3255,11 +3235,9 @@
                             template.description.toLowerCase().includes(searchTerm) ||
                             template.category.toLowerCase().includes(searchTerm)
                         );
-                        console.log('After search filter:', filtered.length);
                     }
 
                     const result = filtered.sort((a, b) => b.popularity - a.popularity);
-                    console.log('Final filtered templates:', result.length);
                     return result;
                 },
 
