@@ -2093,6 +2093,7 @@
                 templateSearch: '',
                 selectedCategory: 'all',
                 showTemplateModal: false,
+                showUpgradeModal: false,
                 templateFormData: {},
                 
                 // Initialize authentication on component load
@@ -2110,20 +2111,8 @@
                     // Ensure we start on the generate page
                     this.currentPage = 'generate';
                     
-                    // DEBUG: Log to ensure initialization is working
-                    console.log('App initialized - selectedTemplate:', this.selectedTemplate, 'showTemplateModal:', this.showTemplateModal);
-                    
-                    // EMERGENCY: Add global escape function for debugging
-                    window.forceCloseModal = () => {
-                        console.log('EMERGENCY: Force closing all modals');
-                        this.showTemplateModal = false;
-                        this.selectedTemplate = null;
-                        this.showPaymentModal = false;
-                        this.showUpgradeModal = false;
-                        this.showComparisonModal = false;
-                        this.showThreadModal = false;
-                        this.templateFormData = {};
-                    };
+                    // Log successful initialization
+                    console.log('Threadr app initialized successfully');
                 },
                 
                 // Check if user is authenticated
@@ -2607,6 +2596,18 @@
                     this.showPaymentModal = false;
                     this.paymentData = null;
                     this.paymentConfig = null;
+                },
+
+                async openPaymentModal() {
+                    // Close template modal first
+                    this.closeTemplateModal();
+                    
+                    // Open payment modal with default configuration
+                    await this.showPaymentRequired({
+                        limit: 5,
+                        period: 'daily',
+                        upgrade_url: '#'
+                    });
                 },
 
                 updateTweet(index, event) {
@@ -3149,10 +3150,6 @@
                 },
 
                 closeTemplateModal() {
-                    console.log('Closing template modal - Current state:', {
-                        showTemplateModal: this.showTemplateModal,
-                        selectedTemplate: this.selectedTemplate?.name || 'none'
-                    });
                     this.showTemplateModal = false;
                     this.selectedTemplate = null;
                     this.templateFormData = {};
