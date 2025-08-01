@@ -1634,7 +1634,7 @@
             <!-- Modal Content -->
             <div class="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
                 <!-- Pro Gate -->
-                <div x-show="selectedTemplate?.isPro && !user?.premium" class="text-center py-8">
+                <div x-show="selectedTemplate?.isPro && (!user || !user.premium)" class="text-center py-8">
                     <div class="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                         <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
@@ -1653,7 +1653,7 @@
                 </div>
 
                 <!-- Template Form -->
-                <div x-show="!selectedTemplate?.isPro || user?.premium">
+                <div x-show="!selectedTemplate?.isPro || (user && user.premium)">
                     <div class="mb-6">
                         <h4 class="text-sm font-medium text-white mb-4">Fill in the details below to customize your thread:</h4>
                         
@@ -2062,15 +2062,32 @@
                 // Initialize authentication on component load
                 init() {
                     this.loadUserFromStorage();
-                    // Ensure no modals are open on startup
+                    // CRITICAL: Ensure no modals are open on startup and no template is selected
                     this.showTemplateModal = false;
                     this.selectedTemplate = null;
                     this.showPaymentModal = false;
                     this.showUpgradeModal = false;
                     this.showComparisonModal = false;
                     this.showThreadModal = false;
+                    // Reset any template form data
+                    this.templateFormData = {};
                     // Ensure we start on the generate page
                     this.currentPage = 'generate';
+                    
+                    // DEBUG: Log to ensure initialization is working
+                    console.log('App initialized - selectedTemplate:', this.selectedTemplate, 'showTemplateModal:', this.showTemplateModal);
+                    
+                    // EMERGENCY: Add global escape function for debugging
+                    window.forceCloseModal = () => {
+                        console.log('EMERGENCY: Force closing all modals');
+                        this.showTemplateModal = false;
+                        this.selectedTemplate = null;
+                        this.showPaymentModal = false;
+                        this.showUpgradeModal = false;
+                        this.showComparisonModal = false;
+                        this.showThreadModal = false;
+                        this.templateFormData = {};
+                    };
                 },
                 
                 // Check if user is authenticated
@@ -3035,8 +3052,9 @@
                 getPopularTemplates() {
                     return this.templates
                         .filter(template => {
-                            // Only show Pro templates to premium users
-                            if (template.isPro && !this.user?.premium) {
+                            // CRITICAL: Always exclude Pro templates for non-premium users
+                            // Use strict checking to handle undefined/null user states
+                            if (template.isPro && (!this.user || !this.user.premium)) {
                                 return false;
                             }
                             return template.popularity >= 85;
@@ -3048,9 +3066,9 @@
                 getFilteredTemplates() {
                     let filtered = this.templates;
 
-                    // Filter out Pro templates for non-premium users
+                    // CRITICAL: Filter out Pro templates for non-premium users with strict checking
                     filtered = filtered.filter(template => {
-                        if (template.isPro && !this.user?.premium) {
+                        if (template.isPro && (!this.user || !this.user.premium)) {
                             return false;
                         }
                         return true;
@@ -3075,6 +3093,16 @@
                 },
 
                 selectTemplate(template) {
+                    console.log('Selecting template:', template.name, 'isPro:', template.isPro, 'user premium:', this.user?.premium);
+                    
+                    // CRITICAL: Block selection of Pro templates for non-premium users
+                    if (template.isPro && !this.user?.premium) {
+                        console.warn('Attempted to select Pro template without premium access - blocking');
+                        // Show upgrade modal instead
+                        this.openUpgradeModal();
+                        return;
+                    }
+                    
                     this.selectedTemplate = template;
                     this.templateFormData = {};
                     // Initialize form data with empty values
@@ -3085,6 +3113,10 @@
                 },
 
                 closeTemplateModal() {
+                    console.log('Closing template modal - Current state:', {
+                        showTemplateModal: this.showTemplateModal,
+                        selectedTemplate: this.selectedTemplate?.name || 'none'
+                    });
                     this.showTemplateModal = false;
                     this.selectedTemplate = null;
                     this.templateFormData = {};
