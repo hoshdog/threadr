@@ -1486,17 +1486,14 @@
                         <h2 class="text-2xl font-bold text-white mb-2">Thread Templates</h2>
                         <p class="text-x-gray">Choose from proven thread formats to get started quickly</p>
                         
-                        <!-- Enhanced Debug Info -->
-                        <div class="mt-4 p-3 bg-red-900/30 border border-red-500/50 rounded text-sm text-red-300">
+                        <!-- Debug Info (can be removed once stable) -->
+                        <div x-show="false" class="mt-4 p-3 bg-red-900/30 border border-red-500/50 rounded text-sm text-red-300">
                             <strong>Debug:</strong> Templates loaded: <span x-text="templatesLoaded"></span> | 
+                            Loading: <span x-text="templatesLoading"></span> | 
+                            Error: <span x-text="templatesError"></span> | 
                             Array length: <span x-text="templates?.length || 0"></span> | 
-                            Refresh key: <span x-text="templatesRefreshKey"></span> | 
                             Popular count: <span x-text="getPopularTemplates()?.length || 0"></span> | 
-                            Filtered count: <span x-text="getFilteredTemplates()?.length || 0"></span> | 
-                            User premium: <span x-text="user?.premium || 'false'"></span>
-                            <br>
-                            <button @click="loadTemplates()" class="mt-2 px-3 py-1 bg-blue-600 text-white rounded text-xs">Force Refresh</button>
-                            <button @click="console.log('Templates array:', templates)" class="mt-2 ml-2 px-3 py-1 bg-green-600 text-white rounded text-xs">Log Templates</button>
+                            Filtered count: <span x-text="getFilteredTemplates()?.length || 0"></span>
                         </div>
                     </div>
 
@@ -1533,8 +1530,31 @@
                         </div>
                     </div>
 
+                    <!-- Loading State -->
+                    <div x-show="templatesLoading" class="tweet-card rounded-2xl p-12 text-center">
+                        <div class="mx-auto mb-4 w-8 h-8 logo-loading">
+                            <img src="/logos/threadrLogo_Black.png" alt="Loading..." class="w-full h-full"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-md flex items-center justify-center text-sm font-bold">T</div>
+                        </div>
+                        <p class="text-x-gray">Loading templates...</p>
+                    </div>
+
+                    <!-- Error State -->
+                    <div x-show="templatesError && !templatesLoading" class="tweet-card rounded-2xl p-6 mb-6">
+                        <div class="flex items-center space-x-2 text-red-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p x-text="templatesError"></p>
+                        </div>
+                        <button @click="loadTemplates()" class="mt-3 px-4 py-2 bg-x-blue text-white rounded-lg hover:bg-x-blue/80 transition-colors">
+                            Try Again
+                        </button>
+                    </div>
+
                     <!-- Popular Templates Section -->
-                    <div class="mb-8">
+                    <div x-show="!templatesLoading && !templatesError" class="mb-8">
                         <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
                             <svg class="w-5 h-5 text-x-blue mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
@@ -1591,7 +1611,7 @@
                     </div>
 
                     <!-- All Templates Section -->
-                    <div>
+                    <div x-show="!templatesLoading && !templatesError">
                         <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
                             <svg class="w-5 h-5 text-x-blue mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 00-2 2v2m0 0V9a2 2 0 012-2h14a2 2 0 012 2v2M7 7V5a2 2 0 012-2h6a2 2 0 012 2v2"/>
@@ -1837,6 +1857,8 @@
                 
                 // Templates state
                 templatesLoaded: false,
+                templatesLoading: false,
+                templatesError: '',
                 templatesRefreshKey: 0, // Force reactivity key
                 templates: [
                     {
@@ -2152,12 +2174,16 @@
                     // Load user data AFTER clearing state (will skip token verification during init)
                     this.loadUserFromStorage();
                     
-                    // Initialize templates - ensure they exist before calling loadTemplates
+                    // Initialize templates asynchronously - ensure they exist before calling loadTemplates
                     console.log('Init: templates array length before loadTemplates():', this.templates?.length);
                     if (!this.templates || this.templates.length === 0) {
                         console.error('CRITICAL: Templates array is empty during init! This indicates a data declaration issue.');
                     }
-                    this.loadTemplates();
+                    
+                    // Load templates asynchronously to avoid blocking initialization
+                    this.loadTemplates().catch(error => {
+                        console.error('Failed to load templates during init:', error);
+                    });
                     
                     // RACE CONDITION FIX: Delayed initialization completion with token verification
                     setTimeout(async () => {
@@ -2792,7 +2818,9 @@
                     } else if (page === 'analytics') {
                         this.loadAnalytics();
                     } else if (page === 'templates') {
-                        this.loadTemplates();
+                        this.loadTemplates().catch(error => {
+                            console.error('Failed to load templates on page switch:', error);
+                        });
                     }
                 },
 
@@ -3220,43 +3248,45 @@
                 },
 
                 // Template functions
-                loadTemplates() {
-                    console.log('loadTemplates called - forcing templates refresh');
+                async loadTemplates() {
+                    console.log('loadTemplates called - starting async template loading');
                     
-                    // SAFETY CHECK: Ensure templates array exists with expected structure
-                    if (!this.templates || !Array.isArray(this.templates) || this.templates.length === 0) {
-                        console.error('Templates array is missing or empty during loadTemplates!');
-                        // This should never happen since templates are declared in data, but just in case
-                        console.error('Attempting to recover template data...');
-                    }
+                    this.templatesLoading = true;
+                    this.templatesError = '';
                     
-                    // Force templates to be marked as loaded and trigger reactivity
-                    this.templatesLoaded = true;
-                    this.templatesRefreshKey++; // Increment to force reactivity
-                    
-                    // Use $nextTick to ensure DOM updates after state changes
-                    this.$nextTick(() => {
-                        console.log('Templates $nextTick executed - templates.length:', this.templates?.length);
-                        console.log('Popular templates count:', this.getPopularTemplates()?.length);
-                        console.log('Filtered templates count:', this.getFilteredTemplates()?.length);
+                    try {
+                        // Use setTimeout to break synchronous initialization chain
+                        await new Promise(resolve => setTimeout(resolve, 10));
                         
-                        // Force another reactivity update if needed
-                        if (this.getPopularTemplates()?.length === 0 || this.getFilteredTemplates()?.length === 0) {
-                            console.warn('Templates still showing 0 after load, forcing another refresh...');
-                            this.templatesRefreshKey++;
+                        // SAFETY CHECK: Ensure templates array exists with expected structure
+                        if (!this.templates || !Array.isArray(this.templates) || this.templates.length === 0) {
+                            console.error('Templates array is missing or empty during loadTemplates!');
+                            throw new Error('Templates data not properly initialized');
                         }
-                    });
+                        
+                        // Mark templates as loaded and trigger reactivity
+                        this.templatesLoaded = true;
+                        this.templatesRefreshKey++; // Increment to force reactivity
+                        
+                        console.log('Templates loaded successfully - count:', this.templates.length);
+                        
+                    } catch (error) {
+                        console.error('Failed to load templates:', error);
+                        this.templatesError = error.message || 'Failed to load templates';
+                        this.templatesLoaded = false;
+                    } finally {
+                        this.templatesLoading = false;
+                    }
                 },
 
                 getPopularTemplates() {
+                    // Don't return anything if templates aren't loaded yet
+                    if (!this.templatesLoaded || this.templatesLoading) {
+                        return [];
+                    }
+                    
                     // Force reactivity dependency on refresh key
                     this.templatesRefreshKey; // Access key to create dependency
-                    
-                    console.log('getPopularTemplates called - templates.length:', this.templates?.length);
-                    console.log('Templates array exists:', !!this.templates);
-                    console.log('Templates is array:', Array.isArray(this.templates));
-                    console.log('Templates loaded flag:', this.templatesLoaded);
-                    console.log('First template:', this.templates?.[0]?.name);
                     
                     // DEFENSIVE: Check if templates exist, but be less aggressive about empty checks
                     if (!this.templates || !Array.isArray(this.templates)) {
@@ -3302,14 +3332,13 @@
                 },
 
                 getFilteredTemplates() {
+                    // Don't return anything if templates aren't loaded yet
+                    if (!this.templatesLoaded || this.templatesLoading) {
+                        return [];
+                    }
+                    
                     // Force reactivity dependency on refresh key
                     this.templatesRefreshKey; // Access key to create dependency
-                    
-                    console.log('getFilteredTemplates called - templates.length:', this.templates?.length);
-                    console.log('Templates array exists:', !!this.templates);
-                    console.log('Templates is array:', Array.isArray(this.templates));
-                    console.log('Templates loaded flag:', this.templatesLoaded);
-                    console.log('First template:', this.templates?.[0]?.name);
                     
                     // DEFENSIVE: Check if templates exist, but be less aggressive about empty checks
                     if (!this.templates || !Array.isArray(this.templates)) {
