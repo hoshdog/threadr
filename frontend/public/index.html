@@ -1530,21 +1530,6 @@
                             <span class="ml-2 text-sm text-x-gray">(<span x-text="getPopularTemplates().length"></span>)</span>
                         </h3>
                         
-                        <!-- Debug info for templates -->
-                        <div class="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-4">
-                            <p class="text-blue-400 text-sm">
-                                Debug Info - Total templates: <span x-text="templates.length"></span>, 
-                                Popular templates: <span x-text="getPopularTemplates().length"></span>,
-                                User premium: <span x-text="user?.premium || 'false'"></span>
-                            </p>
-                        </div>
-                        <div x-show="getPopularTemplates().length === 0" class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-4">
-                            <p class="text-yellow-400 text-sm">
-                                Debug: No popular templates found. 
-                                Total templates: <span x-text="templates.length"></span>, 
-                                User premium: <span x-text="user?.premium || 'false'"></span>
-                            </p>
-                        </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <template x-for="template in getPopularTemplates()" :key="template.id">
@@ -1599,23 +1584,6 @@
                             <span class="ml-2 text-sm text-x-gray">(<span x-text="getFilteredTemplates().length"></span>)</span>
                         </h3>
                         
-                        <!-- Debug info for all templates -->
-                        <div class="bg-green-500/10 border border-green-500/20 rounded-lg p-4 mb-4">
-                            <p class="text-green-400 text-sm">
-                                Debug Info - Total templates: <span x-text="templates.length"></span>, 
-                                Filtered templates: <span x-text="getFilteredTemplates().length"></span>,
-                                Category: <span x-text="selectedCategory"></span>,
-                                Search: '<span x-text="templateSearch"></span>'
-                            </p>
-                        </div>
-                        <div x-show="getFilteredTemplates().length === 0" class="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-4">
-                            <p class="text-red-400 text-sm">
-                                Debug: No filtered templates found. 
-                                Total templates: <span x-text="templates.length"></span>, 
-                                Selected category: <span x-text="selectedCategory"></span>,
-                                Search term: '<span x-text="templateSearch"></span>'
-                            </p>
-                        </div>
                         
                         <!-- Templates Grid -->
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
