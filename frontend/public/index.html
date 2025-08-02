@@ -3215,27 +3215,35 @@
 
                 // Template functions
                 getPopularTemplates() {
+                    console.log('getPopularTemplates called, templates count:', this.templates.length);
+                    console.log('User state:', this.user);
+                    
                     const filtered = this.templates
                         .filter(template => {
                             // CRITICAL FIX: Always exclude Pro templates for non-premium users
                             // Use strict checking to handle undefined/null user states
                             if (template.isPro) {
                                 // Only show Pro templates if user exists AND has premium
+                                console.log('Pro template:', template.name, 'user premium:', this.user?.premium);
                                 return this.user && this.user.premium === true;
                             }
                             // For non-Pro templates, show if popularity >= 75
+                            console.log('Non-pro template:', template.name, 'popularity:', template.popularity);
                             return template.popularity >= 75;
                         })
                         .sort((a, b) => b.popularity - a.popularity)
                         .slice(0, 6);
                     
+                    console.log('Filtered popular templates:', filtered.length);
                     
                     // Fallback: if no popular templates, show first 6 non-pro templates
                     if (filtered.length === 0) {
+                        console.log('No popular templates found, using fallback');
                         const fallback = this.templates
                             .filter(template => !template.isPro)
                             .sort((a, b) => b.popularity - a.popularity)
                             .slice(0, 6);
+                        console.log('Fallback templates:', fallback.length);
                         return fallback;
                     }
                     
@@ -3243,12 +3251,16 @@
                 },
 
                 getFilteredTemplates() {
+                    console.log('getFilteredTemplates called, templates count:', this.templates?.length);
+                    
                     // Handle initialization race condition - return empty array if templates not loaded
                     if (!this.templates || this.templates.length === 0) {
+                        console.log('Templates not loaded yet, returning empty array');
                         return [];
                     }
                     
                     let filtered = [...this.templates]; // Create copy to avoid mutation
+                    console.log('Starting with templates:', filtered.length);
 
                     // RACE CONDITION FIX: Always show non-Pro templates, filter Pro templates based on user status
                     filtered = filtered.filter(template => {
@@ -3256,9 +3268,11 @@
                             // Only show Pro templates if user definitively has premium access
                             // Don't hide during initialization - just check premium status
                             const hasAccess = this.user && this.user.premium === true;
+                            console.log('Pro template:', template.name, 'has access:', hasAccess);
                             return hasAccess;
                         }
                         // Always show non-Pro templates, even during initialization
+                        console.log('Non-pro template:', template.name, 'showing');
                         return true;
                     });
 
@@ -3270,14 +3284,18 @@
                     // Apply search filter
                     if (this.templateSearch.trim()) {
                         const searchTerm = this.templateSearch.toLowerCase();
+                        console.log('Applying search filter:', searchTerm);
                         filtered = filtered.filter(template => 
                             template.name.toLowerCase().includes(searchTerm) ||
                             template.description.toLowerCase().includes(searchTerm) ||
                             template.category.toLowerCase().includes(searchTerm)
                         );
+                        console.log('After search filter:', filtered.length);
                     }
 
-                    return filtered.sort((a, b) => b.popularity - a.popularity);
+                    const result = filtered.sort((a, b) => b.popularity - a.popularity);
+                    console.log('Final filtered templates:', result.length);
+                    return result;
                 },
 
                 selectTemplate(template) {
