@@ -1532,6 +1532,9 @@
                         
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div x-show="getPopularTemplates().length === 0" class="col-span-full text-center text-red-500 p-4">
+                                DEBUG: No popular templates found
+                            </div>
                             <template x-for="template in getPopularTemplates()" :key="template.id">
                                 <div class="tweet-card rounded-2xl p-6 hover:border-x-gray/50 transition-all duration-200 cursor-pointer"
                                      @click="selectTemplate(template)">
@@ -1587,6 +1590,9 @@
                         
                         <!-- Templates Grid -->
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div x-show="getFilteredTemplates().length === 0" class="col-span-full text-center text-red-500 p-4">
+                                DEBUG: No filtered templates found
+                            </div>
                             <template x-for="template in getFilteredTemplates()" :key="template.id">
                                 <div class="tweet-card rounded-2xl p-6 hover:border-x-gray/50 transition-all duration-200 cursor-pointer"
                                      @click="selectTemplate(template)">
@@ -3198,8 +3204,10 @@
 
                 // Template functions
                 getPopularTemplates() {
+                    console.log('getPopularTemplates called - templates.length:', this.templates?.length);
                     // Ensure templates array exists
                     if (!this.templates || this.templates.length === 0) {
+                        console.log('No templates found, returning empty array');
                         return [];
                     }
                     
@@ -3217,6 +3225,8 @@
                         .sort((a, b) => b.popularity - a.popularity)
                         .slice(0, 6);
                     
+                    console.log('Popular templates filtered:', filtered.length, 'found');
+                    
                     // Fallback: if no popular templates, show first 6 non-pro templates
                     if (filtered.length === 0) {
                         const fallback = this.templates
@@ -3230,8 +3240,10 @@
                 },
 
                 getFilteredTemplates() {
+                    console.log('getFilteredTemplates called - templates.length:', this.templates?.length);
                     // Handle initialization race condition - return empty array if templates not loaded
                     if (!this.templates || this.templates.length === 0) {
+                        console.log('No templates found for filtering, returning empty array');
                         return [];
                     }
                     
@@ -3262,7 +3274,9 @@
                         );
                     }
 
-                    return filtered.sort((a, b) => b.popularity - a.popularity);
+                    const result = filtered.sort((a, b) => b.popularity - a.popularity);
+                    console.log('Filtered templates result:', result.length, 'found');
+                    return result;
                 },
 
                 selectTemplate(template) {
