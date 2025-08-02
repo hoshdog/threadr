@@ -166,7 +166,9 @@
     <!-- Mobile Header -->
     <div class="lg:hidden flex items-center justify-between p-4 border-b border-x-border">
         <div class="flex items-center space-x-3">
-            <img src="/logos/threadrLogo_Black.png" alt="Threadr Logo" class="w-8 h-8">
+            <img src="/logos/threadrLogo_Black.png" alt="Threadr Logo" class="w-8 h-8" 
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+            <div style="display: none;" class="w-8 h-8 bg-blue-600 text-white rounded-md inline-flex items-center justify-center text-sm font-bold">T</div>
             <h1 class="text-xl font-bold">Threadr</h1>
         </div>
         <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-full hover:bg-x-hover">
@@ -184,7 +186,9 @@
                 <!-- Logo -->
                 <div class="p-6 border-b border-x-border">
                     <div class="flex items-center space-x-3">
-                        <img src="/logos/threadrLogo_White.png" alt="Threadr Logo" class="h-8 w-auto transition-all duration-200 hover:scale-105 cursor-pointer">
+                        <img src="/logos/threadrLogo_White.png" alt="Threadr Logo" class="h-8 w-auto transition-all duration-200 hover:scale-105 cursor-pointer"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                        <div style="display: none;" class="h-8 bg-blue-600 text-white rounded-md inline-flex items-center justify-center px-2 text-lg font-bold cursor-pointer transition-all duration-200 hover:scale-105">Threadr</div>
                         <div>
                             <h2 class="text-xl font-bold text-white">Threadr</h2>
                         </div>
@@ -399,7 +403,9 @@
                         </span>
                         <span x-show="loading" class="flex items-center justify-center space-x-3">
                             <div class="w-5 h-5 logo-loading">
-                                <img src="/logos/threadrLogo_Black.png" alt="Loading..." class="w-full h-full">
+                                <img src="/logos/threadrLogo_Black.png" alt="Loading..." class="w-full h-full"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-sm flex items-center justify-center text-xs font-bold">T</div>
                             </div>
                             <span>Generating...</span>
                         </span>
@@ -465,7 +471,9 @@
                                     <div class="flex items-center space-x-2">
                                         <span class="text-xs text-x-gray font-semibold bg-x-dark px-2 py-1 rounded-full" x-text="`${index + 1}/${tweets.length}`"></span>
                                         <div class="w-8 h-8 bg-x-blue rounded-full flex items-center justify-center p-1.5">
-                                            <img src="/logos/threadrLogo_White.png" alt="Thread" class="w-full h-full">
+                                            <img src="/logos/threadrLogo_White.png" alt="Thread" class="w-full h-full"
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-sm flex items-center justify-center text-xs font-bold">T</div>
                                         </div>
                                     </div>
                                     <button 
@@ -683,7 +691,9 @@
                     <!-- Loading State -->
                     <div x-show="historyLoading" class="tweet-card rounded-2xl p-12 text-center">
                         <div class="mx-auto mb-4 w-8 h-8 logo-loading">
-                            <img src="/logos/threadrLogo_Black.png" alt="Loading..." class="w-full h-full">
+                            <img src="/logos/threadrLogo_Black.png" alt="Loading..." class="w-full h-full"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-md flex items-center justify-center text-sm font-bold">T</div>
                         </div>
                         <p class="text-x-gray">Loading your threads...</p>
                     </div>
@@ -837,7 +847,9 @@
                                         <div class="flex items-center space-x-2">
                                             <span class="text-xs text-x-gray font-semibold bg-x-black px-2 py-1 rounded-full" x-text="`${index + 1}/${selectedThread.tweets.length}`"></span>
                                             <div class="w-8 h-8 bg-x-blue rounded-full flex items-center justify-center p-1.5">
-                                                <img src="/logos/threadrLogo_White.png" alt="Thread" class="w-full h-full">
+                                                <img src="/logos/threadrLogo_White.png" alt="Thread" class="w-full h-full"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-sm flex items-center justify-center text-xs font-bold">T</div>
                                             </div>
                                         </div>
                                         <button 
@@ -896,7 +908,9 @@
                 <!-- Modal Header -->
                 <div class="flex justify-between items-center mb-8">
                     <div class="flex items-center space-x-4">
-                        <img src="/logos/threadrLogo_Black.png" alt="Threadr Logo" class="w-10 h-10">
+                        <img src="/logos/threadrLogo_Black.png" alt="Threadr Logo" class="w-10 h-10"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div style="display: none;" class="w-10 h-10 bg-blue-600 text-white rounded-md flex items-center justify-center text-lg font-bold">T</div>
                         <div>
                             <h3 class="text-2xl font-bold text-white" x-text="authMode === 'login' ? 'Welcome back' : 'Join Threadr'"></h3>
                             <p class="text-x-gray text-sm mt-1" x-text="authMode === 'login' ? 'Sign in to your account' : 'Create your account'"></p>
@@ -980,7 +994,9 @@
                         <span x-show="!authLoading" x-text="authMode === 'login' ? 'Sign In' : 'Create Account'"></span>
                         <span x-show="authLoading" class="flex items-center justify-center space-x-2">
                             <div class="w-5 h-5 logo-loading">
-                                <img src="/logos/threadrLogo_Black.png" alt="Loading..." class="w-full h-full">
+                                <img src="/logos/threadrLogo_Black.png" alt="Loading..." class="w-full h-full"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-sm flex items-center justify-center text-xs font-bold">T</div>
                             </div>
                             <span x-text="authMode === 'login' ? 'Signing in...' : 'Creating account...'"></span>
                         </span>
@@ -1039,7 +1055,9 @@
                 
                 <div class="text-center">
                     <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 mb-6 p-3">
-                        <img src="/logos/threadrLogo_White.png" alt="Threadr Logo" class="w-full h-full">
+                        <img src="/logos/threadrLogo_White.png" alt="Threadr Logo" class="w-full h-full"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-md flex items-center justify-center text-lg font-bold">T</div>
                     </div>
                     
                     <h3 class="text-2xl font-bold text-white mb-2">Upgrade to Premium</h3>
@@ -2095,6 +2113,7 @@
                 init() {
                     // Set initialization flag to prevent modals during startup
                     this._isInitializing = true;
+                    this._tokenVerificationInProgress = false;
                     
                     // CRITICAL FIX: Force all modals closed and template cleared FIRST
                     this.showTemplateModal = false;
@@ -2110,14 +2129,21 @@
                     // Load user data AFTER clearing state (will skip token verification during init)
                     this.loadUserFromStorage();
                     
-                    // Additional safety check after a brief delay to handle any race conditions
-                    setTimeout(() => {
+                    // RACE CONDITION FIX: Delayed initialization completion with token verification
+                    setTimeout(async () => {
+                        // Final modal close safety check
                         this.showTemplateModal = false;
                         this.selectedTemplate = null;
                         this.showPaymentModal = false;
                         this.authModalVisible = false;
+                        
                         // Clear initialization flag after startup is complete
                         this._isInitializing = false;
+                        
+                        // Now that init is complete, verify token if user exists
+                        if (this.user && this.getAuthToken()) {
+                            await this.verifyToken();
+                        }
                     }, 100);
                     
                     // Emergency close function for debugging - attach to window
@@ -2173,6 +2199,9 @@
                     const token = this.getAuthToken();
                     if (!token) return;
                     
+                    // RACE CONDITION FIX: Set verification in progress flag
+                    this._tokenVerificationInProgress = true;
+                    
                     try {
                         const response = await fetch(`${config.API_URL}/api/auth/me`, {
                             method: 'GET',
@@ -2191,6 +2220,14 @@
                             const userData = await response.json();
                             this.user = userData;
                             localStorage.setItem('threadr_user', JSON.stringify(userData));
+                            
+                            // RACE CONDITION FIX: Force template re-render after premium status update
+                            if (!this._isInitializing) {
+                                this.$nextTick(() => {
+                                    // Trigger reactive update for templates
+                                    this.selectedCategory = this.selectedCategory;
+                                });
+                            }
                         }
                     } catch (error) {
                         console.error('Token verification failed:', error);
@@ -2214,6 +2251,9 @@
                             // No refresh token available, clear auth data
                             this.clearAuthData();
                         }
+                    } finally {
+                        // RACE CONDITION FIX: Clear verification in progress flag
+                        this._tokenVerificationInProgress = false;
                     }
                 },
                 
@@ -3183,33 +3223,30 @@
                 },
 
                 getFilteredTemplates() {
-                    console.log('=== getFilteredTemplates DEBUG ===');
-                    console.log('Total templates:', this.templates.length);
-                    console.log('User:', this.user);
-                    console.log('User premium:', this.user?.premium);
-                    console.log('Selected category:', this.selectedCategory);
-                    console.log('Template search:', this.templateSearch);
+                    // Handle initialization race condition - return empty array if templates not loaded
+                    if (!this.templates || this.templates.length === 0) {
+                        return [];
+                    }
                     
-                    let filtered = this.templates;
+                    let filtered = [...this.templates]; // Create copy to avoid mutation
 
-                    // CRITICAL FIX: Filter out Pro templates for non-premium users with strict checking
+                    // RACE CONDITION FIX: During initialization, be conservative with Pro template filtering
                     filtered = filtered.filter(template => {
                         if (template.isPro) {
-                            // Only show Pro templates if user exists AND has premium
+                            // During initialization, hide Pro templates to prevent flickering
+                            if (this._isInitializing === true) {
+                                return false;
+                            }
+                            // Only show Pro templates if user definitively has premium access
                             const hasAccess = this.user && this.user.premium === true;
-                            console.log(`Template ${template.name} (Pro: ${template.isPro}) - Access: ${hasAccess}`);
                             return hasAccess;
                         }
-                        console.log(`Template ${template.name} (Pro: ${template.isPro}) - Included (free)`);
                         return true;
                     });
-
-                    console.log('After Pro filter:', filtered.length);
 
                     // Apply category filter
                     if (this.selectedCategory !== 'all') {
                         filtered = filtered.filter(template => template.category === this.selectedCategory);
-                        console.log('After category filter:', filtered.length);
                     }
 
                     // Apply search filter
@@ -3220,13 +3257,9 @@
                             template.description.toLowerCase().includes(searchTerm) ||
                             template.category.toLowerCase().includes(searchTerm)
                         );
-                        console.log('After search filter:', filtered.length);
                     }
 
-                    const result = filtered.sort((a, b) => b.popularity - a.popularity);
-                    console.log('Final filtered count:', result.length);
-                    console.log('=== END DEBUG ===');
-                    return result;
+                    return filtered.sort((a, b) => b.popularity - a.popularity);
                 },
 
                 selectTemplate(template) {

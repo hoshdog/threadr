@@ -290,16 +290,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add a simple test route IMMEDIATELY to verify route registration works
-@app.get("/api/simple-immediate-test")
-async def simple_immediate_test():
-    """Immediate test route to verify route registration timing"""
-    return {"message": "Immediate test route works!", "success": True}
-
-print(f"DEBUG: Added immediate test route. Total app routes: {len(app.routes)}")
+# Production environment - debug routes removed
 
 # Initialize services and add routes AFTER app creation and middleware setup
-print("DEBUG: Initializing services and routes...")
+# Initialize services and add routes
 redis_manager = initialize_redis()
 
 if redis_manager:
@@ -310,7 +304,7 @@ if redis_manager:
     # Add authentication routes
     auth_router = create_auth_router(auth_service)
     app.include_router(auth_router)
-    print("DEBUG: Authentication routes added")
+    # Authentication routes added
     
     # Add thread history routes
     auth_dependencies = create_auth_dependencies(auth_service)
@@ -319,16 +313,16 @@ if redis_manager:
         auth_dependencies["get_current_user_required"]
     )
     app.include_router(thread_router, prefix="/api/threads")
-    print(f"DEBUG: Thread routes added. Total app routes: {len(app.routes)}")
+    # Thread routes added
     
     # Verify thread routes
     thread_routes = []
     for route in app.routes:
         if hasattr(route, 'path') and '/api/threads' in route.path:
             thread_routes.append(f"{getattr(route, 'methods', 'N/A')} {route.path}")
-    print(f"DEBUG: Thread routes in app: {thread_routes}")
+    # Thread routes configured
 else:
-    print("DEBUG: Redis not available - using fallback mode")
+    # Redis not available - using fallback mode
     redis_manager = get_redis_manager()
     auth_service = AuthService(redis_manager)
     thread_history_service = ThreadHistoryService(redis_manager)
@@ -344,15 +338,9 @@ else:
         auth_dependencies["get_current_user_required"]
     )
     app.include_router(thread_router, prefix="/api/threads")
-    print(f"DEBUG: Thread routes added (fallback). Total app routes: {len(app.routes)}")
+    # Thread routes added (fallback mode)
 
-# Add a direct test route to main.py to verify route registration works
-@app.get("/api/direct-test")
-async def direct_test():
-    """Direct test route in main.py to verify basic route registration"""
-    return {"message": "Direct test route works!", "success": True}
-
-print(f"DEBUG: Added direct test route. Total app routes: {len(app.routes)}")
+# Production environment - debug routes removed
 
 # Custom exception handler for validation errors
 @app.exception_handler(RequestValidationError)
@@ -1709,10 +1697,7 @@ Generate the thread as a list of tweets, each on a new line."""
 
 # API endpoints
 
-@app.get("/api/threads-test-here")
-async def threads_test_route():
-    """Test route added next to working health route"""
-    return {"message": "Test route next to health works!", "success": True}
+# Production environment - debug routes removed
 
 @app.get("/health")
 @app.get("/")  # Railway sometimes checks root path
@@ -1725,7 +1710,7 @@ async def health_check():
             "timestamp": datetime.now().isoformat(),
             "version": "1.0.0",
             "environment": ENVIRONMENT,
-            "message": "Threadr API is running - UNIQUE DEBUG ID 12345"
+            "message": "Threadr API is running"
         }
         
     except Exception as e:
