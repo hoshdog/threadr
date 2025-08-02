@@ -1485,6 +1485,14 @@
                     <div class="mb-8">
                         <h2 class="text-2xl font-bold text-white mb-2">Thread Templates</h2>
                         <p class="text-x-gray">Choose from proven thread formats to get started quickly</p>
+                        
+                        <!-- Debug Info -->
+                        <div class="mt-4 p-3 bg-red-900/30 border border-red-500/50 rounded text-sm text-red-300">
+                            <strong>Debug:</strong> Templates loaded: <span x-text="templatesLoaded"></span> | 
+                            Array length: <span x-text="templates?.length || 0"></span> | 
+                            Refresh key: <span x-text="templatesRefreshKey"></span> | 
+                            Popular count: <span x-text="getPopularTemplates()?.length || 0"></span>
+                        </div>
                     </div>
 
                     <!-- Search and Filter Controls -->
@@ -1823,6 +1831,8 @@
                 charts: {}, // Store Chart.js instances
                 
                 // Templates state
+                templatesLoaded: false,
+                templatesRefreshKey: 0, // Force reactivity key
                 templates: [
                     {
                         id: 'product-launch',
@@ -2136,6 +2146,9 @@
                     
                     // Load user data AFTER clearing state (will skip token verification during init)
                     this.loadUserFromStorage();
+                    
+                    // Initialize templates
+                    this.loadTemplates();
                     
                     // RACE CONDITION FIX: Delayed initialization completion with token verification
                     setTimeout(async () => {
@@ -2770,12 +2783,7 @@
                     } else if (page === 'analytics') {
                         this.loadAnalytics();
                     } else if (page === 'templates') {
-                        // Force Alpine.js to re-evaluate template functions for reactivity
-                        this.$nextTick(() => {
-                            // Trigger template data refresh by accessing the functions
-                            this.getPopularTemplates();
-                            this.getFilteredTemplates();
-                        });
+                        this.loadTemplates();
                     }
                 },
 
@@ -3203,7 +3211,24 @@
                 },
 
                 // Template functions
+                loadTemplates() {
+                    console.log('loadTemplates called - forcing templates refresh');
+                    // Force templates to be marked as loaded and trigger reactivity
+                    this.templatesLoaded = true;
+                    this.templatesRefreshKey++; // Increment to force reactivity
+                    
+                    // Use $nextTick to ensure DOM updates after state changes
+                    this.$nextTick(() => {
+                        console.log('Templates $nextTick executed - templates.length:', this.templates?.length);
+                        console.log('Popular templates count:', this.getPopularTemplates()?.length);
+                        console.log('Filtered templates count:', this.getFilteredTemplates()?.length);
+                    });
+                },
+
                 getPopularTemplates() {
+                    // Force reactivity dependency on refresh key
+                    this.templatesRefreshKey; // Access key to create dependency
+                    
                     console.log('getPopularTemplates called - templates.length:', this.templates?.length);
                     // Ensure templates array exists
                     if (!this.templates || this.templates.length === 0) {
@@ -3240,6 +3265,9 @@
                 },
 
                 getFilteredTemplates() {
+                    // Force reactivity dependency on refresh key
+                    this.templatesRefreshKey; // Access key to create dependency
+                    
                     console.log('getFilteredTemplates called - templates.length:', this.templates?.length);
                     // Handle initialization race condition - return empty array if templates not loaded
                     if (!this.templates || this.templates.length === 0) {

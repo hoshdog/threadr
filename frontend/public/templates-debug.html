@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Templates Debug - Threadr</title>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0f0f0f; color: white; }
+        .debug-section { border: 1px solid #333; padding: 20px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div x-data="templateDebugApp()" class="p-8">
+        <h1 class="text-3xl font-bold mb-8">Templates Debug Page</h1>
+        
+        <!-- Page Navigation Test -->
+        <div class="debug-section">
+            <h2 class="text-xl font-bold mb-4">Page Navigation Test</h2>
+            <p>Current page: <span x-text="currentPage" class="bg-blue-600 px-2 py-1 rounded"></span></p>
+            <div class="mt-4 space-x-4">
+                <button @click="switchToPage('generate')" class="bg-green-600 px-4 py-2 rounded">Generate</button>
+                <button @click="switchToPage('templates')" class="bg-blue-600 px-4 py-2 rounded">Templates</button>
+                <button @click="switchToPage('history')" class="bg-purple-600 px-4 py-2 rounded">History</button>
+            </div>
+        </div>
+
+        <!-- Templates Data Debug -->
+        <div class="debug-section">
+            <h2 class="text-xl font-bold mb-4">Templates Data Debug</h2>
+            <p>Templates array length: <span x-text="templates?.length || 0" class="bg-yellow-600 text-black px-2 py-1 rounded"></span></p>
+            <p>Templates is array: <span x-text="Array.isArray(templates) ? 'Yes' : 'No'" class="bg-yellow-600 text-black px-2 py-1 rounded"></span></p>
+            <p>Popular templates count: <span x-text="getPopularTemplates()?.length || 0" class="bg-green-600 px-2 py-1 rounded"></span></p>
+            <p>Filtered templates count: <span x-text="getFilteredTemplates()?.length || 0" class="bg-blue-600 px-2 py-1 rounded"></span></p>
+            
+            <button @click="forceTemplatesRefresh()" class="mt-4 bg-red-600 px-4 py-2 rounded">Force Refresh</button>
+        </div>
+
+        <!-- Template Functions Test -->
+        <div class="debug-section">
+            <h2 class="text-xl font-bold mb-4">Template Functions Live Test</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <h3 class="font-bold mb-2">getPopularTemplates() Result:</h3>
+                    <div x-show="getPopularTemplates().length === 0" class="text-red-500">No popular templates found</div>
+                    <template x-for="template in getPopularTemplates().slice(0, 3)" :key="template.id">
+                        <div class="bg-gray-800 p-2 mb-2 rounded">
+                            <div x-text="template.name" class="font-bold"></div>
+                            <div x-text="template.category" class="text-sm text-gray-400"></div>
+                        </div>
+                    </template>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold mb-2">getFilteredTemplates() Result:</h3>
+                    <div x-show="getFilteredTemplates().length === 0" class="text-red-500">No filtered templates found</div>
+                    <template x-for="template in getFilteredTemplates().slice(0, 3)" :key="template.id">
+                        <div class="bg-gray-800 p-2 mb-2 rounded">
+                            <div x-text="template.name" class="font-bold"></div>
+                            <div x-text="template.category" class="text-sm text-gray-400"></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page Display Test -->
+        <div class="debug-section">
+            <h2 class="text-xl font-bold mb-4">Page Display Test</h2>
+            
+            <!-- Generate Page -->
+            <div x-show="currentPage === 'generate'" class="bg-green-900 p-4 rounded">
+                <h3 class="font-bold">Generate Page Content</h3>
+                <p>This shows when currentPage === 'generate'</p>
+            </div>
+
+            <!-- Templates Page -->
+            <div x-show="currentPage === 'templates'" x-transition class="bg-blue-900 p-4 rounded">
+                <h3 class="font-bold mb-4">Templates Page Content</h3>
+                <p>This shows when currentPage === 'templates'</p>
+                
+                <!-- Popular Templates Section -->
+                <div class="mt-4">
+                    <h4 class="font-bold mb-2">Popular Templates (<span x-text="getPopularTemplates().length"></span>)</h4>
+                    <div x-show="getPopularTemplates().length === 0" class="text-red-400 bg-red-900 p-2 rounded">
+                        DEBUG: No popular templates found
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <template x-for="template in getPopularTemplates()" :key="template.id">
+                            <div class="bg-gray-800 p-3 rounded">
+                                <div x-text="template.name" class="font-bold text-sm"></div>
+                                <div x-text="template.description" class="text-xs text-gray-400"></div>
+                                <div class="text-xs mt-1">
+                                    <span x-text="template.category" class="bg-blue-600 px-1 rounded"></span>
+                                    <span x-show="template.isPro" class="bg-yellow-600 text-black px-1 rounded ml-1">PRO</span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- All Templates Section -->
+                <div class="mt-4">
+                    <h4 class="font-bold mb-2">All Templates (<span x-text="getFilteredTemplates().length"></span>)</h4>
+                    <div x-show="getFilteredTemplates().length === 0" class="text-red-400 bg-red-900 p-2 rounded">
+                        DEBUG: No filtered templates found
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <template x-for="template in getFilteredTemplates()" :key="template.id">
+                            <div class="bg-gray-800 p-2 rounded">
+                                <div x-text="template.name" class="font-bold text-xs"></div>
+                                <div x-text="template.category" class="text-xs text-gray-400"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Page -->
+            <div x-show="currentPage === 'history'" class="bg-purple-900 p-4 rounded">
+                <h3 class="font-bold">History Page Content</h3>
+                <p>This shows when currentPage === 'history'</p>
+            </div>
+        </div>
+
+        <!-- Raw Templates Data -->
+        <div class="debug-section">
+            <h2 class="text-xl font-bold mb-4">Raw Templates Data (First 3)</h2>
+            <div x-show="templates && templates.length > 0">
+                <template x-for="(template, index) in templates.slice(0, 3)" :key="template.id">
+                    <div class="bg-gray-800 p-3 mb-2 rounded">
+                        <pre x-text="JSON.stringify(template, null, 2)" class="text-xs"></pre>
+                    </div>
+                </template>
+            </div>
+            <div x-show="!templates || templates.length === 0" class="text-red-500">
+                No templates data found
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function templateDebugApp() {
+            return {
+                currentPage: 'generate',
+                
+                // Exact same templates array as main app
+                templates: [
+                    {
+                        id: 'product-launch',
+                        name: 'Product Launch Announcement',
+                        description: 'Announce your new product with excitement and key features',
+                        category: 'Business',
+                        isPro: false,
+                        popularity: 95,
+                        variables: ['product_name', 'key_feature_1', 'key_feature_2', 'key_feature_3', 'launch_date', 'website_url'],
+                        structure: [
+                            "🚀 Big news! We're launching {product_name}!",
+                            "After months of development, we're excited to share what we've built:",
+                            "✨ {key_feature_1}",
+                            "🔥 {key_feature_2}", 
+                            "💪 {key_feature_3}",
+                            "Mark your calendars: {launch_date}",
+                            "Be among the first to try it: {website_url}",
+                            "RT if you're as excited as we are! 🎉"
+                        ]
+                    },
+                    {
+                        id: 'how-to-guide',
+                        name: 'Step-by-Step How-To Guide',
+                        description: 'Break down complex processes into digestible steps',
+                        category: 'Educational',
+                        isPro: false,
+                        popularity: 88,
+                        variables: ['topic', 'step_1', 'step_2', 'step_3', 'step_4', 'pro_tip'],
+                        structure: [
+                            "🧵 How to {topic} (a thread)",
+                            "I've been doing this for years. Here's my exact process:",
+                            "1/ {step_1}",
+                            "2/ {step_2}",
+                            "3/ {step_3}",
+                            "4/ {step_4}",
+                            "Pro tip: {pro_tip}",
+                            "Hope this helps! Save this thread for later 🔖"
+                        ]
+                    },
+                    {
+                        id: 'controversial-take',
+                        name: 'Controversial Take/Opinion',
+                        description: 'Share bold opinions that spark discussion',
+                        category: 'Opinion',
+                        isPro: true,
+                        popularity: 92,
+                        variables: ['topic', 'common_belief', 'your_take', 'reason_1', 'reason_2', 'conclusion'],
+                        structure: [
+                            "🔥 Controversial take on {topic}:",
+                            "Everyone thinks {common_belief}",
+                            "But I believe {your_take}",
+                            "Here's why:",
+                            "1/ {reason_1}",
+                            "2/ {reason_2}",
+                            "{conclusion}",
+                            "What do you think? Am I completely wrong? 🤔"
+                        ]
+                    }
+                ],
+
+                // User state for Pro filtering
+                user: null,
+
+                switchToPage(page) {
+                    console.log('switchToPage called:', page);
+                    this.currentPage = page;
+                    
+                    if (page === 'templates') {
+                        // Force Alpine.js to re-evaluate template functions for reactivity
+                        this.$nextTick(() => {
+                            console.log('$nextTick executed for templates page');
+                            // Trigger template data refresh by accessing the functions
+                            this.getPopularTemplates();
+                            this.getFilteredTemplates();
+                        });
+                    }
+                },
+
+                forceTemplatesRefresh() {
+                    console.log('Force refresh triggered');
+                    // Force reactivity by reassigning the array
+                    this.templates = [...this.templates];
+                    this.$nextTick(() => {
+                        console.log('Forced refresh $nextTick executed');
+                    });
+                },
+
+                getPopularTemplates() {
+                    console.log('getPopularTemplates called - templates.length:', this.templates?.length);
+                    // Ensure templates array exists
+                    if (!this.templates || this.templates.length === 0) {
+                        console.log('No templates found, returning empty array');
+                        return [];
+                    }
+                    
+                    const filtered = this.templates
+                        .filter(template => {
+                            // CRITICAL FIX: Always exclude Pro templates for non-premium users
+                            // Use strict checking to handle undefined/null user states
+                            if (template.isPro === true) {
+                                // Only show Pro templates if user exists AND has premium
+                                return this.user && this.user.premium === true;
+                            }
+                            // For non-Pro templates, show if popularity >= 75
+                            return template.popularity >= 75;
+                        })
+                        .sort((a, b) => b.popularity - a.popularity)
+                        .slice(0, 6);
+                    
+                    console.log('Popular templates filtered:', filtered.length, 'found');
+                    
+                    // Fallback: if no popular templates, show first 6 non-pro templates
+                    if (filtered.length === 0) {
+                        const fallback = this.templates
+                            .filter(template => template.isPro !== true)
+                            .sort((a, b) => b.popularity - a.popularity)
+                            .slice(0, 6);
+                        return fallback;
+                    }
+                    
+                    return filtered;
+                },
+
+                getFilteredTemplates() {
+                    console.log('getFilteredTemplates called - templates.length:', this.templates?.length);
+                    // Handle initialization race condition - return empty array if templates not loaded
+                    if (!this.templates || this.templates.length === 0) {
+                        console.log('No templates found for filtering, returning empty array');
+                        return [];
+                    }
+                    
+                    let filtered = [...this.templates]; // Create copy to avoid mutation
+
+                    // RACE CONDITION FIX: Always show non-Pro templates, filter Pro templates based on user status
+                    filtered = filtered.filter(template => {
+                        if (template.isPro === true) {
+                            // Only show Pro templates if user exists AND has premium
+                            return this.user && this.user.premium === true;
+                        }
+                        return true; // Show all non-Pro templates
+                    });
+
+                    console.log('Filtered templates result:', filtered.length, 'found');
+                    return filtered;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
