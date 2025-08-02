@@ -1530,6 +1530,15 @@
                             <span class="ml-2 text-sm text-x-gray">(<span x-text="getPopularTemplates().length"></span>)</span>
                         </h3>
                         
+                        <!-- Debug info for templates -->
+                        <div x-show="getPopularTemplates().length === 0" class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-4">
+                            <p class="text-yellow-400 text-sm">
+                                Debug: No popular templates found. 
+                                Total templates: <span x-text="templates.length"></span>, 
+                                User premium: <span x-text="user?.premium || 'false'"></span>
+                            </p>
+                        </div>
+                        
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <template x-for="template in getPopularTemplates()" :key="template.id">
                                 <div class="tweet-card rounded-2xl p-6 hover:border-x-gray/50 transition-all duration-200 cursor-pointer"
@@ -1582,6 +1591,16 @@
                             All Templates
                             <span class="ml-2 text-sm text-x-gray">(<span x-text="getFilteredTemplates().length"></span>)</span>
                         </h3>
+                        
+                        <!-- Debug info for all templates -->
+                        <div x-show="getFilteredTemplates().length === 0" class="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-4">
+                            <p class="text-red-400 text-sm">
+                                Debug: No filtered templates found. 
+                                Total templates: <span x-text="templates.length"></span>, 
+                                Selected category: <span x-text="selectedCategory"></span>,
+                                Search term: '<span x-text="templateSearch"></span>'
+                            </p>
+                        </div>
                         
                         <!-- Templates Grid -->
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -3204,6 +3223,7 @@
                                 // Only show Pro templates if user exists AND has premium
                                 return this.user && this.user.premium === true;
                             }
+                            // For non-Pro templates, show if popularity >= 75
                             return template.popularity >= 75;
                         })
                         .sort((a, b) => b.popularity - a.popularity)
@@ -3230,17 +3250,15 @@
                     
                     let filtered = [...this.templates]; // Create copy to avoid mutation
 
-                    // RACE CONDITION FIX: During initialization, be conservative with Pro template filtering
+                    // RACE CONDITION FIX: Always show non-Pro templates, filter Pro templates based on user status
                     filtered = filtered.filter(template => {
                         if (template.isPro) {
-                            // During initialization, hide Pro templates to prevent flickering
-                            if (this._isInitializing === true) {
-                                return false;
-                            }
                             // Only show Pro templates if user definitively has premium access
+                            // Don't hide during initialization - just check premium status
                             const hasAccess = this.user && this.user.premium === true;
                             return hasAccess;
                         }
+                        // Always show non-Pro templates, even during initialization
                         return true;
                     });
 
