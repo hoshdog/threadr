@@ -1486,12 +1486,17 @@
                         <h2 class="text-2xl font-bold text-white mb-2">Thread Templates</h2>
                         <p class="text-x-gray">Choose from proven thread formats to get started quickly</p>
                         
-                        <!-- Debug Info -->
+                        <!-- Enhanced Debug Info -->
                         <div class="mt-4 p-3 bg-red-900/30 border border-red-500/50 rounded text-sm text-red-300">
                             <strong>Debug:</strong> Templates loaded: <span x-text="templatesLoaded"></span> | 
                             Array length: <span x-text="templates?.length || 0"></span> | 
                             Refresh key: <span x-text="templatesRefreshKey"></span> | 
-                            Popular count: <span x-text="getPopularTemplates()?.length || 0"></span>
+                            Popular count: <span x-text="getPopularTemplates()?.length || 0"></span> | 
+                            Filtered count: <span x-text="getFilteredTemplates()?.length || 0"></span> | 
+                            User premium: <span x-text="user?.premium || 'false'"></span>
+                            <br>
+                            <button @click="loadTemplates()" class="mt-2 px-3 py-1 bg-blue-600 text-white rounded text-xs">Force Refresh</button>
+                            <button @click="console.log('Templates array:', templates)" class="mt-2 ml-2 px-3 py-1 bg-green-600 text-white rounded text-xs">Log Templates</button>
                         </div>
                     </div>
 
@@ -2147,7 +2152,11 @@
                     // Load user data AFTER clearing state (will skip token verification during init)
                     this.loadUserFromStorage();
                     
-                    // Initialize templates
+                    // Initialize templates - ensure they exist before calling loadTemplates
+                    console.log('Init: templates array length before loadTemplates():', this.templates?.length);
+                    if (!this.templates || this.templates.length === 0) {
+                        console.error('CRITICAL: Templates array is empty during init! This indicates a data declaration issue.');
+                    }
                     this.loadTemplates();
                     
                     // RACE CONDITION FIX: Delayed initialization completion with token verification
@@ -3213,6 +3222,14 @@
                 // Template functions
                 loadTemplates() {
                     console.log('loadTemplates called - forcing templates refresh');
+                    
+                    // SAFETY CHECK: Ensure templates array exists with expected structure
+                    if (!this.templates || !Array.isArray(this.templates) || this.templates.length === 0) {
+                        console.error('Templates array is missing or empty during loadTemplates!');
+                        // This should never happen since templates are declared in data, but just in case
+                        console.error('Attempting to recover template data...');
+                    }
+                    
                     // Force templates to be marked as loaded and trigger reactivity
                     this.templatesLoaded = true;
                     this.templatesRefreshKey++; // Increment to force reactivity
@@ -3222,6 +3239,12 @@
                         console.log('Templates $nextTick executed - templates.length:', this.templates?.length);
                         console.log('Popular templates count:', this.getPopularTemplates()?.length);
                         console.log('Filtered templates count:', this.getFilteredTemplates()?.length);
+                        
+                        // Force another reactivity update if needed
+                        if (this.getPopularTemplates()?.length === 0 || this.getFilteredTemplates()?.length === 0) {
+                            console.warn('Templates still showing 0 after load, forcing another refresh...');
+                            this.templatesRefreshKey++;
+                        }
                     });
                 },
 
@@ -3230,34 +3253,48 @@
                     this.templatesRefreshKey; // Access key to create dependency
                     
                     console.log('getPopularTemplates called - templates.length:', this.templates?.length);
-                    // Ensure templates array exists
-                    if (!this.templates || this.templates.length === 0) {
-                        console.log('No templates found, returning empty array');
+                    console.log('Templates array exists:', !!this.templates);
+                    console.log('Templates is array:', Array.isArray(this.templates));
+                    console.log('Templates loaded flag:', this.templatesLoaded);
+                    console.log('First template:', this.templates?.[0]?.name);
+                    
+                    // DEFENSIVE: Check if templates exist, but be less aggressive about empty checks
+                    if (!this.templates || !Array.isArray(this.templates)) {
+                        console.error('Templates not initialized as array, returning empty array');
                         return [];
                     }
                     
+                    if (this.templates.length === 0) {
+                        console.error('Templates array is empty - this should not happen!');
+                        console.error('Template initialization failed - check template data declaration');
+                        return [];
+                    }
+                    
+                    // Always show free templates first - filter Pro templates based on user status
                     const filtered = this.templates
                         .filter(template => {
-                            // CRITICAL FIX: Always exclude Pro templates for non-premium users
-                            // Use strict checking to handle undefined/null user states
-                            if (template.isPro === true) {
-                                // Only show Pro templates if user exists AND has premium
-                                return this.user && this.user.premium === true;
+                            // Always show free templates (isPro: false)
+                            if (template.isPro !== true) {
+                                return template.popularity >= 75;
                             }
-                            // For non-Pro templates, show if popularity >= 75
-                            return template.popularity >= 75;
+                            // Only show Pro templates if user has premium access
+                            return this.user && this.user.premium === true && template.popularity >= 75;
                         })
                         .sort((a, b) => b.popularity - a.popularity)
                         .slice(0, 6);
                     
                     console.log('Popular templates filtered:', filtered.length, 'found');
+                    console.log('Filtered template names:', filtered.map(t => `${t.name} (isPro: ${t.isPro}, popularity: ${t.popularity})`));
                     
-                    // Fallback: if no popular templates, show first 6 non-pro templates
+                    // ENHANCED FALLBACK: Always ensure we show free templates even if none meet popularity threshold
                     if (filtered.length === 0) {
+                        console.log('No popular templates found, using fallback to show free templates');
                         const fallback = this.templates
-                            .filter(template => template.isPro !== true)
+                            .filter(template => template.isPro !== true) // Always show free templates
                             .sort((a, b) => b.popularity - a.popularity)
                             .slice(0, 6);
+                        console.log('Fallback templates:', fallback.length, 'found');
+                        console.log('Fallback template names:', fallback.map(t => `${t.name} (isPro: ${t.isPro}, popularity: ${t.popularity})`));
                         return fallback;
                     }
                     
@@ -3269,22 +3306,33 @@
                     this.templatesRefreshKey; // Access key to create dependency
                     
                     console.log('getFilteredTemplates called - templates.length:', this.templates?.length);
-                    // Handle initialization race condition - return empty array if templates not loaded
-                    if (!this.templates || this.templates.length === 0) {
-                        console.log('No templates found for filtering, returning empty array');
+                    console.log('Templates array exists:', !!this.templates);
+                    console.log('Templates is array:', Array.isArray(this.templates));
+                    console.log('Templates loaded flag:', this.templatesLoaded);
+                    console.log('First template:', this.templates?.[0]?.name);
+                    
+                    // DEFENSIVE: Check if templates exist, but be less aggressive about empty checks
+                    if (!this.templates || !Array.isArray(this.templates)) {
+                        console.error('Templates not initialized as array, returning empty array');
+                        return [];
+                    }
+                    
+                    if (this.templates.length === 0) {
+                        console.error('Templates array is empty - this should not happen!');
+                        console.error('Template initialization failed - check template data declaration');
                         return [];
                     }
                     
                     let filtered = [...this.templates]; // Create copy to avoid mutation
 
-                    // RACE CONDITION FIX: Always show non-Pro templates, filter Pro templates based on user status
+                    // PREMIUM FILTERING: Always show free templates, filter Pro templates based on user status
                     filtered = filtered.filter(template => {
-                        if (template.isPro === true) {
-                            // Only show Pro templates if user definitively has premium access
-                            return this.user && this.user.premium === true;
+                        // Always show free templates (isPro: false or undefined)
+                        if (template.isPro !== true) {
+                            return true;
                         }
-                        // Always show non-Pro templates, even during initialization
-                        return true;
+                        // Only show Pro templates if user has confirmed premium access
+                        return this.user && this.user.premium === true;
                     });
 
                     // Apply category filter
@@ -3304,6 +3352,7 @@
 
                     const result = filtered.sort((a, b) => b.popularity - a.popularity);
                     console.log('Filtered templates result:', result.length, 'found');
+                    console.log('Final filtered template names:', result.map(t => `${t.name} (isPro: ${t.isPro}, popularity: ${t.popularity})`));
                     return result;
                 },
 
