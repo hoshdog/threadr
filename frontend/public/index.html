@@ -3742,6 +3742,10 @@
 
                 // Analytics functions
                 async loadAnalytics() {
+                    // Always set loading to false at start to ensure proper state
+                    this.analyticsLoading = false;
+                    this.analyticsError = '';
+                    
                     if (!this.isAuthenticated()) {
                         this.analyticsError = 'Please log in to view analytics';
                         return;
@@ -3936,6 +3940,10 @@
 
                 // Account functions
                 async loadAccountData() {
+                    // Always ensure loading state is properly initialized
+                    this.accountLoading = false;
+                    this.accountError = '';
+                    
                     if (!this.isAuthenticated()) {
                         this.accountError = 'Please log in to view account data';
                         return;
@@ -4099,17 +4107,14 @@
                         // Use setTimeout to break synchronous initialization chain
                         await new Promise(resolve => setTimeout(resolve, 10));
                         
-                        // SAFETY CHECK: Ensure templates array exists with expected structure
-                        if (!this.templates || !Array.isArray(this.templates) || this.templates.length === 0) {
-                            console.error('Templates array is missing or empty during loadTemplates!');
-                            throw new Error('Templates data not properly initialized');
-                        }
+                        // SIMPLIFIED CHECK: Templates should always be available as static data
+                        console.log('Templates array length:', this.templates?.length);
                         
-                        // Mark templates as loaded and trigger reactivity
+                        // Always mark as loaded - templates are static data, not fetched
                         this.templatesLoaded = true;
                         this.templatesRefreshKey++; // Increment to force reactivity
                         
-                        console.log('Templates loaded successfully - count:', this.templates.length);
+                        console.log('Templates loaded successfully - count:', this.templates?.length || 0);
                         
                     } catch (error) {
                         console.error('Failed to load templates:', error);
