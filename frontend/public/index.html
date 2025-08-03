@@ -92,6 +92,34 @@
             width: 100%;
             height: 100%;
         }
+        
+        /* Logo dead space removal - crops whitespace around logo */
+        .logo-cropped {
+            object-fit: cover;
+            object-position: center;
+            /* Fine-tune the crop by scaling slightly larger to remove padding */
+            transform: scale(1.3);
+            transition: transform 0.2s ease;
+        }
+        
+        /* Container for cropped logos to prevent overflow */
+        .logo-container {
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: inherit; /* Inherit border radius from parent for circular containers */
+        }
+        
+        /* Hover effects for interactive logos */
+        .logo-container:hover .logo-cropped {
+            transform: scale(1.35); /* Slightly larger scale on hover */
+        }
+        
+        /* Special hover effect for sidebar logo */
+        .sidebar-logo:hover .logo-cropped {
+            transform: scale(1.4);
+        }
         .sidebar-transition {
             transition: all 0.2s ease-in-out;
         }
@@ -180,10 +208,12 @@
     <!-- Mobile Header -->
     <div class="lg:hidden flex items-center justify-between p-6 border-b border-x-border">
         <div class="flex items-center space-x-4">
-            <img src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" alt="Threadr Logo" class="w-20 h-20 sm:w-24 sm:h-24"
-                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';"
-                 onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
-                 style="display: block;">
+            <div class="logo-container w-20 h-20 sm:w-24 sm:h-24">
+                <img src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" alt="Threadr Logo" class="logo-cropped w-full h-full"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';"
+                     onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
+                     style="display: block;">
+            </div>
             <div style="display: none;" class="w-20 h-20 sm:w-24 sm:h-24 bg-blue-600 text-white rounded-md inline-flex items-center justify-center text-lg sm:text-2xl font-bold">T</div>
             <h1 class="text-xl font-bold">Threadr</h1>
         </div>
@@ -202,11 +232,12 @@
                 <!-- Logo -->
                 <div class="p-8 border-b border-x-border">
                     <div class="flex items-center space-x-4">
-                        <img src="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600" alt="Threadr Logo" class="h-20 lg:h-24 w-auto transition-all duration-200 hover:scale-105 cursor-pointer"
-                             onclick="switchToPage('generate')"
-                             onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
-                             onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';"
-                             style="display: block;">
+                        <div class="logo-container sidebar-logo h-20 lg:h-24 w-auto cursor-pointer" onclick="switchToPage('generate')">
+                            <img src="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600" alt="Threadr Logo" class="logo-cropped w-full h-full"
+                                 onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';"
+                                 style="display: block;">
+                        </div>
                         <div style="display: none;" class="h-20 lg:h-24 bg-blue-600 text-white rounded-md inline-flex items-center justify-center px-4 lg:px-6 text-xl lg:text-2xl font-bold cursor-pointer transition-all duration-200 hover:scale-105">Threadr</div>
                         <div>
                             <h2 class="text-xl font-bold text-white">Threadr</h2>
@@ -530,9 +561,11 @@
                                     <div class="flex items-center space-x-2">
                                         <span class="text-xs text-x-gray font-semibold bg-x-dark px-2 py-1 rounded-full" x-text="`${index + 1}/${tweets.length}`"></span>
                                         <div class="w-20 h-20 bg-x-blue rounded-full flex items-center justify-center p-4">
-                                            <img src="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600" alt="Thread" class="w-full h-full"
-                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                            <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-sm flex items-center justify-center text-xs font-bold">T</div>
+                                            <div class="logo-container w-full h-full">
+                                                <img src="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600" alt="Thread" class="logo-cropped w-full h-full"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-sm flex items-center justify-center text-xs font-bold">T</div>
+                                            </div>
                                         </div>
                                     </div>
                                     <button 
@@ -748,8 +781,8 @@
 
                     <!-- Loading State -->
                     <div x-show="historyLoading" class="tweet-card rounded-2xl p-12 text-center">
-                        <div class="mx-auto mb-4 w-20 h-20 logo-loading">
-                            <img src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" alt="Loading..." class="w-full h-full"
+                        <div class="mx-auto mb-4 w-20 h-20 logo-loading logo-container">
+                            <img src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" alt="Loading..." class="logo-cropped w-full h-full"
                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                             <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-md flex items-center justify-center text-lg font-bold">T</div>
                         </div>
@@ -905,9 +938,11 @@
                                         <div class="flex items-center space-x-2">
                                             <span class="text-xs text-x-gray font-semibold bg-x-black px-2 py-1 rounded-full" x-text="`${index + 1}/${selectedThread.tweets.length}`"></span>
                                             <div class="w-20 h-20 bg-x-blue rounded-full flex items-center justify-center p-4">
-                                                <img src="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600" alt="Thread" class="w-full h-full"
-                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                                <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-sm flex items-center justify-center text-sm font-bold">T</div>
+                                                <div class="logo-container w-full h-full">
+                                                    <img src="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600" alt="Thread" class="logo-cropped w-full h-full"
+                                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                    <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-sm flex items-center justify-center text-sm font-bold">T</div>
+                                                </div>
                                             </div>
                                         </div>
                                         <button 
@@ -966,9 +1001,11 @@
                 <!-- Modal Header -->
                 <div class="flex justify-between items-center mb-8">
                     <div class="flex items-center space-x-6">
-                        <img src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" alt="Threadr Logo" class="w-24 h-24 sm:w-28 sm:h-28"
-                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                        <div style="display: none;" class="w-24 h-24 sm:w-28 sm:h-28 bg-blue-600 text-white rounded-md flex items-center justify-center text-2xl sm:text-3xl font-bold">T</div>
+                        <div class="logo-container w-24 h-24 sm:w-28 sm:h-28">
+                            <img src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" alt="Threadr Logo" class="logo-cropped w-full h-full"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div style="display: none;" class="w-24 h-24 sm:w-28 sm:h-28 bg-blue-600 text-white rounded-md flex items-center justify-center text-2xl sm:text-3xl font-bold">T</div>
+                        </div>
                         <div>
                             <h3 class="text-2xl font-bold text-white" x-text="authMode === 'login' ? 'Welcome back' : 'Join Threadr'"></h3>
                             <p class="text-x-gray text-sm mt-1" x-text="authMode === 'login' ? 'Sign in to your account' : 'Create your account'"></p>
@@ -1051,8 +1088,8 @@
                     >
                         <span x-show="!authLoading" x-text="authMode === 'login' ? 'Sign In' : 'Create Account'"></span>
                         <span x-show="authLoading" class="flex items-center justify-center space-x-2">
-                            <div class="w-12 h-12 logo-loading">
-                                <img src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" alt="Loading..." class="w-full h-full"
+                            <div class="w-12 h-12 logo-loading logo-container">
+                                <img src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" alt="Loading..." class="logo-cropped w-full h-full"
                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                                 <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-sm flex items-center justify-center text-sm font-bold">T</div>
                             </div>
@@ -1113,9 +1150,11 @@
                 
                 <div class="text-center">
                     <div class="mx-auto flex items-center justify-center h-32 w-32 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 mb-6 p-6">
-                        <img src="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600" alt="Threadr Logo" class="w-full h-full"
-                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                        <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-md flex items-center justify-center text-2xl font-bold">T</div>
+                        <div class="logo-container w-full h-full">
+                            <img src="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600" alt="Threadr Logo" class="logo-cropped w-full h-full"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-md flex items-center justify-center text-2xl font-bold">T</div>
+                        </div>
                     </div>
                     
                     <h3 class="text-2xl font-bold text-white mb-2">Upgrade to Premium</h3>
@@ -2123,8 +2162,8 @@
 
                     <!-- Loading State -->
                     <div x-show="templatesLoading" class="tweet-card rounded-2xl p-12 text-center">
-                        <div class="mx-auto mb-4 w-20 h-20 logo-loading">
-                            <img src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" alt="Loading..." class="w-full h-full"
+                        <div class="mx-auto mb-4 w-20 h-20 logo-loading logo-container">
+                            <img src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" alt="Loading..." class="logo-cropped w-full h-full"
                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                             <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-md flex items-center justify-center text-lg font-bold">T</div>
                         </div>
