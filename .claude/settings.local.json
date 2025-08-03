@@ -60,7 +60,8 @@
       "Bash(del:*)",
       "Bash(git reset:*)",
       "Bash(gh:*)",
-      "Bash(start index.html)"
+      "Bash(start index.html)",
+      "WebFetch(domain:stackoverflow.com)"
     ],
     "deny": []
   }

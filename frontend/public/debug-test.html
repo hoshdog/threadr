@@ -15,14 +15,14 @@
         <div style="display: flex; gap: 20px; margin: 20px 0;">
             <div>
                 <h3>Black Logo</h3>
-                <img src="/logos/threadrLogo_Black.png" alt="Black Logo" style="width: 50px; height: 50px; border: 1px solid white;" 
+                <img src="/logos/threadrLogo_Black.png?v=2025-08-03" alt="Black Logo" style="width: 50px; height: 50px; border: 1px solid white;" 
                      @load="logoStatus.black = 'loaded'" 
                      @error="logoStatus.black = 'error'">
                 <p>Status: <span x-text="logoStatus.black"></span></p>
             </div>
             <div>
                 <h3>White Logo</h3>
-                <img src="/logos/threadrLogo_White.png" alt="White Logo" style="width: 50px; height: 50px; border: 1px solid white;"
+                <img src="/logos/threadrLogo_White.png?v=2025-08-03" alt="White Logo" style="width: 50px; height: 50px; border: 1px solid white;"
                      @load="logoStatus.white = 'loaded'" 
                      @error="logoStatus.white = 'error'">
                 <p>Status: <span x-text="logoStatus.white"></span></p>
@@ -116,11 +116,11 @@
             
             blackImg.onload = () => console.log('✅ Black logo loaded successfully');
             blackImg.onerror = () => console.log('❌ Black logo failed to load');
-            blackImg.src = '/logos/threadrLogo_Black.png';
+            blackImg.src = '/logos/threadrLogo_Black.png?v=2025-08-03';
             
             whiteImg.onload = () => console.log('✅ White logo loaded successfully');
             whiteImg.onerror = () => console.log('❌ White logo failed to load');
-            whiteImg.src = '/logos/threadrLogo_White.png';
+            whiteImg.src = '/logos/threadrLogo_White.png?v=2025-08-03';
         }, 1000);
     </script>
 </body>
