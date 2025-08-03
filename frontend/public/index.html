@@ -3438,22 +3438,39 @@
 
                 // Page navigation
                 switchToPage(page) {
+                    console.log('switchToPage called with:', page);
+                    console.log('Setting currentPage to:', page);
                     this.currentPage = page;
+                    console.log('currentPage after set:', this.currentPage);
                     this.sidebarOpen = false; // Close mobile sidebar
                     
                     if (page === 'history') {
+                        console.log('Loading history page');
                         this.loadThreadHistory();
                     } else if (page === 'analytics') {
+                        console.log('Loading analytics page');
                         this.loadAnalytics();
                     } else if (page === 'templates') {
+                        console.log('Loading templates page');
                         this.loadTemplates().catch(error => {
                             console.error('Failed to load templates on page switch:', error);
                         });
                     } else if (page === 'account') {
+                        console.log('Loading account page');
                         this.loadAccountData().catch(error => {
                             console.error('Failed to load account data on page switch:', error);
                         });
                     }
+                    
+                    // Debug: Check which pages are visible after switch
+                    setTimeout(() => {
+                        console.log('After page switch - Elements visible:');
+                        console.log('Generate visible:', document.querySelector('[x-show="currentPage === \'generate\'"]')?.style.display !== 'none');
+                        console.log('History visible:', document.querySelector('[x-show="currentPage === \'history\'"]')?.style.display !== 'none');
+                        console.log('Templates visible:', document.querySelector('[x-show="currentPage === \'templates\'"]')?.style.display !== 'none');
+                        console.log('Analytics visible:', document.querySelector('[x-show="currentPage === \'analytics\'"]')?.style.display !== 'none');
+                        console.log('Account visible:', document.querySelector('[x-show="currentPage === \'account\'"]')?.style.display !== 'none');
+                    }, 100);
                 },
 
                 // History functions
