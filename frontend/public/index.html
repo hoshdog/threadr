@@ -14,14 +14,15 @@
     <link rel="preload" as="image" href="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600">
     <link rel="preload" as="image" href="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600">
     
-    <!-- Enhanced favicon with better scaling - using banner for better aspect ratio -->
-    <link rel="icon" type="image/png" href="/logos/threadrBanner_Black.png?v=2025-08-03-enhanced&t=1722675600">
-    <link rel="apple-touch-icon" href="/logos/threadrBanner_Black.png?v=2025-08-03-enhanced&t=1722675600">
+    <!-- Enhanced favicon using T logo for better scaling and less dead space -->
+    <link rel="icon" type="image/png" href="/logos/threadrLogoT_Black.png?v=2025-08-03-T-logo&t=1722675600">
+    <link rel="apple-touch-icon" href="/logos/threadrLogoT_Black.png?v=2025-08-03-T-logo&t=1722675600">
     <!-- Multiple favicon sizes for better display and scaling -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/logos/threadrBanner_Black.png?v=2025-08-03-enhanced&t=1722675600">
-    <link rel="icon" type="image/png" sizes="16x16" href="/logos/threadrBanner_Black.png?v=2025-08-03-enhanced&t=1722675600">
-    <link rel="icon" type="image/png" sizes="192x192" href="/logos/threadrBanner_Black.png?v=2025-08-03-enhanced&t=1722675600">
-    <link rel="icon" type="image/png" sizes="512x512" href="/logos/threadrBanner_Black.png?v=2025-08-03-enhanced&t=1722675600">
+    <link rel="icon" type="image/png" sizes="32x32" href="/logos/threadrLogoT_Black.png?v=2025-08-03-T-logo&t=1722675600">
+    <link rel="icon" type="image/png" sizes="16x16" href="/logos/threadrLogoT_Black.png?v=2025-08-03-T-logo&t=1722675600">
+    <link rel="icon" type="image/png" sizes="192x192" href="/logos/threadrLogoT_Black.png?v=2025-08-03-T-logo&t=1722675600">
+    <link rel="icon" type="image/png" sizes="256x256" href="/logos/threadrLogoT_Black.png?v=2025-08-03-T-logo&t=1722675600">
+    <link rel="icon" type="image/png" sizes="512x512" href="/logos/threadrLogoT_Black.png?v=2025-08-03-T-logo&t=1722675600">
     <script src="config.js?v=1.2.0"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -2714,64 +2715,135 @@
                 
                 // Initialize authentication on component load
                 init() {
-                    // Set initialization flag to prevent modals during startup
-                    this._isInitializing = true;
-                    this._tokenVerificationInProgress = false;
+                    console.log('🔄 Alpine.js init() starting...');
                     
-                    // CRITICAL FIX: Force all modals closed and template cleared FIRST
-                    this.showTemplateModal = false;
-                    this.selectedTemplate = null;
-                    this.showPaymentModal = false;
-                    this.showUpgradeModal = false;
-                    this.showComparisonModal = false;
-                    this.showThreadModal = false;
-                    this.authModalVisible = false;
-                    this.templateFormData = {};
-                    this.currentPage = 'generate';
-                    
-                    // Load user data AFTER clearing state (will skip token verification during init)
-                    this.loadUserFromStorage();
-                    
-                    // Initialize templates asynchronously - ensure they exist before calling loadTemplates
-                    console.log('Init: templates array length before loadTemplates():', this.templates?.length);
-                    if (!this.templates || this.templates.length === 0) {
-                        console.error('CRITICAL: Templates array is empty during init! This indicates a data declaration issue.');
-                    }
-                    
-                    // Load templates asynchronously to avoid blocking initialization
-                    this.loadTemplates().catch(error => {
-                        console.error('Failed to load templates during init:', error);
-                    });
-                    
-                    // RACE CONDITION FIX: Delayed initialization completion with token verification
-                    setTimeout(async () => {
-                        // Final modal close safety check
+                    try {
+                        // Set initialization flag to prevent modals during startup
+                        this._isInitializing = true;
+                        this._tokenVerificationInProgress = false;
+                        
+                        // CRITICAL FIX: Force all modals closed and template cleared FIRST
                         this.showTemplateModal = false;
                         this.selectedTemplate = null;
                         this.showPaymentModal = false;
+                        this.showUpgradeModal = false;
+                        this.showComparisonModal = false;
+                        this.showThreadModal = false;
                         this.authModalVisible = false;
+                        this.templateFormData = {};
+                        this.currentPage = 'generate';
                         
-                        // Clear initialization flag after startup is complete
-                        this._isInitializing = false;
+                        console.log('✅ Initial state cleared, currentPage set to:', this.currentPage);
                         
-                        // Now that init is complete, verify token if user exists
-                        if (this.user && this.getAuthToken()) {
-                            await this.verifyToken();
+                        // IMMEDIATE DEBUG: Test Alpine.js reactivity
+                        this.$nextTick(() => {
+                            console.log('🔍 Testing page visibility after init:');
+                            console.log('- Generate visible:', document.querySelector('[x-show="currentPage === \'generate\'"]')?.style.display !== 'none');
+                            console.log('- History visible:', document.querySelector('[x-show="currentPage === \'history\'"]')?.style.display !== 'none');
+                            console.log('- Templates visible:', document.querySelector('[x-show="currentPage === \'templates\'"]')?.style.display !== 'none');
+                            console.log('- Analytics visible:', document.querySelector('[x-show="currentPage === \'analytics\'"]')?.style.display !== 'none');
+                            console.log('- Account visible:', document.querySelector('[x-show="currentPage === \'account\'"]')?.style.display !== 'none');
+                        });
+                        
+                        // Load user data AFTER clearing state (will skip token verification during init)
+                        this.loadUserFromStorage();
+                        
+                        // Initialize templates asynchronously - ensure they exist before calling loadTemplates
+                        console.log('Init: templates array length before loadTemplates():', this.templates?.length);
+                        if (!this.templates || this.templates.length === 0) {
+                            console.error('CRITICAL: Templates array is empty during init! This indicates a data declaration issue.');
                         }
-                    }, 100);
+                        
+                        // Load templates asynchronously to avoid blocking initialization
+                        this.loadTemplates().catch(error => {
+                            console.error('Failed to load templates during init:', error);
+                        });
+                        
+                        // RACE CONDITION FIX: Delayed initialization completion with token verification
+                        setTimeout(async () => {
+                            try {
+                                // Final modal close safety check
+                                this.showTemplateModal = false;
+                                this.selectedTemplate = null;
+                                this.showPaymentModal = false;
+                                this.authModalVisible = false;
+                                
+                                // Clear initialization flag after startup is complete
+                                this._isInitializing = false;
+                                
+                                // Now that init is complete, verify token if user exists
+                                if (this.user && this.getAuthToken()) {
+                                    await this.verifyToken();
+                                }
+                                
+                                console.log('✅ Alpine.js initialization completed successfully');
+                            } catch (delayedError) {
+                                console.error('❌ Error in delayed init completion:', delayedError);
+                            }
+                        }, 100);
+                        
+                    } catch (initError) {
+                        console.error('❌ CRITICAL: Alpine.js init() failed:', initError);
+                        console.error('❌ Stack trace:', initError.stack);
+                        
+                        // Emergency fallback - ensure basic state
+                        this.currentPage = 'generate';
+                        this._isInitializing = false;
+                    }
                     
-                    // Emergency close function for debugging - attach to window
+                    // Emergency diagnostic functions for debugging - attach to window
                     window.emergencyCloseModal = () => {
                         console.log('Emergency close triggered');
                         this.showPaymentModal = false;
                         this.showTemplateModal = false;
+                        this.showUpgradeModal = false;
                         this.authModalVisible = false;
+                        this.showComparisonModal = false;
                         this.showThreadModal = false;
                     };
                     
+                    window.debugNavigation = () => {
+                        console.log('🔍 NAVIGATION DEBUG REPORT:');
+                        console.log('========================');
+                        console.log('Current page:', this.currentPage);
+                        console.log('Alpine.js data intact:', !!this.switchToPage);
+                        console.log('User authenticated:', this.isAuthenticated());
+                        console.log('Templates loaded:', this.templatesLoaded);
+                        console.log('Templates count:', this.templates?.length || 0);
+                        
+                        // Check all page elements
+                        const pages = ['generate', 'history', 'templates', 'analytics', 'account'];
+                        pages.forEach(page => {
+                            const el = document.querySelector(`[x-show="currentPage === '${page}'"]`);
+                            console.log(`${page.toUpperCase()} PAGE:`);
+                            console.log(`  Element exists: ${!!el}`);
+                            console.log(`  Element visible: ${el?.style.display !== 'none'}`);
+                            console.log(`  Computed display: ${el ? window.getComputedStyle(el).display : 'N/A'}`);
+                        });
+                        
+                        // Test page switching
+                        console.log('Testing page switch to history...');
+                        this.switchToPage('history');
+                    };
+                    
+                    window.forcePageVisible = (page) => {
+                        console.log(`🚨 FORCE: Making ${page} page visible`);
+                        const el = document.querySelector(`[x-show="currentPage === '${page}'"]`);
+                        if (el) {
+                            el.style.display = 'block';
+                            el.style.visibility = 'visible';
+                            console.log('✅ Forced page visible');
+                        } else {
+                            console.error('❌ Page element not found');
+                        }
+                    };
+                    
                     // Log successful initialization
-                    console.log('Threadr app initialized successfully');
-                    console.log('Emergency close available: window.emergencyCloseModal()');
+                    console.log('🚀 Threadr app initialized successfully');
+                    console.log('🛠️ Debug tools available:');
+                    console.log('   - window.debugNavigation() - Full navigation diagnostic');
+                    console.log('   - window.forcePageVisible(page) - Force page visible');
+                    console.log('   - window.emergencyCloseModal() - Close all modals');
                 },
                 
                 // Check if user is authenticated
@@ -3368,39 +3440,83 @@
 
                 // Page navigation
                 switchToPage(page) {
-                    console.log('switchToPage called with:', page);
-                    console.log('Setting currentPage to:', page);
-                    this.currentPage = page;
-                    console.log('currentPage after set:', this.currentPage);
-                    this.sidebarOpen = false; // Close mobile sidebar
+                    console.log('🔄 switchToPage called with:', page);
+                    console.log('📍 Current page before switch:', this.currentPage);
                     
-                    if (page === 'history') {
-                        console.log('Loading history page');
-                        this.loadThreadHistory();
-                    } else if (page === 'analytics') {
-                        console.log('Loading analytics page');
-                        this.loadAnalytics();
-                    } else if (page === 'templates') {
-                        console.log('Loading templates page');
-                        this.loadTemplates().catch(error => {
-                            console.error('Failed to load templates on page switch:', error);
+                    try {
+                        // Validate page parameter
+                        const validPages = ['generate', 'history', 'templates', 'analytics', 'account'];
+                        if (!validPages.includes(page)) {
+                            console.error('❌ Invalid page requested:', page);
+                            return;
+                        }
+                        
+                        // Set the new page
+                        this.currentPage = page;
+                        console.log('✅ currentPage set to:', this.currentPage);
+                        
+                        // Close mobile sidebar
+                        this.sidebarOpen = false;
+                        
+                        // Load page-specific data
+                        if (page === 'history') {
+                            console.log('📚 Loading history page data');
+                            this.loadThreadHistory();
+                        } else if (page === 'analytics') {
+                            console.log('📊 Loading analytics page data');
+                            this.loadAnalytics();
+                        } else if (page === 'templates') {
+                            console.log('📝 Loading templates page data');
+                            this.loadTemplates().catch(error => {
+                                console.error('❌ Failed to load templates on page switch:', error);
+                            });
+                        } else if (page === 'account') {
+                            console.log('👤 Loading account page data');
+                            this.loadAccountData().catch(error => {
+                                console.error('❌ Failed to load account data on page switch:', error);
+                            });
+                        }
+                        
+                        // Force Alpine.js to update visibility
+                        this.$nextTick(() => {
+                            console.log('🔍 Page visibility check after switch:');
+                            const generateEl = document.querySelector('[x-show="currentPage === \'generate\'"]');
+                            const historyEl = document.querySelector('[x-show="currentPage === \'history\'"]');
+                            const templatesEl = document.querySelector('[x-show="currentPage === \'templates\'"]');
+                            const analyticsEl = document.querySelector('[x-show="currentPage === \'analytics\'"]');
+                            const accountEl = document.querySelector('[x-show="currentPage === \'account\'"]');
+                            
+                            console.log('- Generate element:', generateEl ? 'found' : 'MISSING');
+                            console.log('- Generate visible:', generateEl?.style.display !== 'none');
+                            console.log('- History element:', historyEl ? 'found' : 'MISSING');
+                            console.log('- History visible:', historyEl?.style.display !== 'none');
+                            console.log('- Templates element:', templatesEl ? 'found' : 'MISSING');
+                            console.log('- Templates visible:', templatesEl?.style.display !== 'none');
+                            console.log('- Analytics element:', analyticsEl ? 'found' : 'MISSING');
+                            console.log('- Analytics visible:', analyticsEl?.style.display !== 'none');
+                            console.log('- Account element:', accountEl ? 'found' : 'MISSING');
+                            console.log('- Account visible:', accountEl?.style.display !== 'none');
+                            
+                            // Check if the expected page is actually visible
+                            const expectedEl = document.querySelector(`[x-show="currentPage === '${page}'"]`);
+                            if (!expectedEl) {
+                                console.error('❌ CRITICAL: Expected page element not found for:', page);
+                            } else if (expectedEl.style.display === 'none') {
+                                console.error('❌ CRITICAL: Expected page element is hidden for:', page);
+                                console.error('❌ Element style:', expectedEl.style.cssText);
+                                console.error('❌ Element computed style:', window.getComputedStyle(expectedEl).display);
+                            } else {
+                                console.log('✅ Page switch successful - expected page is visible');
+                            }
                         });
-                    } else if (page === 'account') {
-                        console.log('Loading account page');
-                        this.loadAccountData().catch(error => {
-                            console.error('Failed to load account data on page switch:', error);
-                        });
+                        
+                    } catch (switchError) {
+                        console.error('❌ CRITICAL: Page switch failed:', switchError);
+                        console.error('❌ Stack trace:', switchError.stack);
+                        
+                        // Emergency fallback - go to generate page
+                        this.currentPage = 'generate';
                     }
-                    
-                    // Debug: Check which pages are visible after switch
-                    setTimeout(() => {
-                        console.log('After page switch - Elements visible:');
-                        console.log('Generate visible:', document.querySelector('[x-show="currentPage === \'generate\'"]')?.style.display !== 'none');
-                        console.log('History visible:', document.querySelector('[x-show="currentPage === \'history\'"]')?.style.display !== 'none');
-                        console.log('Templates visible:', document.querySelector('[x-show="currentPage === \'templates\'"]')?.style.display !== 'none');
-                        console.log('Analytics visible:', document.querySelector('[x-show="currentPage === \'analytics\'"]')?.style.display !== 'none');
-                        console.log('Account visible:', document.querySelector('[x-show="currentPage === \'account\'"]')?.style.display !== 'none');
-                    }, 100);
                 },
 
                 // History functions
