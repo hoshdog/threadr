@@ -224,7 +224,7 @@
                     >
                         <div class="flex items-center space-x-3">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
                             </svg>
                             <span class="font-medium">Generate Thread</span>
                         </div>
@@ -1206,43 +1206,137 @@
 
                 <!-- Analytics Page -->
                 <div x-show="currentPage === 'analytics'" x-transition>
-                    <!-- Premium Gate -->
-                    <div x-show="!user?.premium" class="text-center py-12">
-                        <div class="max-w-md mx-auto">
-                            <div class="w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center">
-                                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                                </svg>
-                            </div>
-                            <h3 class="text-2xl font-bold text-white mb-4">Analytics is a Pro Feature</h3>
-                            <p class="text-x-gray mb-8">Get detailed insights into your thread performance, engagement metrics, and AI-powered recommendations.</p>
-                            
-                            <div class="space-y-4 mb-8">
-                                <div class="flex items-center space-x-3 text-left">
-                                    <div class="w-2 h-2 bg-x-blue rounded-full"></div>
-                                    <span class="text-white">Detailed engagement metrics</span>
-                                </div>
-                                <div class="flex items-center space-x-3 text-left">
-                                    <div class="w-2 h-2 bg-x-blue rounded-full"></div>
-                                    <span class="text-white">Thread performance comparisons</span>
-                                </div>
-                                <div class="flex items-center space-x-3 text-left">
-                                    <div class="w-2 h-2 bg-x-blue rounded-full"></div>
-                                    <span class="text-white">AI-powered insights and tips</span>
-                                </div>
-                                <div class="flex items-center space-x-3 text-left">
-                                    <div class="w-2 h-2 bg-x-blue rounded-full"></div>
-                                    <span class="text-white">Industry benchmarking</span>
-                                </div>
+                    <!-- Header -->
+                    <div class="mb-8">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                            <div>
+                                <h2 class="text-2xl font-bold text-white mb-2">Analytics Dashboard</h2>
+                                <p class="text-x-gray">Track your thread performance and engagement</p>
                             </div>
                             
-                            <button class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold py-4 px-8 rounded-full transition-all duration-200">
-                                Upgrade to Pro
-                            </button>
+                            <!-- Time Period Selector (Pro Only) -->
+                            <div x-show="user?.premium" class="flex rounded-full bg-x-dark border border-x-border p-1">
+                                <button 
+                                    @click="changeTimePeriod('1d')"
+                                    :class="analyticsTimePeriod === '1d' ? 'bg-x-blue text-white' : 'text-x-gray hover:text-white'"
+                                    class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200"
+                                >
+                                    1 Day
+                                </button>
+                                <button 
+                                    @click="changeTimePeriod('7d')"
+                                    :class="analyticsTimePeriod === '7d' ? 'bg-x-blue text-white' : 'text-x-gray hover:text-white'"
+                                    class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200"
+                                >
+                                    7 Days
+                                </button>
+                                <button 
+                                    @click="changeTimePeriod('30d')"
+                                    :class="analyticsTimePeriod === '30d' ? 'bg-x-blue text-white' : 'text-x-gray hover:text-white'"
+                                    class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200"
+                                >
+                                    30 Days
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Analytics Dashboard (Premium Users) -->
+                    <!-- Basic Analytics for All Users -->
+                    <div class="space-y-6">
+                        <!-- Usage Stats -->
+                        <div class="tweet-card rounded-2xl p-6">
+                            <h3 class="text-xl font-semibold text-white mb-6 flex items-center">
+                                <svg class="w-6 h-6 text-x-blue mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                                Your Usage Statistics
+                            </h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <!-- Daily Usage -->
+                                <div class="bg-x-dark/50 rounded-xl p-4 border border-x-border/50">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-x-gray text-sm">Today</span>
+                                        <svg class="w-4 h-4 text-x-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="text-2xl font-bold text-white">0</div>
+                                    <div class="text-xs text-x-gray mt-1">
+                                        <span x-show="!user?.premium">of 5 free</span>
+                                        <span x-show="user?.premium">threads generated</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Monthly Usage -->
+                                <div class="bg-x-dark/50 rounded-xl p-4 border border-x-border/50">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-x-gray text-sm">This Month</span>
+                                        <svg class="w-4 h-4 text-x-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="text-2xl font-bold text-white">0</div>
+                                    <div class="text-xs text-x-gray mt-1">
+                                        <span x-show="!user?.premium">of 20 free</span>
+                                        <span x-show="user?.premium">threads generated</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Total Threads -->
+                                <div class="bg-x-dark/50 rounded-xl p-4 border border-x-border/50">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-x-gray text-sm">Total</span>
+                                        <svg class="w-4 h-4 text-x-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="text-2xl font-bold text-white">0</div>
+                                    <div class="text-xs text-x-gray mt-1">threads created</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Premium Feature Teaser for Free Users -->
+                        <div x-show="!user?.premium" class="tweet-card rounded-2xl p-6 border border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-orange-600/10">
+                            <div class="flex items-start space-x-4">
+                                <div class="w-12 h-12 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-semibold text-white mb-2">Unlock Advanced Analytics</h3>
+                                    <p class="text-x-gray mb-4">Get detailed insights into your thread performance with Pro features:</p>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                                        <div class="flex items-center space-x-2">
+                                            <div class="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                            <span class="text-white text-sm">Engagement metrics</span>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <div class="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                            <span class="text-white text-sm">Performance charts</span>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <div class="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                            <span class="text-white text-sm">Thread comparisons</span>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <div class="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                            <span class="text-white text-sm">AI-powered insights</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <button @click="showPaymentModal = true" class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold py-3 px-6 rounded-full transition-all duration-200">
+                                        Upgrade to Pro - $4.99
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Analytics Dashboard (Premium Users Only) -->
                     <div x-show="user?.premium">
                         <!-- Header -->
                         <div class="mb-8">
@@ -1546,27 +1640,105 @@
                         <p class="text-x-gray">Manage your profile, subscription, and usage analytics</p>
                     </div>
 
-                    <!-- Loading State -->
-                    <div x-show="accountLoading" class="flex justify-center items-center py-12">
-                        <div class="loading-spinner"></div>
-                        <span class="ml-3 text-x-gray">Loading account data...</span>
-                    </div>
-
-                    <!-- Error State -->
-                    <div x-show="accountError" class="tweet-card rounded-2xl p-6 mb-6 border border-red-500/50 bg-red-900/30">
-                        <div class="flex items-center space-x-3">
-                            <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span class="text-red-400 font-medium" x-text="accountError"></span>
+                    <!-- Authentication Required Notice for Non-Authenticated Users -->
+                    <div x-show="!user" class="tweet-card rounded-2xl p-6 mb-6 border border-blue-500/30 bg-blue-900/20">
+                        <div class="text-center">
+                            <div class="w-16 h-16 mx-auto mb-4 bg-x-blue rounded-full flex items-center justify-center">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-semibold text-white mb-2">Sign In to Access Account Settings</h3>
+                            <p class="text-x-gray mb-6">Create an account or sign in to manage your profile, view detailed usage analytics, and access premium features.</p>
+                            
+                            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                                <button @click="showAuthModal('signup')" class="button-primary text-white font-semibold py-3 px-6 rounded-full">
+                                    Create Account
+                                </button>
+                                <button @click="showAuthModal('login')" class="bg-x-dark hover:bg-x-hover text-white font-semibold py-3 px-6 rounded-full transition-colors">
+                                    Sign In
+                                </button>
+                            </div>
                         </div>
-                        <button @click="loadAccountData()" class="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                            Try Again
-                        </button>
                     </div>
 
-                    <!-- Account Content -->
-                    <div x-show="!accountLoading && !accountError" class="space-y-8">
+                    <!-- Basic Usage Info for Non-Authenticated Users -->
+                    <div x-show="!user" class="space-y-6">
+                        <!-- Basic Usage Stats -->
+                        <div class="tweet-card rounded-2xl p-6">
+                            <h3 class="text-xl font-semibold text-white mb-6 flex items-center">
+                                <svg class="w-6 h-6 text-x-blue mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                                Free Account Limits
+                            </h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-x-dark/50 rounded-xl p-4 border border-x-border/50">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-x-gray text-sm">Daily Threads</span>
+                                        <svg class="w-4 h-4 text-x-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="text-2xl font-bold text-white">5</div>
+                                    <div class="text-xs text-x-gray mt-1">free threads per day</div>
+                                </div>
+                                
+                                <div class="bg-x-dark/50 rounded-xl p-4 border border-x-border/50">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-x-gray text-sm">Monthly Threads</span>
+                                        <svg class="w-4 h-4 text-x-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="text-2xl font-bold text-white">20</div>
+                                    <div class="text-xs text-x-gray mt-1">free threads per month</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Premium Features Teaser -->
+                        <div class="tweet-card rounded-2xl p-6 border border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-orange-600/10">
+                            <div class="flex items-start space-x-4">
+                                <div class="w-12 h-12 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-semibold text-white mb-2">Upgrade to Pro</h3>
+                                    <p class="text-x-gray mb-4">Unlock unlimited threads and premium features for just $4.99/month:</p>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                                        <div class="flex items-center space-x-2">
+                                            <div class="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                            <span class="text-white text-sm">Unlimited thread generation</span>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <div class="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                            <span class="text-white text-sm">Advanced analytics</span>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <div class="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                            <span class="text-white text-sm">Premium templates</span>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <div class="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                            <span class="text-white text-sm">Priority support</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <button @click="showPaymentModal = true" class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold py-3 px-6 rounded-full transition-all duration-200">
+                                        Upgrade Now - $4.99
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Authenticated User Content -->
+                    <div x-show="user" class="space-y-8">
                         
                         <!-- Profile Section -->
                         <div class="tweet-card rounded-2xl p-6">
@@ -4107,7 +4279,8 @@
                 closeComparison() {
                     this.showComparisonModal = false;
                 }
-            }
+            };
+        }
 
     </script>
 </body>
