@@ -1,0 +1,28 @@
+VERCEL ENVIRONMENT VARIABLE - EXACT FORM VALUES
+===============================================
+
+Copy and paste these EXACTLY into Vercel:
+
+FIELD 1 - Name:
+THREADR_API_KEY
+
+FIELD 2 - Value:
+zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8
+
+FIELD 3 - Environments:
+[✓] Production
+[✓] Preview  
+[✓] Development
+
+FIELD 4 - Sensitive:
+[✓] Sensitive - This value will be encrypted
+
+Then click: Save
+
+===============================================
+COMMON MISTAKES:
+- DON'T use: threadr-api-key (has hyphens)
+- DON'T add quotes around the values
+- DON'T add spaces before/after
+- DO use: THREADR_API_KEY (with underscores)
+===============================================

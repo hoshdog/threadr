@@ -1,11 +1,14 @@
 {
   "version": 2,
-  "public": true,
-  "buildCommand": "node build.js",
-  "outputDirectory": "dist",
-  "installCommand": "npm install --production=false",
-  "devCommand": "npx serve public -p 3000",
+  "buildCommand": "cd frontend && node build.js",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "cd frontend && npm install --production=false",
   "framework": null,
+  "build": {
+    "env": {
+      "THREADR_API_KEY": "$THREADR_API_KEY"
+    }
+  },
   "rewrites": [
     {
       "source": "/:path([^.]*)",
@@ -73,14 +76,5 @@
         }
       ]
     }
-  ],
-  "env": {
-    "THREADR_API_URL": "https://threadr-production.up.railway.app",
-    "THREADR_API_KEY": "@threadr_api_key"
-  },
-  "build": {
-    "env": {
-      "THREADR_API_KEY": "@threadr_api_key"
-    }
-  }
+  ]
 }
