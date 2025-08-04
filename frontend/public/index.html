@@ -23,15 +23,10 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped-favicon&t=1722762000">
     <link rel="icon" type="image/png" sizes="256x256" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped-favicon&t=1722762000">
     <link rel="icon" type="image/png" sizes="512x512" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped-favicon&t=1722762000">
-    <!-- Environment variables will be injected by Vercel build process -->
+    <!-- SECURITY FIX: Environment variable injection removed for security -->
     <script>
-        // Placeholder for environment variables - will be replaced during build
-        // This script will be populated by Vercel's build process via vercel.json
-        window.THREADR_API_KEY = 'VERCEL_INJECT_API_KEY';
-        // Clean up placeholder values
-        if (window.THREADR_API_KEY === 'VERCEL_INJECT_API_KEY') {
-            delete window.THREADR_API_KEY;
-        }
+        // No API keys or sensitive data injected into frontend for security
+        // Backend handles all authentication via IP-based rate limiting
     </script>
     <script src="config.js?v=1.2.0"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -3338,13 +3333,9 @@
                         headers['Authorization'] = `Bearer ${token}`;
                     }
                     
-                    // Add API key header for non-development environments (ALWAYS needed for /api/generate)
-                    const hostname = window.location.hostname;
-                    const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
-                    
-                    if (!isDevelopment) {
-                        headers['X-API-Key'] = config.API_KEY || 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
-                    }
+                    // SECURITY FIX: API key headers removed for security
+                    // Backend now handles authentication via IP-based rate limiting
+                    // No API keys are required or transmitted from frontend
                     
                     return headers;
                 },

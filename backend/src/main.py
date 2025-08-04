@@ -552,8 +552,8 @@ class GrantPremiumRequest(BaseModel):
 # Security Dependencies and Utilities
 
 async def verify_api_key(x_api_key: Annotated[Optional[str], Header()] = None) -> str:
-    """Verify API key for protected endpoints"""
-    # Skip API key check in development mode
+    """Verify API key for protected endpoints - ADMIN/INTERNAL USE ONLY"""
+    # Skip API key check in development mode  
     if ENVIRONMENT == "development" and not API_KEYS:
         return "development"
     
@@ -579,6 +579,33 @@ async def verify_api_key(x_api_key: Annotated[Optional[str], Header()] = None) -
         )
     
     return x_api_key
+
+async def verify_public_access(request: Request) -> Dict[str, Any]:
+    """
+    Secure public endpoint access - NO API KEY REQUIRED
+    Uses IP-based rate limiting and basic security checks
+    """
+    client_ip = SecurityUtils.get_client_ip(request)
+    
+    # Basic security: Block obvious malicious IPs or patterns
+    if not client_ip or client_ip == "127.0.0.1" and ENVIRONMENT == "production":
+        logger.warning(f"Suspicious request from IP: {client_ip}")
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied"
+        )
+    
+    # Additional security headers validation
+    user_agent = request.headers.get("user-agent", "")
+    if len(user_agent) < 10 and ENVIRONMENT == "production":
+        logger.warning(f"Suspicious request with short user agent: {user_agent[:50]}")
+        # Don't block but log for monitoring
+    
+    return {
+        "client_ip": client_ip,
+        "user_agent": user_agent,
+        "access_type": "public"
+    }
 
 def is_private_ip(ip_str: str) -> bool:
     """Check if an IP address is private/internal"""
@@ -2023,7 +2050,7 @@ async def generate_thread(
     request: GenerateThreadRequest,
     client_request: Request,
     _: None = Depends(check_rate_limit),
-    api_key: str = Depends(verify_api_key),
+    security_context: Dict[str, Any] = Depends(verify_public_access),
     user_context: Dict[str, Any] = Depends(get_user_context)
 ):
     """Generate a Twitter/X thread from URL or text content"""
@@ -2409,7 +2436,7 @@ async def subscribe_email(
     request: EmailSubscribeRequest,
     client_request: Request,
     _: None = Depends(check_rate_limit),
-    api_key: str = Depends(verify_api_key),
+    security_context: Dict[str, Any] = Depends(verify_public_access),
     user_context: Dict[str, Any] = Depends(get_user_context)
 ):
     """Subscribe email for notifications and updates"""

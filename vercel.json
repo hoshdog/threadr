@@ -1,11 +1,6 @@
 {
   "buildCommand": "node frontend/build.js",
   "outputDirectory": "frontend/dist",
-  "build": {
-    "env": {
-      "THREADR_API_KEY": "$THREADR_API_KEY"
-    }
-  },
   "rewrites": [
     {
       "source": "/(.*)",

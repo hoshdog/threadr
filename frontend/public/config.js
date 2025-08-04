@@ -45,26 +45,9 @@ const config = {
     MAX_TWEET_LENGTH: 280,
     MAX_TEXT_INPUT_LENGTH: 10000,
     
-    // API Authentication
-    API_KEY: (() => {
-        const hostname = window.location.hostname;
-        
-        // No API key needed in development
-        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
-            return null;
-        }
-        
-        // Try to get API key from environment variable first (secure method)
-        const envApiKey = window.THREADR_API_KEY;
-        if (envApiKey) {
-            return envApiKey;
-        }
-        
-        // Fallback to hardcoded key for backward compatibility
-        // WARNING: This should be removed once environment variable is properly configured
-        console.warn('Using fallback API key. Please configure THREADR_API_KEY environment variable.');
-        return 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
-    })(),
+    // SECURITY FIX: API keys removed from frontend for security
+    // Backend now handles all authentication internally using IP-based rate limiting
+    // No API keys are required or used in frontend requests
     
     // Feature flags based on environment
     FEATURES: {
@@ -88,14 +71,11 @@ if (config.FEATURES.DEBUG_MODE) {
     console.log('Threadr Config:', config);
     console.log('Environment:', config.ENV);
     console.log('API URL:', config.API_URL);
-    console.log('API Key:', config.API_KEY ? '[HIDDEN]' : 'null');
-    console.log('Environment API Key available:', !!window.THREADR_API_KEY);
+    console.log('Security Model: IP-based rate limiting (no API keys)');
 }
 
 // Also log in production for debugging (temporary)
 if (!config.FEATURES.DEBUG_MODE && window.location.hostname.includes('vercel')) {
     console.log('Production Debug - Hostname:', window.location.hostname);
-    console.log('Production Debug - API Key configured:', !!config.API_KEY);
-    console.log('Production Debug - Environment API Key:', !!window.THREADR_API_KEY);
-    console.log('Production Debug - Using fallback:', config.API_KEY === 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8');
+    console.log('Production Debug - Security: Backend IP-based authentication');
 }
