@@ -99,12 +99,12 @@
             height: 100%;
         }
         
-        /* Logo dead space removal - crops whitespace around logo */
+        /* Logo styling - reduced size by 20% and removed cropping */
         .logo-cropped {
-            object-fit: cover;
+            object-fit: contain;
             object-position: center;
-            /* Fine-tune the crop by scaling slightly larger to remove padding */
-            transform: scale(1.3);
+            /* Reduced from scale(1.3) - removed cropping, reduced size by 20% */
+            transform: scale(0.8);
             transition: transform 0.2s ease;
             opacity: 1; /* Ensure full opacity */
             filter: none; /* Remove any filters */
@@ -115,7 +115,7 @@
             .logo-cropped {
                 opacity: 1 !important; /* Force full opacity on mobile */
                 filter: none !important; /* Remove any filters on mobile */
-                transform: scale(1.25); /* Less aggressive scaling on mobile */
+                transform: scale(0.75); /* Reduced mobile scaling by 20% */
             }
         }
         
@@ -130,12 +130,12 @@
         
         /* Hover effects for interactive logos */
         .logo-container:hover .logo-cropped {
-            transform: scale(1.35); /* Slightly larger scale on hover */
+            transform: scale(0.85); /* Reduced hover scale by 20% */
         }
         
         /* Special hover effect for sidebar logo */
         .sidebar-logo:hover .logo-cropped {
-            transform: scale(1.4);
+            transform: scale(0.9); /* Reduced sidebar hover scale by 20% */
         }
         .sidebar-transition {
             transition: all 0.2s ease-in-out;
@@ -350,7 +350,7 @@
                         </button>
                     </div>
                     
-                    <div x-show="user" class="relative" x-data="{ showDropdown: false }">
+                    <div x-show="user" class="relative">
                         <button 
                             @click="showDropdown = !showDropdown"
                             class="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-x-hover transition-colors duration-200"
@@ -430,7 +430,7 @@
         <div class="flex-1 lg:ml-0">
             <div class="max-w-2xl mx-auto p-6 lg:p-8">
                 <!-- Generate Thread Page -->
-                <div x-show="currentPage === 'generate'" x-transition>
+                <div x-show="currentPage === 'generate'">
                     <!-- Header -->
                     <div class="mb-8">
                         <h2 class="text-2xl font-bold text-white mb-2">Create Your Thread</h2>
@@ -773,7 +773,7 @@
                 </div>
 
                 <!-- History Page -->
-                <div x-show="currentPage === 'history'" x-transition>
+                <div x-show="currentPage === 'history'">
                     <!-- Header -->
                     <div class="mb-8">
                         <h2 class="text-2xl font-bold text-white mb-2">Thread History</h2>
@@ -1260,7 +1260,7 @@
                 </div>
 
                 <!-- Analytics Page -->
-                <div x-show="currentPage === 'analytics'" x-transition>
+                <div x-show="currentPage === 'analytics'">
                     <!-- Header -->
                     <div class="mb-8">
                         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -1702,7 +1702,7 @@
                 </div>
 
                 <!-- Account Page -->
-                <div x-show="currentPage === 'account'" x-transition>
+                <div x-show="currentPage === 'account'">
                     <!-- Header -->
                     <div class="mb-8">
                         <h2 class="text-2xl font-bold text-white mb-2">Account Settings</h2>
@@ -2127,7 +2127,7 @@
                 </div>
 
                 <!-- Templates Page -->
-                <div x-show="currentPage === 'templates'" x-transition>
+                <div x-show="currentPage === 'templates'">
                     <!-- Header -->
                     <div class="mb-8">
                         <h2 class="text-2xl font-bold text-white mb-2">Thread Templates</h2>
@@ -2364,6 +2364,7 @@
                 authError: '',
                 
                 sidebarOpen: false,
+                showDropdown: false,
                 
                 // Page state
                 currentPage: 'generate', // 'generate', 'templates', 'history', or 'analytics'
@@ -3399,6 +3400,7 @@
                 switchToPage(page) {
                     console.log('🔄 switchToPage called with:', page);
                     console.log('📍 Current page before switch:', this.currentPage);
+                    console.log('🔍 Alpine.js scope check - this object keys:', Object.keys(this));
                     
                     try {
                         // Validate page parameter
@@ -3410,6 +3412,19 @@
                         
                         // Set the new page
                         this.currentPage = page;
+                        console.log('✅ Current page set to:', this.currentPage);
+                        
+                        // Force Alpine.js reactivity update
+                        this.$nextTick(() => {
+                            console.log('🔄 $nextTick - page is now:', this.currentPage);
+                            // Force DOM re-evaluation by triggering a reactive change
+                            const tempPage = this.currentPage;
+                            this.currentPage = '';
+                            this.$nextTick(() => {
+                                this.currentPage = tempPage;
+                                console.log('🎯 Final page after force-refresh:', this.currentPage);
+                            });
+                        });
                         
                         // Close mobile sidebar
                         this.sidebarOpen = false;
@@ -3435,6 +3450,21 @@
                             }
                         }, 50); // Brief delay to ensure authReady state is stable
                         
+                        // FALLBACK: Manual DOM manipulation if Alpine.js fails
+                        setTimeout(() => {
+                            const allPages = ['generate', 'history', 'templates', 'analytics', 'account'];
+                            allPages.forEach(pageName => {
+                                const pageElements = document.querySelectorAll(`[x-show="currentPage === '${pageName}'"]`);
+                                pageElements.forEach(el => {
+                                    if (pageName === page) {
+                                        el.style.display = 'block';
+                                        console.log(`📱 Manual show: ${pageName} page`);
+                                    } else {
+                                        el.style.display = 'none';
+                                    }
+                                });
+                            });
+                        }, 100);
                         
                     } catch (switchError) {
                         console.error('❌ CRITICAL: Page switch failed:', switchError);
