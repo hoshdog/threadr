@@ -8,21 +8,21 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <!-- Aggressive cache-busting for logos -->
-    <link rel="preload" as="image" href="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600">
-    <link rel="preload" as="image" href="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600">
-    <link rel="preload" as="image" href="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600">
-    <link rel="preload" as="image" href="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600">
+    <!-- Aggressive cache-busting for logos - Updated to White Cropped -->
+    <link rel="preload" as="image" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped&t=1722762000">
+    <link rel="preload" as="image" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped&t=1722762000">
+    <link rel="preload" as="image" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped&t=1722762000">
+    <link rel="preload" as="image" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped&t=1722762000">
     
-    <!-- Enhanced favicon using logo for better scaling and less dead space -->
-    <link rel="icon" type="image/png" href="/logos/threadrLogo_Black.png?v=2025-08-03-favicon-fix&t=1722675600">
-    <link rel="apple-touch-icon" href="/logos/threadrLogo_Black.png?v=2025-08-03-favicon-fix&t=1722675600">
+    <!-- Enhanced favicon using White Cropped logo for better scaling and less dead space -->
+    <link rel="icon" type="image/png" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped-favicon&t=1722762000">
+    <link rel="apple-touch-icon" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped-favicon&t=1722762000">
     <!-- Multiple favicon sizes for better display and scaling -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/logos/threadrLogo_Black.png?v=2025-08-03-favicon-fix&t=1722675600">
-    <link rel="icon" type="image/png" sizes="16x16" href="/logos/threadrLogo_Black.png?v=2025-08-03-favicon-fix&t=1722675600">
-    <link rel="icon" type="image/png" sizes="192x192" href="/logos/threadrLogo_Black.png?v=2025-08-03-favicon-fix&t=1722675600">
-    <link rel="icon" type="image/png" sizes="256x256" href="/logos/threadrLogo_Black.png?v=2025-08-03-favicon-fix&t=1722675600">
-    <link rel="icon" type="image/png" sizes="512x512" href="/logos/threadrLogo_Black.png?v=2025-08-03-favicon-fix&t=1722675600">
+    <link rel="icon" type="image/png" sizes="32x32" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped-favicon&t=1722762000">
+    <link rel="icon" type="image/png" sizes="16x16" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped-favicon&t=1722762000">
+    <link rel="icon" type="image/png" sizes="192x192" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped-favicon&t=1722762000">
+    <link rel="icon" type="image/png" sizes="256x256" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped-favicon&t=1722762000">
+    <link rel="icon" type="image/png" sizes="512x512" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped-favicon&t=1722762000">
     <script src="config.js?v=1.2.0"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -226,7 +226,7 @@
     <div class="lg:hidden flex items-center justify-between p-6 border-b border-x-border">
         <div class="flex items-center space-x-4">
             <div class="logo-container w-20 h-20 sm:w-24 sm:h-24">
-                <img src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" alt="Threadr Logo" class="logo-cropped w-full h-full"
+                <img src="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped&t=1722762000" alt="Threadr Logo" class="logo-cropped w-full h-full"
                      onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';"
                      onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
                      style="display: block;">
@@ -250,7 +250,7 @@
                 <div class="p-8 border-b border-x-border">
                     <div class="flex items-center space-x-4">
                         <div class="logo-container sidebar-logo h-20 lg:h-24 w-auto cursor-pointer" onclick="switchToPage('generate')">
-                            <img src="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600" alt="Threadr Logo" class="logo-cropped w-full h-full"
+                            <img src="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped&t=1722762000" alt="Threadr Logo" class="logo-cropped w-full h-full"
                                  onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';"
                                  style="display: block;">
@@ -579,7 +579,7 @@
                                         <span class="text-xs text-x-gray font-semibold bg-x-dark px-2 py-1 rounded-full" x-text="`${index + 1}/${tweets.length}`"></span>
                                         <div class="w-20 h-20 bg-x-blue rounded-full flex items-center justify-center p-4">
                                             <div class="logo-container w-full h-full">
-                                                <img src="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600" alt="Thread" class="logo-cropped w-full h-full"
+                                                <img src="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped&t=1722762000" alt="Thread" class="logo-cropped w-full h-full"
                                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                                                 <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-sm flex items-center justify-center text-xs font-bold">T</div>
                                             </div>
@@ -799,7 +799,7 @@
                     <!-- Loading State -->
                     <div x-show="historyLoading" class="tweet-card rounded-2xl p-12 text-center">
                         <div class="mx-auto mb-4 w-20 h-20 logo-loading logo-container">
-                            <img src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" alt="Loading..." class="logo-cropped w-full h-full"
+                            <img src="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped&t=1722762000" alt="Loading..." class="logo-cropped w-full h-full"
                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                             <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-md flex items-center justify-center text-lg font-bold">T</div>
                         </div>
@@ -956,7 +956,7 @@
                                             <span class="text-xs text-x-gray font-semibold bg-x-black px-2 py-1 rounded-full" x-text="`${index + 1}/${selectedThread.tweets.length}`"></span>
                                             <div class="w-20 h-20 bg-x-blue rounded-full flex items-center justify-center p-4">
                                                 <div class="logo-container w-full h-full">
-                                                    <img src="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600" alt="Thread" class="logo-cropped w-full h-full"
+                                                    <img src="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped&t=1722762000" alt="Thread" class="logo-cropped w-full h-full"
                                                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                                                     <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-sm flex items-center justify-center text-sm font-bold">T</div>
                                                 </div>
@@ -1019,7 +1019,7 @@
                 <div class="flex justify-between items-center mb-8">
                     <div class="flex items-center space-x-6">
                         <div class="logo-container w-24 h-24 sm:w-28 sm:h-28">
-                            <img src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" alt="Threadr Logo" class="logo-cropped w-full h-full"
+                            <img src="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped&t=1722762000" alt="Threadr Logo" class="logo-cropped w-full h-full"
                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                             <div style="display: none;" class="w-24 h-24 sm:w-28 sm:h-28 bg-blue-600 text-white rounded-md flex items-center justify-center text-2xl sm:text-3xl font-bold">T</div>
                         </div>
@@ -1106,7 +1106,7 @@
                         <span x-show="!authLoading" x-text="authMode === 'login' ? 'Sign In' : 'Create Account'"></span>
                         <span x-show="authLoading" class="flex items-center justify-center space-x-2">
                             <div class="w-12 h-12 logo-loading logo-container">
-                                <img src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" alt="Loading..." class="logo-cropped w-full h-full"
+                                <img src="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped&t=1722762000" alt="Loading..." class="logo-cropped w-full h-full"
                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                                 <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-sm flex items-center justify-center text-sm font-bold">T</div>
                             </div>
@@ -1168,7 +1168,7 @@
                 <div class="text-center">
                     <div class="mx-auto flex items-center justify-center h-32 w-32 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 mb-6 p-6">
                         <div class="logo-container w-full h-full">
-                            <img src="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600" alt="Threadr Logo" class="logo-cropped w-full h-full"
+                            <img src="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped&t=1722762000" alt="Threadr Logo" class="logo-cropped w-full h-full"
                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                             <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-md flex items-center justify-center text-2xl font-bold">T</div>
                         </div>
@@ -2180,7 +2180,7 @@
                     <!-- Loading State -->
                     <div x-show="templatesLoading" class="tweet-card rounded-2xl p-12 text-center">
                         <div class="mx-auto mb-4 w-20 h-20 logo-loading logo-container">
-                            <img src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" alt="Loading..." class="logo-cropped w-full h-full"
+                            <img src="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped&t=1722762000" alt="Loading..." class="logo-cropped w-full h-full"
                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                             <div style="display: none;" class="w-full h-full bg-blue-600 text-white rounded-md flex items-center justify-center text-lg font-bold">T</div>
                         </div>
@@ -2713,6 +2713,9 @@
                 showUpgradeModal: false,
                 templateFormData: {},
                 
+                // Authentication state management
+                authReady: false,
+                
                 // Initialize authentication on component load
                 init() {
                     console.log('🔄 Alpine.js init() starting...');
@@ -2768,6 +2771,10 @@
                                 console.log('✅ Alpine.js initialization completed successfully');
                             } catch (delayedError) {
                                 console.error('❌ Error in delayed init completion:', delayedError);
+                            } finally {
+                                // Mark authentication as ready
+                                this.authReady = true;
+                                console.log('✅ Authentication ready - components can now load data');
                             }
                         }, 100);
                         
@@ -2778,6 +2785,7 @@
                         // Emergency fallback - ensure basic state
                         this.currentPage = 'generate';
                         this._isInitializing = false;
+                        this.authReady = true; // Set authReady even on error
                     }
                     
                     // Emergency diagnostic functions for debugging - attach to window
@@ -2852,6 +2860,7 @@
                         } else {
                             const userData = await response.json();
                             this.user = userData;
+                            this.authReady = true; // Mark auth as ready after successful verification
                             localStorage.setItem('threadr_user', JSON.stringify(userData));
                             
                             // RACE CONDITION FIX: Force template re-render after premium status update
@@ -2893,6 +2902,7 @@
                 // Clear authentication data
                 clearAuthData() {
                     this.user = null;
+                    this.authReady = false; // Reset auth ready state
                     localStorage.removeItem('threadr_token');
                     localStorage.removeItem('threadr_refresh_token');
                     localStorage.removeItem('threadr_user');
@@ -3404,24 +3414,26 @@
                         // Close mobile sidebar
                         this.sidebarOpen = false;
                         
-                        // Load page-specific data
-                        if (page === 'history') {
-                            console.log('📚 Loading history page data');
-                            this.loadThreadHistory();
-                        } else if (page === 'analytics') {
-                            console.log('📊 Loading analytics page data');
-                            this.loadAnalytics();
-                        } else if (page === 'templates') {
-                            console.log('📝 Loading templates page data');
-                            this.loadTemplates().catch(error => {
-                                console.error('❌ Failed to load templates on page switch:', error);
-                            });
-                        } else if (page === 'account') {
-                            console.log('👤 Loading account page data');
-                            this.loadAccountData().catch(error => {
-                                console.error('❌ Failed to load account data on page switch:', error);
-                            });
-                        }
+                        // Load page-specific data with brief delay to ensure authReady is stable
+                        setTimeout(() => {
+                            if (page === 'history') {
+                                console.log('📚 Loading history page data');
+                                this.loadThreadHistory();
+                            } else if (page === 'analytics') {
+                                console.log('📊 Loading analytics page data');
+                                this.loadAnalytics();
+                            } else if (page === 'templates') {
+                                console.log('📝 Loading templates page data');
+                                this.loadTemplates().catch(error => {
+                                    console.error('❌ Failed to load templates on page switch:', error);
+                                });
+                            } else if (page === 'account') {
+                                console.log('👤 Loading account page data');
+                                this.loadAccountData().catch(error => {
+                                    console.error('❌ Failed to load account data on page switch:', error);
+                                });
+                            }
+                        }, 50); // Brief delay to ensure authReady state is stable
                         
                         
                     } catch (switchError) {
@@ -3434,7 +3446,19 @@
                 },
 
                 // History functions
-                async loadThreadHistory() {
+                async loadThreadHistory(retryCount = 0) {
+                    // Wait for authentication to be ready
+                    if (!this.authReady && retryCount < 10) {
+                        console.log(`⏳ Waiting for auth to be ready before loading history... (attempt ${retryCount + 1}/10)`);
+                        // Retry after a short delay
+                        setTimeout(() => this.loadThreadHistory(retryCount + 1), 200);
+                        return;
+                    }
+                    
+                    if (!this.authReady) {
+                        console.warn('⚠️ Auth not ready after maximum retries, proceeding anyway');
+                    }
+                    
                     if (!this.isAuthenticated()) {
                         this.historyError = 'Please log in to view your thread history';
                         return;
@@ -3663,7 +3687,19 @@
                 },
 
                 // Analytics functions
-                async loadAnalytics() {
+                async loadAnalytics(retryCount = 0) {
+                    // Wait for authentication to be ready
+                    if (!this.authReady && retryCount < 10) {
+                        console.log(`⏳ Waiting for auth to be ready before loading analytics... (attempt ${retryCount + 1}/10)`);
+                        // Retry after a short delay
+                        setTimeout(() => this.loadAnalytics(retryCount + 1), 200);
+                        return;
+                    }
+                    
+                    if (!this.authReady) {
+                        console.warn('⚠️ Auth not ready after maximum retries, proceeding anyway');
+                    }
+                    
                     // Always set loading to false at start to ensure proper state
                     this.analyticsLoading = false;
                     this.analyticsError = '';
@@ -3861,7 +3897,19 @@
                 },
 
                 // Account functions
-                async loadAccountData() {
+                async loadAccountData(retryCount = 0) {
+                    // Wait for authentication to be ready
+                    if (!this.authReady && retryCount < 10) {
+                        console.log(`⏳ Waiting for auth to be ready before loading account data... (attempt ${retryCount + 1}/10)`);
+                        // Retry after a short delay
+                        setTimeout(() => this.loadAccountData(retryCount + 1), 200);
+                        return;
+                    }
+                    
+                    if (!this.authReady) {
+                        console.warn('⚠️ Auth not ready after maximum retries, proceeding anyway');
+                    }
+                    
                     // Always ensure loading state is properly initialized
                     this.accountLoading = false;
                     this.accountError = '';
