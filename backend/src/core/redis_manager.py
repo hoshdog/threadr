@@ -746,6 +746,292 @@ class RedisManager:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(self.executor, _analytics)
     
+    # Subscription Management Methods
+    
+    async def create_user_subscription(self, user_id: str, subscription_data: Dict[str, Any]) -> bool:
+        """Create or update user subscription data"""
+        def _create():
+            with self._redis_operation() as r:
+                if not r:
+                    return False
+                
+                try:
+                    subscription_key = f"threadr:subscription:user:{user_id}"
+                    subscription_json = json.dumps(subscription_data, default=str)
+                    
+                    # Set subscription data with TTL (1 year)
+                    r.setex(subscription_key, 31536000, subscription_json)
+                    
+                    # Add to active subscriptions set
+                    r.sadd("threadr:subscriptions:active", user_id)
+                    
+                    logger.info(f"Created subscription for user {user_id}: {subscription_data.get('plan_name')}")
+                    return True
+                    
+                except Exception as e:
+                    logger.error(f"Error creating user subscription: {e}")
+                    return False
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _create)
+    
+    async def get_user_subscription(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get user subscription data"""
+        def _get():
+            with self._redis_operation() as r:
+                if not r:
+                    return None
+                
+                try:
+                    subscription_key = f"threadr:subscription:user:{user_id}"
+                    subscription_data = r.get(subscription_key)
+                    
+                    if subscription_data:
+                        return json.loads(subscription_data)
+                    return None
+                    
+                except Exception as e:
+                    logger.error(f"Error getting user subscription: {e}")
+                    return None
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _get)
+    
+    async def update_user_subscription(self, user_id: str, subscription_data: Dict[str, Any]) -> bool:
+        """Update existing user subscription data"""
+        def _update():
+            with self._redis_operation() as r:
+                if not r:
+                    return False
+                
+                try:
+                    subscription_key = f"threadr:subscription:user:{user_id}"
+                    subscription_json = json.dumps(subscription_data, default=str)
+                    
+                    # Update subscription data
+                    r.setex(subscription_key, 31536000, subscription_json)
+                    
+                    # Ensure user is in active subscriptions if active
+                    if subscription_data.get("status") == "active":
+                        r.sadd("threadr:subscriptions:active", user_id)
+                    else:
+                        r.srem("threadr:subscriptions:active", user_id)
+                    
+                    logger.info(f"Updated subscription for user {user_id}: {subscription_data.get('plan_name')}")
+                    return True
+                    
+                except Exception as e:
+                    logger.error(f"Error updating user subscription: {e}")
+                    return False
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _update)
+    
+    async def update_subscription_by_id(self, subscription_id: str, subscription_data: Dict[str, Any]) -> bool:
+        """Update subscription by Stripe subscription ID"""
+        def _update():
+            with self._redis_operation() as r:
+                if not r:
+                    return False
+                
+                try:
+                    # Find user by subscription ID
+                    pattern = "threadr:subscription:user:*"
+                    for key in r.scan_iter(pattern):
+                        data = r.get(key)
+                        if data:
+                            existing_data = json.loads(data)
+                            if existing_data.get("subscription_id") == subscription_id:
+                                # Update this subscription
+                                existing_data.update(subscription_data)
+                                r.setex(key, 31536000, json.dumps(existing_data, default=str))
+                                
+                                # Update active subscriptions set
+                                user_id = key.split(":")[-1]
+                                if existing_data.get("status") == "active":
+                                    r.sadd("threadr:subscriptions:active", user_id)
+                                else:
+                                    r.srem("threadr:subscriptions:active", user_id)
+                                
+                                logger.info(f"Updated subscription {subscription_id}")
+                                return True
+                    
+                    logger.warning(f"Subscription {subscription_id} not found for update")
+                    return False
+                    
+                except Exception as e:
+                    logger.error(f"Error updating subscription by ID: {e}")
+                    return False
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _update)
+    
+    async def deactivate_subscription(self, subscription_id: str) -> bool:
+        """Deactivate/cancel subscription"""
+        def _deactivate():
+            with self._redis_operation() as r:
+                if not r:
+                    return False
+                
+                try:
+                    # Find and deactivate subscription
+                    pattern = "threadr:subscription:user:*"
+                    for key in r.scan_iter(pattern):
+                        data = r.get(key)
+                        if data:
+                            existing_data = json.loads(data)
+                            if existing_data.get("subscription_id") == subscription_id:
+                                # Mark as cancelled
+                                existing_data["status"] = "cancelled"
+                                r.setex(key, 31536000, json.dumps(existing_data, default=str))
+                                
+                                # Remove from active subscriptions
+                                user_id = key.split(":")[-1]
+                                r.srem("threadr:subscriptions:active", user_id)
+                                
+                                logger.info(f"Deactivated subscription {subscription_id}")
+                                return True
+                    
+                    return False
+                    
+                except Exception as e:
+                    logger.error(f"Error deactivating subscription: {e}")
+                    return False
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _deactivate)
+    
+    async def reactivate_subscription(self, subscription_id: str) -> bool:
+        """Reactivate subscription after successful payment"""
+        def _reactivate():
+            with self._redis_operation() as r:
+                if not r:
+                    return False
+                
+                try:
+                    # Find and reactivate subscription
+                    pattern = "threadr:subscription:user:*"
+                    for key in r.scan_iter(pattern):
+                        data = r.get(key)
+                        if data:
+                            existing_data = json.loads(data)
+                            if existing_data.get("subscription_id") == subscription_id:
+                                # Mark as active
+                                existing_data["status"] = "active"
+                                r.setex(key, 31536000, json.dumps(existing_data, default=str))
+                                
+                                # Add to active subscriptions
+                                user_id = key.split(":")[-1]
+                                r.sadd("threadr:subscriptions:active", user_id)
+                                
+                                logger.info(f"Reactivated subscription {subscription_id}")
+                                return True
+                    
+                    return False
+                    
+                except Exception as e:
+                    logger.error(f"Error reactivating subscription: {e}")
+                    return False
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _reactivate)
+    
+    async def mark_subscription_past_due(self, subscription_id: str) -> bool:
+        """Mark subscription as past due after failed payment"""
+        def _mark_past_due():
+            with self._redis_operation() as r:
+                if not r:
+                    return False
+                
+                try:
+                    # Find and mark subscription as past due
+                    pattern = "threadr:subscription:user:*"
+                    for key in r.scan_iter(pattern):
+                        data = r.get(key)
+                        if data:
+                            existing_data = json.loads(data)
+                            if existing_data.get("subscription_id") == subscription_id:
+                                # Mark as past due but keep some access
+                                existing_data["status"] = "past_due"
+                                r.setex(key, 31536000, json.dumps(existing_data, default=str))
+                                
+                                logger.info(f"Marked subscription {subscription_id} as past due")
+                                return True
+                    
+                    return False
+                    
+                except Exception as e:
+                    logger.error(f"Error marking subscription past due: {e}")
+                    return False
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _mark_past_due)
+    
+    async def get_user_usage_stats(self, user_id: str) -> Dict[str, Any]:
+        """Get usage statistics for a specific user"""
+        def _get_stats():
+            with self._redis_operation() as r:
+                if not r:
+                    return {}
+                
+                try:
+                    current_date = datetime.now().strftime("%Y-%m-%d")
+                    current_month = datetime.now().strftime("%Y-%m")
+                    
+                    # Get daily usage
+                    daily_key = f"{self.usage_prefix}user:{user_id}:daily:{current_date}"
+                    threads_today = r.get(daily_key) or 0
+                    
+                    # Get monthly usage
+                    monthly_key = f"{self.usage_prefix}user:{user_id}:monthly:{current_month}"
+                    threads_this_month = r.get(monthly_key) or 0
+                    
+                    return {
+                        "threads_today": int(threads_today),
+                        "threads_this_month": int(threads_this_month),
+                        "last_updated": datetime.now().isoformat()
+                    }
+                    
+                except Exception as e:
+                    logger.error(f"Error getting user usage stats: {e}")
+                    return {}
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _get_stats)
+    
+    async def track_user_thread_generation(self, user_id: str) -> bool:
+        """Track thread generation for a specific user"""
+        def _track():
+            with self._redis_operation() as r:
+                if not r:
+                    return False
+                
+                try:
+                    current_date = datetime.now().strftime("%Y-%m-%d")
+                    current_month = datetime.now().strftime("%Y-%m")
+                    
+                    pipe = r.pipeline()
+                    
+                    # Increment daily counter
+                    daily_key = f"{self.usage_prefix}user:{user_id}:daily:{current_date}"
+                    pipe.incr(daily_key)
+                    pipe.expire(daily_key, 86400)  # Expire after 24 hours
+                    
+                    # Increment monthly counter
+                    monthly_key = f"{self.usage_prefix}user:{user_id}:monthly:{current_month}"
+                    pipe.incr(monthly_key)
+                    pipe.expire(monthly_key, 2678400)  # Expire after 31 days
+                    
+                    pipe.execute()
+                    return True
+                    
+                except Exception as e:
+                    logger.error(f"Error tracking user thread generation: {e}")
+                    return False
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _track)
+    
     def close(self):
         """Close Redis connection and thread pool"""
         if self.client:

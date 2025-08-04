@@ -45,6 +45,12 @@ except ImportError:
     from services.thread.thread_service import ThreadHistoryService
     from routes.thread import create_thread_router
 
+# Import subscription components
+try:
+    from .routes.subscription import create_subscription_router, handle_subscription_webhook
+except ImportError:
+    from routes.subscription import create_subscription_router, handle_subscription_webhook
+
 # Import analytics components (optional)
 analytics_router_creator = None
 try:
@@ -315,6 +321,11 @@ if redis_manager:
     app.include_router(thread_router, prefix="/api/threads")
     # Thread routes added
     
+    # Add subscription routes
+    subscription_router = create_subscription_router(auth_service)
+    app.include_router(subscription_router)
+    # Subscription routes added
+    
     # Verify thread routes
     thread_routes = []
     for route in app.routes:
@@ -339,6 +350,11 @@ else:
     )
     app.include_router(thread_router, prefix="/api/threads")
     # Thread routes added (fallback mode)
+    
+    # Add subscription routes (fallback mode)
+    subscription_router = create_subscription_router(auth_service)
+    app.include_router(subscription_router)
+    # Subscription routes added (fallback mode)
 
 # Production environment - debug routes removed
 
@@ -2880,7 +2896,7 @@ async def stripe_webhook_handler(request: Request):
                 logger.error(f"Failed to process checkout completion: {event_id}")
                 return {"received": True, "processed": False, "event_id": event_id, "error": "Failed to grant premium access", "payload_type": "snapshot"}
         
-        # Handle other webhook events (log and acknowledge)
+        # Handle subscription events
         elif event_type in [
             'customer.subscription.created',
             'customer.subscription.updated', 
@@ -2888,8 +2904,17 @@ async def stripe_webhook_handler(request: Request):
             'invoice.payment_succeeded',
             'invoice.payment_failed'
         ]:
-            logger.info(f"Received {event_type} webhook event: {event_id} (acknowledged but not processed)")
-            return {"received": True, "processed": False, "event_id": event_id, "message": "Event acknowledged but not processed", "payload_type": "snapshot"}
+            logger.info(f"Processing subscription webhook event: {event_type} (ID: {event_id})")
+            
+            # Process subscription webhook event
+            success = await handle_subscription_webhook(event_type, event_data.data)
+            
+            if success:
+                logger.info(f"Successfully processed subscription event: {event_id}")
+                return {"received": True, "processed": True, "event_id": event_id, "event_type": event_type, "payload_type": "snapshot"}
+            else:
+                logger.error(f"Failed to process subscription event: {event_id}")
+                return {"received": True, "processed": False, "event_id": event_id, "error": "Failed to process subscription event", "payload_type": "snapshot"}
         
         else:
             logger.info(f"Unhandled webhook event type: {event_type} (ID: {event_id})")

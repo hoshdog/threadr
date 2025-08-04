@@ -10,6 +10,13 @@
 
 **Live SaaS Application**: Transform blog articles and long-form content into engaging Twitter/X threads using AI-powered content analysis.
 
+## 📁 Project Organization (CLEAN ROOT DIRECTORY)
+
+**Root Directory**: Only 8 essential files (down from 33+ scattered files)
+- ✅ **Deployment Files**: `vercel.json`, `nixpacks.toml`, `package.json`, `Dockerfile`
+- ✅ **Project Config**: `.gitignore`, `.railwayignore`, `CLAUDE.md`, `README.md`
+- 📊 **Find Anything**: See `DOCUMENTATION/FILE_LOCATION_INDEX.md` for complete file locations
+
 ## 🚨 CRITICAL SECURITY ISSUE
 
 **IMMEDIATE ACTION REQUIRED**: API keys are hardcoded in the frontend configuration file (`frontend/public/config.js` line 59). This exposes sensitive credentials to all users and represents a serious security vulnerability that needs immediate attention.

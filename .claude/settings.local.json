@@ -70,7 +70,8 @@
       "mcp__ide__getDiagnostics",
       "Bash(cat:*)",
       "Bash(set THREADR_API_KEY=test-api-key-123)",
-      "Bash(THREADR_API_KEY=\"test_key_12345\" node frontend/build.js)"
+      "Bash(THREADR_API_KEY=\"test_key_12345\" node frontend/build.js)",
+      "Bash(move:*)"
     ],
     "deny": []
   }
