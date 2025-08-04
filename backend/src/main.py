@@ -582,13 +582,17 @@ async def verify_api_key(x_api_key: Annotated[Optional[str], Header()] = None) -
 
 async def verify_public_access(request: Request) -> Dict[str, Any]:
     """
-    Secure public endpoint access - NO API KEY REQUIRED
-    Uses IP-based rate limiting and basic security checks
+    Secure public endpoint access - BACKWARD COMPATIBLE
+    Accepts both API key and no API key for smooth transition
     """
-    client_ip = SecurityUtils.get_client_ip(request)
+    try:
+        client_ip = SecurityUtils.get_client_ip(request)
+    except Exception as e:
+        logger.warning(f"Could not get client IP: {e}")
+        client_ip = "unknown"
     
     # Basic security: Block obvious malicious IPs or patterns
-    if not client_ip or client_ip == "127.0.0.1" and ENVIRONMENT == "production":
+    if client_ip and client_ip != "unknown" and client_ip == "127.0.0.1" and ENVIRONMENT == "production":
         logger.warning(f"Suspicious request from IP: {client_ip}")
         raise HTTPException(
             status_code=403,
