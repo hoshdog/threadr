@@ -9,6 +9,7 @@ start https://vercel.com/dashboard
 echo    - Navigate to your threadr project
 echo    - Go to Settings -^> Environment Variables
 echo    - Add: THREADR_API_KEY = zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8
+echo    - WARNING: Use THREADR_API_KEY (with underscores), NOT threadr-api-key!
 echo.
 
 timeout /t 2 /nobreak >nul
