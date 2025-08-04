@@ -3242,6 +3242,13 @@
                         // Close modal
                         this.closeAuthModal();
                         
+                        // Show success message after successful authentication
+                        if (this.authMode === 'signup') {
+                            this.showSuccessMessage('🎉 Account created successfully! Welcome to Threadr!');
+                        } else {
+                            this.showSuccessMessage('👋 Welcome back! You\'re now logged in.');
+                        }
+                        
                     } catch (error) {
                         console.error('Authentication error:', error);
                         this.authError = error.message || 'Authentication failed. Please try again.';
@@ -3274,6 +3281,12 @@
                     
                     // Clear local auth data
                     this.clearAuthData();
+                    
+                    // Show logout confirmation
+                    this.showSuccessMessage('👋 You\'ve been logged out successfully.');
+                    
+                    // Redirect to generate page
+                    this.switchToPage('generate');
                 },
                 
                 // Refresh access token using refresh token
@@ -3452,9 +3465,10 @@
                             throw new Error('No tweets were generated. Please try with different content.');
                         }
 
-                        // Show success notification
+                        // Show success notification with auth context
+                        const authMessage = this.isAuthenticated() ? ' Saved to your history!' : '';
                         this.showSuccessMessage(
-                            `🎉 Thread generated successfully! ${this.tweets.length} tweets ready to share.`
+                            `🎉 Thread generated successfully! ${this.tweets.length} tweets ready to share.${authMessage}`
                         );
                         
                         // Save thread to history if user is authenticated
