@@ -2,15 +2,22 @@
 
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
-[![Alpine.js](https://img.shields.io/badge/Alpine.js-3.x-8BC0D0.svg)](https://alpinejs.dev/)
+[![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.x-38B2AC.svg)](https://tailwindcss.com/)
 [![Test Coverage](https://img.shields.io/badge/coverage-95.7%25-brightgreen.svg)](https://github.com/hoshdog/threadr)
 [![Production Status](https://img.shields.io/badge/status-live%20production-success.svg)](https://threadr-plum.vercel.app)
 
 **Live SaaS Application**: Transform blog articles and long-form content into engaging Twitter/X threads using AI-powered content analysis.
 
+## 🚨 CRITICAL SECURITY ISSUE
+
+**IMMEDIATE ACTION REQUIRED**: API keys are hardcoded in the frontend configuration file (`frontend/public/config.js` line 59). This exposes sensitive credentials to all users and represents a serious security vulnerability that needs immediate attention.
+
 🌐 **Try it now**: [https://threadr-plum.vercel.app](https://threadr-plum.vercel.app)  
-📊 **Current Status**: Live production with active monetization ($4.99 premium access)
+📊 **Current Status**: Live production with active monetization ($4.99 for 30-day premium access - FLAT RATE)
+⚠️ **Security Issue**: API keys hardcoded in frontend (immediate fix required)
+🔄 **Next.js Status**: Development version exists but NOT deployed to production
 
 ## 🚀 Live Features
 
@@ -20,7 +27,7 @@ Threadr is a **fully functional production SaaS** that offers:
 ✅ **AI-Powered Thread Generation**: GPT-3.5-turbo intelligently splits content into 280-char tweets  
 ✅ **Inline Editing**: WYSIWYG editor for refining generated threads  
 ✅ **One-Click Copying**: Copy individual tweets or entire threads instantly  
-✅ **Freemium Model**: 5 daily / 20 monthly free generations, premium for $4.99/30 days  
+✅ **Freemium Model**: 5 daily / 20 monthly free generations, premium for $4.99/30 days (FLAT RATE, not recurring)  
 ✅ **Rate Limiting**: Redis-based protection against abuse  
 ✅ **Secure Payments**: Stripe integration with webhook verification  
 ✅ **Email Capture**: User engagement and notification system
@@ -61,14 +68,23 @@ threadr/
 
 ## 🛠️ Technology Stack
 
-- **Backend**: Python FastAPI with async support (95.7% test coverage)
-- **Frontend**: Alpine.js + Tailwind CSS (no build process required)
+### Current Production Stack (LIVE at https://threadr-plum.vercel.app)
+- **Backend**: Python FastAPI with async support (95.7% test coverage) - STABLE
+- **Frontend**: Alpine.js + Tailwind CSS (260KB monolithic HTML file) - PRODUCTION
+- **State Management**: Alpine.js global state with x-data objects
 - **AI**: OpenAI GPT-3.5-turbo for intelligent content analysis
 - **Database**: Redis for rate limiting, premium access, and email storage
 - **Payments**: Stripe with secure webhook processing
-- **Deployment**: Railway (backend) + Vercel (frontend)
+- **Deployment**: Railway (backend) + Vercel (frontend - static HTML hosting)
 - **Security**: Cloudflare protection, CORS, HMAC verification, rate limiting
+- **⚠️ Security Issue**: API keys hardcoded in frontend config.js
 - **Monitoring**: Health checks, readiness probes, detailed logging
+
+### Development Stack (Next.js - EXISTS BUT NOT DEPLOYED)
+- **Frontend**: Next.js 14 + TypeScript + Tailwind CSS (in `threadr-nextjs/` directory)
+- **State Management**: React Query + Zustand (planned)
+- **Status**: Development environment only - NOT in production
+- **Note**: Next.js migration planned but incomplete - users are using Alpine.js version
 
 ## 💰 Revenue & Metrics
 
@@ -82,8 +98,9 @@ threadr/
 
 **Usage Limits:**
 - **Free Tier**: 5 daily / 20 monthly thread generations
-- **Premium**: Unlimited threads for 30 days ($4.99)
+- **Premium**: Unlimited threads for 30 days ($4.99 FLAT RATE, not recurring)
 - **Rate Protection**: Redis-based IP tracking prevents abuse
+- **Renewal**: Users must manually purchase additional 30-day periods
 
 ## 🚀 Quick Start
 
@@ -126,25 +143,39 @@ uvicorn src.main:app --reload --port 8001
 
 The API will be available at `http://localhost:8001`
 
-### Frontend Setup
+### Frontend Setup (Next.js - Current Migration)
 
 ```bash
-# Navigate to frontend directory
+# Navigate to Next.js project
+cd threadr-nextjs
+
+# Install dependencies
+npm install
+
+# Development server
+npm run dev
+# Visit http://localhost:3000
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+```
+
+### Frontend Setup (Alpine.js - DEPRECATED)
+
+```bash
+# DEPRECATED - Use only for critical production fixes during migration
 cd frontend
 
-# No build process needed! Choose one:
-
 # Option 1: Open directly in browser
-open src/index.html  # macOS
-# OR
-start src/index.html  # Windows
+open public/index.html  # macOS
+start public/index.html  # Windows
 
 # Option 2: Use a local server
 python -m http.server 8000
-# Visit http://localhost:8000/src/
-
-# Option 3: Use Node.js serve
-npx serve src/
+# Visit http://localhost:8000/public/
 ```
 
 ## 📚 API Documentation
@@ -271,17 +302,28 @@ npm test
 - [x] AI-powered thread generation with GPT-3.5-turbo
 - [x] URL content extraction (15+ supported domains)
 - [x] Rate limiting and abuse protection
-- [x] Frontend with Alpine.js + Tailwind CSS
+- [x] Frontend with Alpine.js + Tailwind CSS (DEPRECATED - reached architectural limits)
 - [x] Email capture and user engagement
 - [x] Stripe payment integration ($4.99 premium)
 - [x] Production deployment (95.7% test coverage)
 
-### Phase 2: User Accounts & Analytics 🚧 CURRENT (Aug-Sep 2025)
-- [ ] JWT-based user authentication system
-- [ ] Thread history and management
-- [ ] Personal analytics dashboard
-- [ ] Account and subscription management
-- [ ] Enhanced premium features
+### Phase 1.5: Next.js Migration 🔄 PLANNED (August 2025)
+- [x] Identified Alpine.js architectural limitations (260KB monolithic file)
+- [x] Next.js 14 project setup with TypeScript and Tailwind (development only)
+- [ ] Core feature migration (thread generation, templates, history)
+- [ ] Authentication and state management with React Query + Zustand
+- [ ] Performance optimization and testing
+- [ ] Production deployment and user migration
+- **Status**: Next.js version exists in development but is NOT deployed to production
+
+### Phase 2: User Accounts & Analytics 🚧 CURRENT (Sep-Oct 2025)
+- [ ] JWT-based user authentication system (Next.js components)
+- [ ] Thread history and management (React Query integration)
+- [ ] Personal analytics dashboard (with proper state management)
+- [ ] Account and subscription management (TypeScript interfaces)
+- [ ] Enhanced premium features (component-based architecture)
+
+**Note**: Phase 2 now includes Next.js migration completion as prerequisite
 
 ### Phase 3: Advanced Features 📅 PLANNED (Oct-Dec 2025)
 - [ ] Thread performance analytics
@@ -297,11 +339,13 @@ npm test
 - [ ] Custom AI models and fine-tuning
 - [ ] Enterprise security (SSO, compliance)
 
-**Revenue Targets:**
-- Phase 1: $1K MRR (current focus)
-- Phase 2: $2.5K MRR by end 2025
-- Phase 3: $10K MRR by end 2025
-- Phase 4: $50K MRR by 2026
+**Revenue Targets** (Based on Current Flat-Rate Model):
+- Phase 1: $1K MRR (requires 200 users buying $4.99/30-day periods monthly)
+- Phase 2: $5K MRR by end 2025 (requires implementing recurring subscriptions)
+- Phase 3: $15K MRR by end 2025 (requires tiered pricing implementation)
+- Phase 4: $50K MRR by 2026 (requires architectural scaling and enterprise features)
+
+**Note**: Current $4.99 flat-rate model requires manual re-purchases for sustained revenue.
 
 ## 🤝 Contributing
 
@@ -319,11 +363,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **FastAPI** for the excellent async framework and automatic API docs
 - **OpenAI** for GPT-3.5-turbo API powering intelligent thread generation
-- **Alpine.js** for the lightweight reactive frontend framework
+- **Next.js** for the scalable React framework enabling component-based architecture
+- **TypeScript** for type safety and improved developer experience
+- **React Query** for powerful server state management
+- **Alpine.js** for initial rapid prototyping (graduated to Next.js for scale)
 - **Tailwind CSS** for utility-first styling and rapid UI development
 - **Stripe** for secure payment processing and webhook infrastructure
 - **Railway** for seamless Python deployment and scaling
-- **Vercel** for lightning-fast static frontend hosting
+- **Vercel** for lightning-fast Next.js hosting with SSR/SSG
 - **Redis/Upstash** for reliable rate limiting and premium access management
 
 ## 📞 Support & Community

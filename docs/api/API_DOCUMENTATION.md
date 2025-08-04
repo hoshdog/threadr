@@ -1,6 +1,9 @@
 # Threadr API Documentation
 
-Base URL: `https://your-backend.railway.app`
+**MIGRATION NOTE (2025-08-04)**: This API documentation remains unchanged during the Next.js migration. The FastAPI backend is stable and all endpoints continue to work identically.
+
+Base URL: `https://threadr-production.up.railway.app`  
+**Frontend Migration**: Alpine.js → Next.js (backend APIs unchanged)
 
 ## Endpoints
 
@@ -94,9 +97,101 @@ Response:
 
 ## Rate Limiting
 
-- Default: 10 requests per hour per IP address
-- Rate limits are configurable via environment variables
-- Use the rate limit status endpoint to check your current usage
+- **Production**: 5 daily / 20 monthly requests (free tier)
+- **Premium**: Unlimited requests ($4.99 for 30 days)
+- Rate limits are IP-based and stored in Redis
+- Use the rate limit status endpoint to check current usage
+
+## Integration with Next.js Frontend
+
+### TypeScript API Client Example
+
+```typescript
+// lib/api/client.ts
+import axios from 'axios';
+
+const apiClient = axios.create({
+  baseURL: 'https://threadr-production.up.railway.app',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add JWT token to requests if available
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export { apiClient };
+```
+
+### React Query Integration
+
+```typescript
+// hooks/useThreadGeneration.ts
+import { useMutation } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api/client';
+
+interface GenerateThreadRequest {
+  text?: string;
+  url?: string;
+}
+
+export const useGenerateThread = () => {
+  return useMutation({
+    mutationFn: async (data: GenerateThreadRequest) => {
+      const response = await apiClient.post('/api/generate', data);
+      return response.data;
+    },
+  });
+};
+```
+
+### Usage in Next.js Components
+
+```tsx
+// components/thread/ThreadGenerator.tsx
+import { useGenerateThread } from '@/hooks/useThreadGeneration';
+
+export default function ThreadGenerator() {
+  const generateThread = useGenerateThread();
+  
+  const handleSubmit = (data: { text: string }) => {
+    generateThread.mutate({ text: data.text });
+  };
+  
+  return (
+    <div>
+      {generateThread.isLoading && <p>Generating thread...</p>}
+      {generateThread.data && (
+        <div>
+          {generateThread.data.thread.map((tweet, index) => (
+            <div key={index}>{tweet.content}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Migration Impact
+
+**No Changes Required**:
+- All API endpoints remain identical
+- Authentication flows unchanged
+- Rate limiting continues to work
+- CORS configuration supports both Alpine.js and Next.js apps
+
+**Frontend Benefits**:
+- Type-safe API calls with TypeScript
+- Better error handling with React Query
+- Automatic retries and caching
+- Optimistic updates for better UX
 
 ## CORS
 

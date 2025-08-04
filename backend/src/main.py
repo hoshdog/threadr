@@ -2979,6 +2979,79 @@ async def get_payment_config():
         "pricing_type": "one_time"
     }
 
+# Stripe Checkout Session Models
+class CreateCheckoutSessionRequest(BaseModel):
+    success_url: Optional[str] = None
+    cancel_url: Optional[str] = None
+    customer_email: Optional[str] = None
+
+class CreateCheckoutSessionResponse(BaseModel):
+    checkout_url: str
+    session_id: str
+
+@app.post("/api/stripe/create-checkout-session", response_model=CreateCheckoutSessionResponse)
+async def create_checkout_session(
+    request: CreateCheckoutSessionRequest,
+    user_context: Dict[str, Any] = Depends(get_user_context)
+):
+    """Create a Stripe checkout session for premium upgrade"""
+    try:
+        # Check if Stripe is configured
+        if not STRIPE_SECRET_KEY:
+            logger.error("Stripe API key not configured")
+            raise HTTPException(status_code=500, detail="Payment system not configured")
+        
+        # Get user context
+        client_ip = user_context["client_ip"]
+        user_email = user_context["email"] or request.customer_email
+        
+        # Set default URLs if not provided
+        success_url = request.success_url or "https://threadr-plum.vercel.app/payment/success"
+        cancel_url = request.cancel_url or "https://threadr-plum.vercel.app/payment/cancel"
+        
+        # Create Stripe checkout session
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[
+                {
+                    'price_data': {
+                        'currency': 'usd',
+                        'product_data': {
+                            'name': 'Threadr Premium - 30 Days',
+                            'description': 'Unlimited thread generations for 30 days',
+                        },
+                        'unit_amount': int(PREMIUM_PRICE_USD * 100),  # Convert to cents
+                    },
+                    'quantity': 1,
+                },
+            ],
+            mode='payment',
+            success_url=success_url,
+            cancel_url=cancel_url,
+            customer_email=user_email,
+            metadata={
+                'client_ip': client_ip,
+                'user_email': user_email or '',
+                'product': 'premium_30_days',
+                'created_at': datetime.now().isoformat(),
+            },
+            expires_at=int((datetime.now() + timedelta(hours=1)).timestamp()),  # Expire after 1 hour
+        )
+        
+        logger.info(f"Created Stripe checkout session: {checkout_session.id} for IP: {client_ip}, Email: {user_email}")
+        
+        return CreateCheckoutSessionResponse(
+            checkout_url=checkout_session.url,
+            session_id=checkout_session.id
+        )
+        
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe API error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Payment error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error creating checkout session: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to create checkout session")
+
 @app.get("/debug/env")
 async def debug_environment_variables():
     """Debug endpoint to check environment variable configuration - DEVELOPMENT ONLY"""

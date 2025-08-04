@@ -3,9 +3,11 @@
 ## Overview
 Threadr transforms blog articles and long-form content into engaging Twitter/X threads using AI-powered content analysis. Currently a live SaaS with active monetization.
 
-**Live Production**: https://threadr-plum.vercel.app
-**Backend API**: https://threadr-production.up.railway.app
+**Live Production**: https://threadr-plum.vercel.app (Alpine.js - migrating to Next.js)
+**Backend API**: https://threadr-production.up.railway.app (stable, unchanged)
 **Current Revenue**: $4.99 per 30-day premium access
+
+**CRITICAL ARCHITECTURAL UPDATE (2025-08-04)**: Migrating from Alpine.js to Next.js due to architectural limitations. Current 260KB monolithic file has reached browser performance limits.
 
 ## Phase 1: MVP (✅ COMPLETED - July 2025)
 
@@ -21,33 +23,70 @@ Threadr transforms blog articles and long-form content into engaging Twitter/X t
 
 ### Technical Achievement
 - **Test Coverage**: 95.7% backend coverage
-- **Architecture**: FastAPI + Alpine.js/Tailwind CSS
-- **Deployment**: Railway (backend) + Vercel (frontend)
+- **Architecture**: FastAPI + Alpine.js/Tailwind CSS (MIGRATING TO Next.js)
+- **Deployment**: Railway (backend) + Vercel (frontend with SSR/SSG)
 - **Security**: HMAC webhook verification, CORS protection, rate limiting
 - **Performance**: Sub-2 second thread generation, Redis caching
+- **Migration Status**: Next.js foundation established (Week 1 of 4)
 
 ### Revenue Model Validated
 - **Free Tier**: 5 daily / 20 monthly thread generations
 - **Premium**: $4.99 for 30 days unlimited access
 - **Conversion Funnel**: Working payment flow with automatic premium grants
 
-## Phase 2: User Accounts & Data Persistence (🚧 CURRENT - Aug-Sep 2025)
+## Phase 1.5: Next.js Migration (🔄 CURRENT - August 2025)
 
-### Priority Features
+### Architecture Migration Requirements
+**Timeline**: 3-4 weeks for complete migration
+**Priority**: Essential for scaling beyond current limits
+
+#### Migration Drivers
+- **File Size Limit**: 260KB monolithic HTML file causes performance issues
+- **Scope Pollution**: 50+ Alpine.js data objects create variable conflicts  
+- **Navigation Issues**: Complex DOM manipulation causes browser performance degradation
+- **Development Velocity**: Adding features becomes increasingly difficult
+- **Team Scaling**: Multiple developers cannot work simultaneously
+
+#### Migration Benefits (Quantified)
+- **Bundle Size**: 260KB → ~80KB (70% reduction)
+- **Load Time**: 3-4 seconds → <1 second
+- **Navigation**: Page reloads → Instant client-side routing
+- **Developer Experience**: Global scope debugging → React DevTools + TypeScript
+- **Team Collaboration**: Single developer → Multiple simultaneous developers
+
+#### Next.js Architecture
+- **Framework**: Next.js 14 with App Router and Server Components
+- **Language**: TypeScript for type safety and better DX
+- **State Management**: React Query (server state) + Zustand (client state)
+- **Styling**: Tailwind CSS (unchanged)
+- **Testing**: Jest + React Testing Library + Playwright E2E
+
+#### Migration Timeline
+**Week 1**: Foundation setup, API integration, core thread generation  
+**Week 2**: Feature parity (templates, history, analytics, accounts)  
+**Week 3**: Polish, performance optimization, comprehensive testing  
+**Week 4**: Production deployment, user migration, Alpine.js deprecation
+
+## Phase 2: User Accounts & Data Persistence (📋 PLANNED - Sep-Oct 2025)
+
+**Note**: Phase 2 now begins after Next.js migration completion
+
+### Priority Features (Now Built with Next.js)
 1. **User Authentication System**
-   - JWT-based login/registration
-   - Social login (Google, Twitter/X)
-   - Password reset functionality
-   - Email verification
+   - JWT-based login/registration (React components)
+   - Social login (Google, Twitter/X) with NextAuth.js
+   - Password reset functionality (email templates)
+   - Email verification (server actions)
 
 2. **Thread History & Management**
-   - Save generated threads to user accounts
-   - Thread organization (folders, tags)
-   - Search and filter saved threads
-   - Export threads to various formats
+   - Save generated threads (React Query mutations)
+   - Thread organization (Zustand state management)
+   - Search and filter (client-side with proper indexing)
+   - Export threads (PDF, JSON, CSV formats)
 
 3. **Personal Analytics Dashboard**
-   - Usage statistics and trends
+   - Usage statistics with Chart.js/Recharts integration
+   - Real-time metrics with WebSocket connections
    - Thread performance metrics
    - Monthly usage summaries
    - API cost tracking

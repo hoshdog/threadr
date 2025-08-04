@@ -54,8 +54,15 @@ const config = {
             return null;
         }
         
-        // Production API key for ALL non-localhost deployments
-        // This includes Vercel preview deployments, production, and any custom domains
+        // Try to get API key from environment variable first (secure method)
+        const envApiKey = window.THREADR_API_KEY;
+        if (envApiKey) {
+            return envApiKey;
+        }
+        
+        // Fallback to hardcoded key for backward compatibility
+        // WARNING: This should be removed once environment variable is properly configured
+        console.warn('Using fallback API key. Please configure THREADR_API_KEY environment variable.');
         return 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
     })(),
     
@@ -82,10 +89,13 @@ if (config.FEATURES.DEBUG_MODE) {
     console.log('Environment:', config.ENV);
     console.log('API URL:', config.API_URL);
     console.log('API Key:', config.API_KEY ? '[HIDDEN]' : 'null');
+    console.log('Environment API Key available:', !!window.THREADR_API_KEY);
 }
 
 // Also log in production for debugging (temporary)
 if (!config.FEATURES.DEBUG_MODE && window.location.hostname.includes('vercel')) {
     console.log('Production Debug - Hostname:', window.location.hostname);
     console.log('Production Debug - API Key configured:', !!config.API_KEY);
+    console.log('Production Debug - Environment API Key:', !!window.THREADR_API_KEY);
+    console.log('Production Debug - Using fallback:', config.API_KEY === 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8');
 }

@@ -1,0 +1,257 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Twitter/X uses system fonts - no external font imports needed */
+
+:root {
+  /* Twitter/X Light theme - exact Twitter colors */
+  --twitter-blue: #1d9bf0;
+  --twitter-dark: #15202b;
+  --twitter-black: #000000;
+  --twitter-gray: #8899ac;
+  --twitter-border: #38444d;
+  --twitter-hover: #1a8cd8;
+  --twitter-light-gray: #f7f9fa;
+  --twitter-text-gray: #536471;
+  
+  /* Semantic mappings for light theme */
+  --background: #ffffff;
+  --foreground: var(--twitter-black);
+  --muted: var(--twitter-light-gray);
+  --muted-foreground: var(--twitter-text-gray);
+  --border: #cfd9de;
+  --input: #ffffff;
+  --ring: var(--twitter-blue);
+  --primary: var(--twitter-blue);
+  --primary-foreground: #ffffff;
+  --secondary: var(--twitter-light-gray);
+  --secondary-foreground: var(--twitter-black);
+  --accent: var(--twitter-blue);
+  --accent-foreground: #ffffff;
+  --destructive: #f4212e;
+  --destructive-foreground: #ffffff;
+}
+
+.dark {
+  /* Twitter/X Dark theme - exact Twitter dark colors matching Alpine.js */
+  --background: #000000; /* x-black */
+  --foreground: #ffffff;
+  --muted: #15202b; /* x-dark */
+  --muted-foreground: #8899ac; /* x-gray */
+  --border: #38444d; /* x-border */
+  --input: #15202b; /* x-dark */
+  --ring: #1d9bf0; /* x-blue */
+  --primary: #1d9bf0; /* x-blue */
+  --primary-foreground: #ffffff;
+  --secondary: #15202b; /* x-dark */
+  --secondary-foreground: #ffffff;
+  --accent: #1d9bf0; /* x-blue */
+  --accent-foreground: #ffffff;
+  --destructive: #f4212e;
+  --destructive-foreground: #ffffff;
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  /* Twitter/X exact system font stack */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Twitter body text: 15px with tight line height */
+  font-size: 15px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+  /* Twitter/X typography - exact font sizes and line heights */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+  
+  h1 {
+    /* Twitter large heading: 31px */
+    font-size: 31px;
+    font-weight: 800;
+  }
+  
+  h2 {
+    /* Twitter medium heading: 23px */
+    font-size: 23px;
+    font-weight: 700;
+  }
+  
+  h3 {
+    /* Twitter small heading: 20px */
+    font-size: 20px;
+    font-weight: 700;
+  }
+  
+  h4 {
+    /* Twitter extra small heading: 17px */
+    font-size: 17px;
+    font-weight: 600;
+  }
+  
+  p {
+    /* Twitter body text */
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  
+  /* Twitter small text */
+  small {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+}
+
+@layer components {
+  /* Button variants - Twitter compact styling */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-full px-4 py-2 text-base font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50;
+  }
+  
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
+  }
+  
+  .btn-outline {
+    @apply border border-input bg-background hover:bg-accent hover:text-accent-foreground;
+  }
+  
+  .btn-ghost {
+    @apply hover:bg-accent hover:text-accent-foreground rounded-full;
+  }
+  
+  /* Input styles - Twitter compact */
+  .input {
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-base file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  
+  /* Card styles - Twitter compact spacing */
+  .card {
+    @apply rounded-lg border bg-background text-foreground shadow-sm;
+  }
+  
+  .card-header {
+    @apply flex flex-col space-y-2 p-4;
+  }
+  
+  .card-title {
+    @apply text-xl font-bold leading-tight;
+  }
+  
+  .card-description {
+    @apply text-base text-muted-foreground;
+  }
+  
+  .card-content {
+    @apply p-4 pt-0;
+  }
+  
+  .card-footer {
+    @apply flex items-center p-4 pt-0;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Twitter/X tight spacing utilities */
+  .space-twitter > * + * {
+    margin-top: 12px;
+  }
+  
+  .gap-twitter {
+    gap: 12px;
+  }
+  
+  /* Twitter compact margins */
+  .m-twitter {
+    margin: 12px;
+  }
+  
+  .p-twitter {
+    padding: 12px;
+  }
+  
+  /* Custom scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--muted-foreground) transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--muted-foreground);
+    border-radius: 3px;
+    opacity: 0.5;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    opacity: 0.8;
+  }
+  
+  /* Authentication page background pattern */
+  .bg-grid-pattern {
+    background-image: 
+      linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  /* Glass effect matching Alpine.js */
+  .glass-effect {
+    background: rgba(21, 32, 43, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(56, 68, 77, 0.3);
+  }
+  
+  /* Twitter/X specific button styles */
+  .btn-twitter {
+    @apply rounded-full px-6 py-3 font-semibold transition-all duration-200;
+  }
+  
+  .btn-twitter-primary {
+    @apply btn-twitter bg-x-blue text-white hover:bg-x-blue-hover;
+  }
+  
+  .btn-twitter-secondary {
+    @apply btn-twitter border border-x-border text-white hover:bg-x-hover;
+  }
+  
+  /* Navigation hover effects matching Twitter */
+  .nav-twitter-item {
+    @apply flex items-center space-x-3 px-4 py-3 rounded-full font-medium transition-all duration-200;
+  }
+  
+  .nav-twitter-item-active {
+    @apply nav-twitter-item bg-x-blue text-white;
+  }
+  
+  .nav-twitter-item-inactive {
+    @apply nav-twitter-item text-x-gray hover:text-white hover:bg-x-hover;
+  }
+}

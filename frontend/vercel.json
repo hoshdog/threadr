@@ -1,8 +1,8 @@
 {
   "version": 2,
   "public": true,
-  "buildCommand": "echo 'Static site - no build required'",
-  "outputDirectory": "public",
+  "buildCommand": "node build.js",
+  "outputDirectory": "dist",
   "installCommand": "npm install --production=false",
   "devCommand": "npx serve public -p 3000",
   "framework": null,
@@ -75,6 +75,12 @@
     }
   ],
   "env": {
-    "THREADR_API_URL": "https://threadr-production.up.railway.app"
+    "THREADR_API_URL": "https://threadr-production.up.railway.app",
+    "THREADR_API_KEY": "@threadr-api-key"
+  },
+  "build": {
+    "env": {
+      "THREADR_API_KEY": "@threadr-api-key"
+    }
   }
 }

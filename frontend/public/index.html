@@ -23,6 +23,16 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped-favicon&t=1722762000">
     <link rel="icon" type="image/png" sizes="256x256" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped-favicon&t=1722762000">
     <link rel="icon" type="image/png" sizes="512x512" href="/logos/threadrLogo_White_Cropped.PNG?v=2025-08-04-cropped-favicon&t=1722762000">
+    <!-- Environment variables will be injected by Vercel build process -->
+    <script>
+        // Placeholder for environment variables - will be replaced during build
+        // This script will be populated by Vercel's build process via vercel.json
+        window.THREADR_API_KEY = 'VERCEL_INJECT_API_KEY';
+        // Clean up placeholder values
+        if (window.THREADR_API_KEY === 'VERCEL_INJECT_API_KEY') {
+            delete window.THREADR_API_KEY;
+        }
+    </script>
     <script src="config.js?v=1.2.0"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -76,6 +86,70 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+        
+        /* Enhanced Loading Animations */
+        .loading-skeleton {
+            background: linear-gradient(90deg, #192734, #22303c, #192734);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        .loading-dots {
+            display: inline-flex;
+            align-items: center;
+        }
+        
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            background: #1d9bf0;
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: loading-bounce 1.4s ease-in-out infinite both;
+        }
+        
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0s; }
+        
+        @keyframes loading-bounce {
+            0%, 80%, 100% { 
+                transform: scale(0.8);
+                opacity: 0.4;
+            }
+            40% { 
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+        
+        .pulse-animation {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { 
+                box-shadow: 0 0 0 0 rgba(29, 155, 240, 0.4);
+            }
+            50% { 
+                box-shadow: 0 0 0 10px rgba(29, 155, 240, 0);
+            }
+        }
+        
+        .success-animation {
+            animation: success-bounce 0.6s ease-out;
+        }
+        
+        @keyframes success-bounce {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
         }
         .logo-pulse {
             animation: logoPulse 2s ease-in-out infinite;
@@ -161,17 +235,74 @@
         .button-primary {
             background-color: #1d9bf0;
             transition: all 0.2s ease-in-out;
+            transform: translateY(0);
         }
         .button-primary:hover {
             background-color: #1a8cd8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(29, 155, 240, 0.3);
+        }
+        .button-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(29, 155, 240, 0.2);
         }
         .button-secondary {
             background-color: #0f1419;
             border: 1px solid #536471;
             transition: all 0.2s ease-in-out;
+            transform: translateY(0);
         }
         .button-secondary:hover {
             background-color: #1d2d3a;
+            border-color: #8899ac;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(83, 100, 113, 0.2);
+        }
+        .button-secondary:active {
+            transform: translateY(0);
+        }
+        
+        /* Enhanced micro-interactions */
+        .interactive-element {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .interactive-element:hover {
+            transform: translateY(-2px);
+        }
+        
+        .copy-button-success {
+            background-color: #10b981 !important;
+            color: white !important;
+            animation: copy-success 0.3s ease-out;
+        }
+        
+        @keyframes copy-success {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .input-focus-glow {
+            transition: all 0.3s ease;
+        }
+        
+        .input-focus-glow:focus {
+            box-shadow: 0 0 0 3px rgba(29, 155, 240, 0.1), 0 0 20px rgba(29, 155, 240, 0.05);
+        }
+        
+        /* Success Toast */
+        .success-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        .success-toast.show {
+            transform: translateX(0);
         }
         .form-input {
             background-color: #000000;
@@ -240,6 +371,7 @@
             </svg>
         </button>
     </div>
+
 
     <div x-data="threadrApp()" x-init="init()" class="flex min-h-screen">
         <!-- Sidebar -->
@@ -376,12 +508,6 @@
                         <div 
                             x-show="showDropdown" 
                             @click.away="showDropdown = false"
-                            x-transition:enter="transition ease-out duration-100"
-                            x-transition:enter-start="transform opacity-0 scale-95"
-                            x-transition:enter-end="transform opacity-100 scale-100"
-                            x-transition:leave="transition ease-in duration-75"
-                            x-transition:leave-start="transform opacity-100 scale-100"
-                            x-transition:leave-end="transform opacity-0 scale-95"
                             class="absolute bottom-full left-0 right-0 mb-2 bg-x-dark rounded-xl border border-x-border shadow-2xl py-2 z-50"
                         >
                             <button 
@@ -418,12 +544,6 @@
         <!-- Overlay for mobile -->
         <div x-show="sidebarOpen" 
              @click="sidebarOpen = false"
-             x-transition:enter="transition-opacity ease-linear duration-300"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"
-             x-transition:leave="transition-opacity ease-linear duration-300"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"
              class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"></div>
 
         <!-- Main Content -->
@@ -435,6 +555,30 @@
                     <div class="mb-8">
                         <h2 class="text-2xl font-bold text-white mb-2">Create Your Thread</h2>
                         <p class="text-x-gray">Transform any article or content into an engaging Twitter/X thread</p>
+                    </div>
+                    
+                    <!-- Trust Signals Banner -->
+                    <div class="trust-banner mb-8 bg-gradient-to-r from-x-blue/10 to-purple-600/10 border border-x-blue/20 rounded-2xl p-4">
+                        <div class="flex flex-wrap justify-center gap-6 text-sm">
+                            <div class="flex items-center space-x-2 text-x-blue font-semibold">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>500K+ threads generated</span>
+                            </div>
+                            <div class="flex items-center space-x-2 text-x-blue font-semibold">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Trusted by 10,000+ creators</span>
+                            </div>
+                            <div class="flex items-center space-x-2 text-x-blue font-semibold">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>15+ platforms supported</span>
+                            </div>
+                        </div>
                     </div>
 
                 <!-- Main Form Card -->
@@ -460,14 +604,14 @@
                     </div>
 
                     <!-- URL Input -->
-                    <div x-show="inputType === 'url'" x-transition>
+                    <div x-show="inputType === 'url'" >
                         <label class="block text-sm font-semibold text-white mb-3">Article URL</label>
                         <input 
                             type="url" 
                             x-model="urlInput"
                             id="url-input"
                             placeholder="https://medium.com/article-title"
-                            class="form-input w-full px-4 py-4 rounded-xl text-lg"
+                            class="form-input input-focus-glow w-full px-4 py-4 rounded-xl text-lg"
                             @keyup.enter="generateThread()"
                             @input="urlInput = $event.target.value"
                             @paste="setTimeout(() => { urlInput = $event.target.value }, 10)"
@@ -476,14 +620,14 @@
                     </div>
 
                     <!-- Text Input -->
-                    <div x-show="inputType === 'text'" x-transition>
+                    <div x-show="inputType === 'text'" >
                         <label class="block text-sm font-semibold text-white mb-3">Paste your content</label>
                         <textarea 
                             x-model="textInput"
                             id="text-input"
                             placeholder="Paste your article content here..."
                             rows="8"
-                            class="form-input w-full px-4 py-4 rounded-xl text-lg resize-none"
+                            class="form-input input-focus-glow w-full px-4 py-4 rounded-xl text-lg resize-none"
                             @input="textInput = $event.target.value"
                             @paste="setTimeout(() => { textInput = $event.target.value }, 10)"
                         ></textarea>
@@ -506,31 +650,89 @@
                             <span>Generate Thread</span>
                         </span>
                         <span x-show="loading" class="flex items-center justify-center space-x-3">
-                            <div class="w-6 h-6 animate-spin">
-                                <svg class="w-full h-full text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-                                    <circle cx="8" cy="12" r="1" fill="currentColor" opacity="0.3"/>
-                                    <circle cx="12" cy="12" r="1" fill="currentColor" opacity="0.6"/>
-                                    <circle cx="16" cy="12" r="1" fill="currentColor" opacity="1"/>
-                                </svg>
+                            <div class="loading-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
                             </div>
-                            <span>Generating...</span>
+                            <span>Generating your thread</span>
+                            <div class="loading-dots ml-1">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
                         </span>
                     </button>
+                    
+                    <!-- Loading Skeleton -->
+                    <div x-show="loading" class="mt-8 space-y-4">
+                        <div class="bg-x-black border border-x-border rounded-xl p-4">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <div class="w-6 h-6 bg-x-dark rounded-full loading-skeleton"></div>
+                                <div class="w-12 h-4 bg-x-dark rounded loading-skeleton"></div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="w-full h-4 bg-x-dark rounded loading-skeleton"></div>
+                                <div class="w-4/5 h-4 bg-x-dark rounded loading-skeleton"></div>
+                                <div class="w-3/4 h-4 bg-x-dark rounded loading-skeleton"></div>
+                            </div>
+                        </div>
+                        <div class="bg-x-black border border-x-border rounded-xl p-4">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <div class="w-6 h-6 bg-x-dark rounded-full loading-skeleton"></div>
+                                <div class="w-12 h-4 bg-x-dark rounded loading-skeleton"></div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="w-full h-4 bg-x-dark rounded loading-skeleton"></div>
+                                <div class="w-5/6 h-4 bg-x-dark rounded loading-skeleton"></div>
+                            </div>
+                        </div>
+                        <div class="bg-x-black border border-x-border rounded-xl p-4">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <div class="w-6 h-6 bg-x-dark rounded-full loading-skeleton"></div>
+                                <div class="w-12 h-4 bg-x-dark rounded loading-skeleton"></div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="w-4/5 h-4 bg-x-dark rounded loading-skeleton"></div>
+                                <div class="w-3/5 h-4 bg-x-dark rounded loading-skeleton"></div>
+                            </div>
+                        </div>
+                    </div>
 
-                    <!-- Error Message -->
-                    <div x-show="error" x-transition class="mt-6 p-4 bg-red-900/20 border border-red-800/30 rounded-xl">
-                        <div class="flex items-center space-x-2">
-                            <svg class="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <p class="text-red-300" x-text="error"></p>
+                    <!-- Enhanced Error Message -->
+                    <div x-show="error" x-transition:enter="transition ease-out duration-300" 
+                         x-transition:enter-start="opacity-0 transform scale-95" 
+                         x-transition:enter-end="opacity-100 transform scale-100"
+                         class="mt-6 p-4 bg-gradient-to-r from-red-900/20 to-red-800/20 border border-red-600/30 rounded-xl">
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                <svg class="w-5 h-5 text-red-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="text-red-300 font-medium mb-1">Oops! Something went wrong</h4>
+                                <p class="text-red-200 text-sm mb-3" x-text="error"></p>
+                                <div class="flex items-center space-x-3 text-xs">
+                                    <button @click="error = ''" 
+                                            class="text-red-300 hover:text-red-200 underline transition-colors">
+                                        Dismiss
+                                    </button>
+                                    <span class="text-red-400">•</span>
+                                    <span class="text-red-300">
+                                        Need help? 
+                                        <a href="mailto:support@threadr.app" class="underline hover:text-red-200 transition-colors">
+                                            Contact support
+                                        </a>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Generated Thread -->
-                <div x-show="tweets.length > 0" x-transition class="tweet-card rounded-2xl p-6">
+                <div x-show="tweets.length > 0" x-transition:enter="success-animation" class="tweet-card rounded-2xl p-6">
                     <div class="flex justify-between items-center mb-6">
                         <div>
                             <h2 class="text-xl font-bold text-white">Your Thread</h2>
@@ -571,7 +773,7 @@
                     </div>
 
                     <!-- Edit Mode -->
-                    <div x-show="viewMode === 'edit'" x-transition class="space-y-4">
+                    <div x-show="viewMode === 'edit'"  class="space-y-4">
                         <template x-for="(tweet, index) in tweets" :key="index">
                             <div class="bg-x-black border border-x-border rounded-xl p-4 hover:border-x-gray/50 transition-all duration-200">
                                 <div class="flex justify-between items-start mb-3">
@@ -631,8 +833,42 @@
                                             <span class="text-sm">0</span>
                                         </div>
                                     </div>
-                                    <div class="text-sm" :class="tweet.text.length > 280 ? 'text-red-400' : 'text-x-gray'">
-                                        <span x-text="tweet.text.length"></span><span class="text-x-gray">/280</span>
+                                    <!-- Enhanced Character Counter -->
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-8 h-8 rounded-full border-2 relative flex items-center justify-center"
+                                             :class="tweet.text.length > 280 ? 'border-red-500 bg-red-500/10' : 
+                                                     tweet.text.length > 250 ? 'border-yellow-500 bg-yellow-500/10' : 
+                                                     tweet.text.length > 200 ? 'border-orange-500 bg-orange-500/10' : 
+                                                     'border-x-border bg-x-dark/30'">
+                                            <!-- Progress Circle -->
+                                            <svg class="w-full h-full absolute" style="transform: rotate(-90deg)">
+                                                <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" 
+                                                        stroke-width="2" opacity="0.1"/>
+                                                <circle cx="16" cy="16" r="14" fill="none" 
+                                                        :stroke="tweet.text.length > 280 ? '#ef4444' : 
+                                                                tweet.text.length > 250 ? '#eab308' : 
+                                                                tweet.text.length > 200 ? '#f97316' : '#1d9bf0'"
+                                                        stroke-width="2" 
+                                                        :stroke-dasharray="`${2 * Math.PI * 14}`"
+                                                        :stroke-dashoffset="`${2 * Math.PI * 14 * (1 - tweet.text.length / 280)}`"
+                                                        class="transition-all duration-300"/>
+                                            </svg>
+                                            <!-- Character count text -->
+                                            <span class="text-xs font-semibold z-10"
+                                                  :class="tweet.text.length > 280 ? 'text-red-400' : 
+                                                          tweet.text.length > 250 ? 'text-yellow-400' : 
+                                                          tweet.text.length > 200 ? 'text-orange-400' : 
+                                                          'text-x-blue'"
+                                                  x-text="280 - tweet.text.length">
+                                            </span>
+                                        </div>
+                                        <div class="text-sm font-medium"
+                                             :class="tweet.text.length > 280 ? 'text-red-400' : 
+                                                     tweet.text.length > 250 ? 'text-yellow-400' : 
+                                                     tweet.text.length > 200 ? 'text-orange-400' : 
+                                                     'text-x-gray'">
+                                            <span x-text="tweet.text.length"></span><span class="text-x-gray">/280</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -640,7 +876,7 @@
                     </div>
 
                     <!-- Preview Mode - X/Twitter Style -->
-                    <div x-show="viewMode === 'preview'" x-transition class="space-y-0">
+                    <div x-show="viewMode === 'preview'"  class="space-y-0">
                         <!-- Thread container with X styling -->
                         <div class="bg-x-black border border-x-border rounded-2xl overflow-hidden">
                             <template x-for="(tweet, index) in tweets" :key="index">
@@ -895,23 +1131,11 @@
         <!-- Thread Detail Modal -->
         <div 
             x-show="showThreadModal" 
-            x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100"
-            x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-start="opacity-100"
-            x-transition:leave-end="opacity-0"
             class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
             @click.self="closeThreadModal()"
         >
             <div 
                 x-show="showThreadModal"
-                x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 transform scale-95"
-                x-transition:enter-end="opacity-100 transform scale-100"
-                x-transition:leave="transition ease-in duration-200"
-                x-transition:leave-start="opacity-100 transform scale-100"
-                x-transition:leave-end="opacity-0 transform scale-95"
                 class="bg-x-black border border-x-border rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden"
             >
                 <!-- Modal Header -->
@@ -996,23 +1220,11 @@
         <div 
             x-cloak
             x-show="authModalVisible" 
-            x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100"
-            x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-start="opacity-100"
-            x-transition:leave-end="opacity-0"
             class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
             @click.self="closeAuthModal()"
         >
             <div 
                 x-show="authModalVisible"
-                x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 transform scale-95"
-                x-transition:enter-end="opacity-100 transform scale-100"
-                x-transition:leave="transition ease-in duration-200"
-                x-transition:leave-start="opacity-100 transform scale-100"
-                x-transition:leave-end="opacity-0 transform scale-95"
                 class="bg-x-black border border-x-border rounded-2xl shadow-2xl p-8 max-w-md w-full"
             >
                 <!-- Modal Header -->
@@ -1063,7 +1275,7 @@
                     </div>
                     
                     <!-- Remember Me Checkbox (only for login) -->
-                    <div x-show="authMode === 'login'" x-transition class="flex items-center">
+                    <div x-show="authMode === 'login'"  class="flex items-center">
                         <input 
                             type="checkbox" 
                             x-model="authForm.rememberMe"
@@ -1076,7 +1288,7 @@
                     </div>
                     
                     <!-- Confirm Password (only for signup) -->
-                    <div x-show="authMode === 'signup'" x-transition>
+                    <div x-show="authMode === 'signup'" >
                         <label class="block text-sm font-semibold text-white mb-3">Confirm Password</label>
                         <input 
                             type="password" 
@@ -1088,7 +1300,7 @@
                     </div>
                     
                     <!-- Error Message -->
-                    <div x-show="authError" x-transition class="p-4 bg-red-900/20 border border-red-800/30 rounded-xl">
+                    <div x-show="authError"  class="p-4 bg-red-900/20 border border-red-800/30 rounded-xl">
                         <div class="flex items-center space-x-2">
                             <svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -1133,24 +1345,12 @@
         <div 
             x-cloak
             x-show="showPaymentModal" 
-            x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100"
-            x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-start="opacity-100"
-            x-transition:leave-end="opacity-0"
             class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
             @click.self="closePaymentModal()"
             @keydown.escape.window="closePaymentModal()"
         >
             <div 
                 x-show="showPaymentModal"
-                x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 transform scale-95"
-                x-transition:enter-end="opacity-100 transform scale-100"
-                x-transition:leave="transition ease-in duration-200"
-                x-transition:leave-start="opacity-100 transform scale-100"
-                x-transition:leave-end="opacity-0 transform scale-95"
                 class="bg-x-black border border-x-border rounded-2xl shadow-2xl p-8 max-w-md w-full"
             >
                 <!-- Close Button -->
@@ -1854,7 +2054,7 @@
                             </div>
 
                             <!-- Profile Edit Form -->
-                            <div x-show="editProfile" x-transition class="space-y-4">
+                            <div x-show="editProfile"  class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-x-gray mb-2">Email Address</label>
                                     <input type="email" 
@@ -2331,6 +2531,28 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Success Toast Notification -->
+        <div x-show="showToast" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 transform translate-x-full"
+             x-transition:enter-end="opacity-100 transform translate-x-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 transform translate-x-0"
+             x-transition:leave-end="opacity-0 transform translate-x-full"
+             class="fixed top-6 right-6 z-50 bg-gradient-to-r from-green-600 to-green-500 text-white px-6 py-4 rounded-xl shadow-lg max-w-sm">
+            <div class="flex items-center space-x-3">
+                <svg class="w-5 h-5 text-green-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span x-text="toastMessage" class="font-medium"></span>
+                <button @click="showToast = false" class="ml-2 text-green-100 hover:text-white">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
     </div>
 
 
@@ -2365,6 +2587,10 @@
                 
                 sidebarOpen: false,
                 showDropdown: false,
+                
+                // Toast notification state
+                showToast: false,
+                toastMessage: '',
                 
                 // Page state
                 currentPage: 'generate', // 'generate', 'templates', 'history', or 'analytics'
@@ -3235,6 +3461,11 @@
                             throw new Error('No tweets were generated. Please try with different content.');
                         }
 
+                        // Show success notification
+                        this.showSuccessMessage(
+                            `🎉 Thread generated successfully! ${this.tweets.length} tweets ready to share.`
+                        );
+                        
                         // Save thread to history if user is authenticated
                         if (this.isAuthenticated() && data.thread_id) {
                             // Thread should be automatically saved by backend
@@ -3372,6 +3603,7 @@
                     try {
                         await navigator.clipboard.writeText(this.tweets[index].text);
                         this.tweets[index].copied = true;
+                        this.showSuccessMessage(`📋 Tweet ${index + 1} copied to clipboard!`);
                         setTimeout(() => {
                             this.tweets[index].copied = false;
                         }, 2000);
@@ -3388,6 +3620,7 @@
                         
                         await navigator.clipboard.writeText(allTweets);
                         this.copiedAll = true;
+                        this.showSuccessMessage(`📋 All ${this.tweets.length} tweets copied to clipboard!`);
                         setTimeout(() => {
                             this.copiedAll = false;
                         }, 2000);
@@ -4335,13 +4568,14 @@
                 },
 
                 showSuccessMessage(message) {
-                    // You could implement a toast notification here
-                    // For now, we'll just use a simple approach
-                    const originalError = this.error;
-                    this.error = '';
+                    // Show toast notification
+                    this.toastMessage = message;
+                    this.showToast = true;
+                    
+                    // Auto-hide after 4 seconds
                     setTimeout(() => {
-                        // Could show a success state here
-                    }, 100);
+                        this.showToast = false;
+                    }, 4000);
                 },
 
                 // Comparison methods

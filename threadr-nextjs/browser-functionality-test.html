@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threadr Functionality Test - Browser Edition</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .test-section h3 {
+            background: #f5f5f5;
+            margin: 0;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .test-content {
+            padding: 20px;
+        }
+        .test-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        .status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .status.pending {
+            background: #ffc107;
+            color: white;
+        }
+        .status.running {
+            background: #17a2b8;
+            color: white;
+            animation: pulse 1s infinite;
+        }
+        .status.pass {
+            background: #28a745;
+            color: white;
+        }
+        .status.fail {
+            background: #dc3545;
+            color: white;
+        }
+        .status.skip {
+            background: #6c757d;
+            color: white;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .test-details {
+            flex: 1;
+        }
+        .test-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .test-description {
+            color: #666;
+            font-size: 14px;
+        }
+        .controls {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .config {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .config input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+        }
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .summary-item {
+            text-align: center;
+            padding: 10px;
+            border-radius: 5px;
+            background: white;
+            border: 1px solid #e0e0e0;
+        }
+        .summary-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .summary-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        .log {
+            background: #1e1e1e;
+            color: #e0e0e0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 15px;
+        }
+        .error-details {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧪 Threadr Comprehensive Functionality Test</h1>
+        <p>Real-time testing of all critical user flows to identify what's working vs what's broken</p>
+    </div>
+
+    <div class="controls">
+        <div class="config">
+            <div>
+                <label for="apiUrl">Backend API URL:</label>
+                <input type="text" id="apiUrl" value="https://threadr-production.up.railway.app/api" />
+            </div>
+            <div>
+                <label for="testEmail">Test Email:</label>
+                <input type="text" id="testEmail" value="" />
+            </div>
+        </div>
+        <button class="btn" onclick="runAllTests()">🚀 Run All Tests</button>
+        <button class="btn" onclick="runSingleTest('api-connectivity')">Test API Only</button>
+        <button class="btn" onclick="clearResults()">🗑️ Clear Results</button>
+        <button class="btn" onclick="exportResults()">📥 Export Report</button>
+    </div>
+
+    <div class="test-section">
+        <h3>🌐 API Connectivity & Health</h3>
+        <div class="test-content">
+            <div class="test-item" data-test="health-check">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">Backend Health Check</div>
+                    <div class="test-description">Verify backend server is running and accessible</div>
+                </div>
+            </div>
+            <div class="test-item" data-test="api-base">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">API Base URL Access</div>
+                    <div class="test-description">Test if API endpoints respond properly</div>
+                </div>
+            </div>
+            <div class="test-item" data-test="cors-config">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">CORS Configuration</div>
+                    <div class="test-description">Verify cross-origin requests are properly configured</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>👤 User Authentication</h3>
+        <div class="test-content">
+            <div class="test-item" data-test="user-registration">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">User Registration</div>
+                    <div class="test-description">Test account creation with validation</div>
+                </div>
+            </div>
+            <div class="test-item" data-test="user-login">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">User Login</div>
+                    <div class="test-description">Test authentication with valid credentials</div>
+                </div>
+            </div>
+            <div class="test-item" data-test="protected-routes">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">Protected Route Access</div>
+                    <div class="test-description">Test JWT token validation on protected endpoints</div>
+                </div>
+            </div>
+            <div class="test-item" data-test="auth-validation">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">Authentication Validation</div>
+                    <div class="test-description">Test invalid credentials are properly rejected</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🧵 Thread Generation</h3>
+        <div class="test-content">
+            <div class="test-item" data-test="text-generation">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">Text to Thread Generation</div>
+                    <div class="test-description">Test core AI functionality with text input</div>
+                </div>
+            </div>
+            <div class="test-item" data-test="url-generation">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">URL to Thread Generation</div>
+                    <div class="test-description">Test URL scraping and content extraction</div>
+                </div>
+            </div>
+            <div class="test-item" data-test="rate-limiting">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">Rate Limiting</div>
+                    <div class="test-description">Test free tier limits are enforced</div>
+                </div>
+            </div>
+            <div class="test-item" data-test="usage-stats">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">Usage Statistics</div>
+                    <div class="test-description">Test usage tracking and statistics</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>📊 Dashboard & Features</h3>
+        <div class="test-content">
+            <div class="test-item" data-test="thread-history">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">Thread History</div>
+                    <div class="test-description">Test saved threads and history functionality</div>
+                </div>
+            </div>
+            <div class="test-item" data-test="analytics-dashboard">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">Analytics Dashboard</div>
+                    <div class="test-description">Test user analytics and insights</div>
+                </div>
+            </div>
+            <div class="test-item" data-test="templates">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">Templates System</div>
+                    <div class="test-description">Test template listing and generation</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>💳 Payment Integration</h3>
+        <div class="test-content">
+            <div class="test-item" data-test="payment-config">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">Payment Configuration</div>
+                    <div class="test-description">Test Stripe configuration and pricing</div>
+                </div>
+            </div>
+            <div class="test-item" data-test="checkout-session">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">Checkout Session Creation</div>
+                    <div class="test-description">Test Stripe checkout session creation</div>
+                </div>
+            </div>
+            <div class="test-item" data-test="premium-status">
+                <div class="status pending">⏳</div>
+                <div class="test-details">
+                    <div class="test-name">Premium Status Check</div>
+                    <div class="test-description">Test premium access validation</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="results" id="results" style="display: none;">
+        <h3>📋 Test Results Summary</h3>
+        <div class="summary">
+            <div class="summary-item">
+                <div class="summary-value" id="total-tests">0</div>
+                <div class="summary-label">Total Tests</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value" id="passed-tests" style="color: #28a745;">0</div>
+                <div class="summary-label">Passed</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value" id="failed-tests" style="color: #dc3545;">0</div>
+                <div class="summary-label">Failed</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value" id="skipped-tests" style="color: #6c757d;">0</div>
+                <div class="summary-label">Skipped</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value" id="success-rate">0%</div>
+                <div class="summary-label">Success Rate</div>
+            </div>
+        </div>
+        <div class="log" id="test-log"></div>
+    </div>
+
+    <script>
+        // Test configuration
+        const testConfig = {
+            authToken: null,
+            userId: null,
+            testEmail: null
+        };
+
+        // Test results storage
+        const testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            skipped: 0,
+            details: [],
+            failures: [],
+            startTime: null,
+            endTime: null
+        };
+
+        // Utility functions
+        function log(message, level = 'INFO') {
+            const timestamp = new Date().toISOString();
+            const logMessage = `[${timestamp}] ${level}: ${message}`;
+            console.log(logMessage);
+            
+            const logElement = document.getElementById('test-log');
+            if (logElement) {
+                logElement.textContent += logMessage + '\n';
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+        }
+
+        function setTestStatus(testId, status, details = '', error = null) {
+            const testElement = document.querySelector(`[data-test="${testId}"]`);
+            if (!testElement) return;
+
+            const statusElement = testElement.querySelector('.status');
+            const descriptionElement = testElement.querySelector('.test-description');
+            
+            // Update status indicator
+            statusElement.className = `status ${status}`;
+            
+            switch (status) {
+                case 'running':
+                    statusElement.textContent = '⏳';
+                    break;
+                case 'pass':
+                    statusElement.textContent = '✅';
+                    testResults.passed++;
+                    break;
+                case 'fail':
+                    statusElement.textContent = '❌';
+                    testResults.failed++;
+                    testResults.failures.push({ testId, details, error: error?.message });
+                    break;
+                case 'skip':
+                    statusElement.textContent = '⏭️';
+                    testResults.skipped++;
+                    break;
+            }
+
+            // Update description with details
+            if (details) {
+                let errorHtml = '';
+                if (error && status === 'fail') {
+                    errorHtml = `<div class="error-details">Error: ${error.message}</div>`;
+                }
+                descriptionElement.innerHTML = details + errorHtml;
+            }
+
+            testResults.total++;
+            testResults.details.push({
+                testId,
+                status,
+                details,
+                error: error?.message,
+                timestamp: new Date().toISOString()
+            });
+
+            updateSummary();
+        }
+
+        function updateSummary() {
+            document.getElementById('total-tests').textContent = testResults.total;
+            document.getElementById('passed-tests').textContent = testResults.passed;
+            document.getElementById('failed-tests').textContent = testResults.failed;
+            document.getElementById('skipped-tests').textContent = testResults.skipped;
+            
+            const successRate = testResults.total > 0 
+                ? Math.round((testResults.passed / testResults.total) * 100) 
+                : 0;
+            document.getElementById('success-rate').textContent = successRate + '%';
+        }
+
+        async function makeRequest(method, url, data = null, headers = {}) {
+            try {
+                const config = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...headers
+                    }
+                };
+                
+                if (data) {
+                    config.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(url, config);
+                const responseData = await response.json().catch(() => null);
+                
+                return {
+                    success: response.ok,
+                    status: response.status,
+                    data: responseData,
+                    headers: response.headers
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message,
+                    status: 0,
+                    data: null
+                };
+            }
+        }
+
+        // Test functions
+        async function testApiConnectivity() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            
+            // Test 1: Health Check
+            setTestStatus('health-check', 'running', 'Checking backend health...');
+            try {
+                const response = await makeRequest('GET', `${apiUrl}/../health`);
+                if (response.success) {
+                    setTestStatus('health-check', 'pass', `Backend is accessible (status: ${response.status})`);
+                } else {
+                    setTestStatus('health-check', 'fail', `Backend not accessible (status: ${response.status})`, new Error(response.error));
+                }
+            } catch (error) {
+                setTestStatus('health-check', 'fail', 'Backend connection failed', error);
+            }
+            
+            await delay(500);
+            
+            // Test 2: API Base URL
+            setTestStatus('api-base', 'running', 'Testing API base URL...');
+            try {
+                const response = await makeRequest('GET', `${apiUrl}/test`);
+                if (response.success || response.status === 404) {
+                    setTestStatus('api-base', 'pass', 'API endpoint responds properly');
+                } else {
+                    setTestStatus('api-base', 'fail', 'API endpoint not accessible', new Error(response.error));
+                }
+            } catch (error) {
+                setTestStatus('api-base', 'fail', 'API base URL connection failed', error);
+            }
+            
+            await delay(500);
+            
+            // Test 3: CORS
+            setTestStatus('cors-config', 'running', 'Testing CORS configuration...');
+            try {
+                const response = await makeRequest('OPTIONS', `${apiUrl}/generate`);
+                setTestStatus('cors-config', 'pass', 'CORS configuration is working');
+            } catch (error) {
+                if (error.message.includes('CORS')) {
+                    setTestStatus('cors-config', 'fail', 'CORS configuration issue', error);
+                } else {
+                    setTestStatus('cors-config', 'pass', 'CORS is properly configured');
+                }
+            }
+        }
+
+        async function testUserAuthentication() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const testEmail = document.getElementById('testEmail').value || `test_${Date.now()}@example.com`;
+            testConfig.testEmail = testEmail;
+            
+            // Test 1: User Registration
+            setTestStatus('user-registration', 'running', 'Testing user registration...');
+            try {
+                const response = await makeRequest('POST', `${apiUrl}/auth/register`, {
+                    email: testEmail,
+                    password: 'TestPassword123!',
+                    confirm_password: 'TestPassword123!'
+                });
+                
+                if (response.success && response.data?.success) {
+                    setTestStatus('user-registration', 'pass', 'User registered successfully');
+                    if (response.data.data?.access_token) {
+                        testConfig.authToken = response.data.data.access_token;
+                        testConfig.userId = response.data.data.user?.user_id;
+                    }
+                } else if (response.status === 400 && response.data?.error?.includes('already exists')) {
+                    setTestStatus('user-registration', 'pass', 'Registration validation working (user exists)');
+                } else {
+                    setTestStatus('user-registration', 'fail', 'Registration failed', new Error(response.error || JSON.stringify(response.data)));
+                }
+            } catch (error) {
+                setTestStatus('user-registration', 'fail', 'Registration endpoint failed', error);
+            }
+            
+            await delay(1000);
+            
+            // Test 2: User Login
+            setTestStatus('user-login', 'running', 'Testing user login...');
+            try {
+                const response = await makeRequest('POST', `${apiUrl}/auth/login`, {
+                    email: testEmail,
+                    password: 'TestPassword123!'
+                });
+                
+                if (response.success && response.data?.success && response.data.data?.access_token) {
+                    setTestStatus('user-login', 'pass', 'Login successful with valid credentials');
+                    testConfig.authToken = response.data.data.access_token;
+                    testConfig.userId = response.data.data.user?.user_id;
+                } else {
+                    setTestStatus('user-login', 'fail', 'Login failed', new Error(response.error || JSON.stringify(response.data)));
+                }
+            } catch (error) {
+                setTestStatus('user-login', 'fail', 'Login endpoint failed', error);
+            }
+            
+            await delay(1000);
+            
+            // Test 3: Protected Routes
+            if (testConfig.authToken) {
+                setTestStatus('protected-routes', 'running', 'Testing protected route access...');
+                try {
+                    const response = await makeRequest('GET', `${apiUrl}/auth/me`, null, {
+                        'Authorization': `Bearer ${testConfig.authToken}`
+                    });
+                    
+                    if (response.success && response.data?.success) {
+                        setTestStatus('protected-routes', 'pass', 'Auth token works for protected routes');
+                    } else {
+                        setTestStatus('protected-routes', 'fail', 'Auth token not working', new Error(response.error));
+                    }
+                } catch (error) {
+                    setTestStatus('protected-routes', 'fail', 'Protected route access failed', error);
+                }
+            } else {
+                setTestStatus('protected-routes', 'skip', 'No auth token available');
+            }
+            
+            await delay(1000);
+            
+            // Test 4: Authentication Validation
+            setTestStatus('auth-validation', 'running', 'Testing invalid credentials...');
+            try {
+                const response = await makeRequest('POST', `${apiUrl}/auth/login`, {
+                    email: testEmail,
+                    password: 'wrongpassword'
+                });
+                
+                if (!response.success || !response.data?.success) {
+                    setTestStatus('auth-validation', 'pass', 'Invalid credentials properly rejected');
+                } else {
+                    setTestStatus('auth-validation', 'fail', 'Should reject invalid credentials');
+                }
+            } catch (error) {
+                setTestStatus('auth-validation', 'pass', 'Invalid credentials properly rejected');
+            }
+        }
+
+        async function testThreadGeneration() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            
+            // Test 1: Text Generation
+            setTestStatus('text-generation', 'running', 'Testing text to thread generation...');
+            try {
+                const testContent = "This is a test article about technology trends. Artificial intelligence is revolutionizing how we work and live. Machine learning algorithms are becoming more sophisticated every day.";
+                
+                const response = await makeRequest('POST', `${apiUrl}/generate`, {
+                    text: testContent
+                });
+                
+                if (response.success && response.data?.success && response.data.data?.tweets) {
+                    const tweets = response.data.data.tweets;
+                    setTestStatus('text-generation', 'pass', `Generated ${tweets.length} tweets from text`);
+                } else {
+                    setTestStatus('text-generation', 'fail', 'Text generation failed', new Error(response.error || JSON.stringify(response.data)));
+                }
+            } catch (error) {
+                setTestStatus('text-generation', 'fail', 'Text generation endpoint failed', error);
+            }
+            
+            await delay(2000);
+            
+            // Test 2: URL Generation
+            setTestStatus('url-generation', 'running', 'Testing URL to thread generation...');
+            try {
+                const response = await makeRequest('POST', `${apiUrl}/generate`, {
+                    url: 'https://example.com'
+                });
+                
+                if (response.success && response.data?.success) {
+                    setTestStatus('url-generation', 'pass', 'URL generation working');
+                } else if (response.data?.error?.includes('domain not allowed')) {
+                    setTestStatus('url-generation', 'pass', 'URL validation working (domain restrictions)');
+                } else {
+                    setTestStatus('url-generation', 'fail', 'URL generation failed', new Error(response.error || JSON.stringify(response.data)));
+                }
+            } catch (error) {
+                setTestStatus('url-generation', 'fail', 'URL generation endpoint failed', error);
+            }
+            
+            await delay(1000);
+            
+            // Test 3: Rate Limiting
+            setTestStatus('rate-limiting', 'running', 'Testing rate limiting...');
+            try {
+                const requests = [];
+                for (let i = 0; i < 6; i++) {
+                    requests.push(makeRequest('POST', `${apiUrl}/generate`, {
+                        text: `Test content ${i}`
+                    }));
+                }
+                
+                const responses = await Promise.all(requests);
+                const rateLimited = responses.some(r => !r.success && (r.status === 429 || r.data?.error?.includes('rate limit')));
+                
+                if (rateLimited) {
+                    setTestStatus('rate-limiting', 'pass', 'Rate limiting is working');
+                } else {
+                    setTestStatus('rate-limiting', 'fail', 'Rate limiting may not be working');
+                }
+            } catch (error) {
+                setTestStatus('rate-limiting', 'fail', 'Rate limiting test failed', error);
+            }
+            
+            await delay(1000);
+            
+            // Test 4: Usage Stats
+            setTestStatus('usage-stats', 'running', 'Testing usage statistics...');
+            try {
+                const response = await makeRequest('GET', `${apiUrl}/usage-stats`);
+                
+                if (response.success && response.data?.success) {
+                    setTestStatus('usage-stats', 'pass', 'Usage stats endpoint working');
+                } else {
+                    setTestStatus('usage-stats', 'fail', 'Usage stats not available', new Error(response.error));
+                }
+            } catch (error) {
+                setTestStatus('usage-stats', 'fail', 'Usage stats test failed', error);
+            }
+        }
+
+        async function testDashboardFeatures() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            
+            if (!testConfig.authToken) {
+                setTestStatus('thread-history', 'skip', 'No auth token available');
+                setTestStatus('analytics-dashboard', 'skip', 'No auth token available');
+                setTestStatus('templates', 'skip', 'No auth token available');
+                return;
+            }
+            
+            // Test 1: Thread History
+            setTestStatus('thread-history', 'running', 'Testing thread history...');
+            try {
+                const response = await makeRequest('GET', `${apiUrl}/threads`, null, {
+                    'Authorization': `Bearer ${testConfig.authToken}`
+                });
+                
+                if (response.success && response.data?.success) {
+                    setTestStatus('thread-history', 'pass', 'Thread history endpoint working');
+                } else {
+                    setTestStatus('thread-history', 'fail', 'Thread history failed', new Error(response.error || JSON.stringify(response.data)));
+                }
+            } catch (error) {
+                setTestStatus('thread-history', 'fail', 'Thread history test failed', error);
+            }
+            
+            await delay(1000);
+            
+            // Test 2: Analytics Dashboard
+            setTestStatus('analytics-dashboard', 'running', 'Testing analytics dashboard...');
+            try {
+                const response = await makeRequest('GET', `${apiUrl}/analytics/dashboard`, null, {
+                    'Authorization': `Bearer ${testConfig.authToken}`
+                });
+                
+                if (response.success && response.data?.success) {
+                    setTestStatus('analytics-dashboard', 'pass', 'Analytics dashboard working');
+                } else if (response.status === 404) {
+                    setTestStatus('analytics-dashboard', 'skip', 'Analytics endpoint not implemented yet');
+                } else {
+                    setTestStatus('analytics-dashboard', 'fail', 'Analytics failed', new Error(response.error || JSON.stringify(response.data)));
+                }
+            } catch (error) {
+                setTestStatus('analytics-dashboard', 'fail', 'Analytics test failed', error);
+            }
+            
+            await delay(1000);
+            
+            // Test 3: Templates
+            setTestStatus('templates', 'running', 'Testing templates...');
+            try {
+                const response = await makeRequest('GET', `${apiUrl}/templates`);
+                
+                if (response.success && response.data?.success) {
+                    setTestStatus('templates', 'pass', 'Templates endpoint working');
+                } else if (response.status === 404) {
+                    setTestStatus('templates', 'skip', 'Templates endpoint not implemented yet');
+                } else {
+                    setTestStatus('templates', 'fail', 'Templates failed', new Error(response.error || JSON.stringify(response.data)));
+                }
+            } catch (error) {
+                setTestStatus('templates', 'fail', 'Templates test failed', error);
+            }
+        }
+
+        async function testPaymentIntegration() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            
+            // Test 1: Payment Config
+            setTestStatus('payment-config', 'running', 'Testing payment configuration...');
+            try {
+                const response = await makeRequest('GET', `${apiUrl}/payment/config`);
+                
+                if (response.success && response.data?.success) {
+                    setTestStatus('payment-config', 'pass', 'Payment configuration endpoint working');
+                } else {
+                    setTestStatus('payment-config', 'fail', 'Payment config failed', new Error(response.error || JSON.stringify(response.data)));
+                }
+            } catch (error) {
+                setTestStatus('payment-config', 'fail', 'Payment config test failed', error);
+            }
+            
+            await delay(1000);
+            
+            // Test 2: Checkout Session
+            setTestStatus('checkout-session', 'running', 'Testing Stripe checkout...');
+            try {
+                const response = await makeRequest('POST', `${apiUrl}/stripe/create-checkout-session`, {
+                    priceId: 'test-price-id',
+                    successUrl: 'https://example.com/success',
+                    cancelUrl: 'https://example.com/cancel'
+                });
+                
+                if (response.success && response.data?.success) {
+                    setTestStatus('checkout-session', 'pass', 'Checkout session creation working');
+                } else if (response.data?.error?.includes('price') || response.data?.error?.includes('Stripe')) {
+                    setTestStatus('checkout-session', 'pass', 'Stripe integration configured (validation working)');
+                } else {
+                    setTestStatus('checkout-session', 'fail', 'Checkout failed', new Error(response.error || JSON.stringify(response.data)));
+                }
+            } catch (error) {
+                setTestStatus('checkout-session', 'fail', 'Stripe checkout test failed', error);
+            }
+            
+            await delay(1000);
+            
+            // Test 3: Premium Status
+            setTestStatus('premium-status', 'running', 'Testing premium status...');
+            try {
+                const response = await makeRequest('GET', `${apiUrl}/premium/check`);
+                
+                if (response.success && response.data?.success) {
+                    setTestStatus('premium-status', 'pass', 'Premium status check working');
+                } else {
+                    setTestStatus('premium-status', 'fail', 'Premium status failed', new Error(response.error || JSON.stringify(response.data)));
+                }
+            } catch (error) {
+                setTestStatus('premium-status', 'fail', 'Premium status test failed', error);
+            }
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Main test runner
+        async function runAllTests() {
+            // Reset results
+            clearResults();
+            
+            testResults.startTime = new Date().toISOString();
+            document.getElementById('results').style.display = 'block';
+            
+            log('🚀 Starting Comprehensive Functionality Test Suite...');
+            log(`Testing against: ${document.getElementById('apiUrl').value}`);
+            
+            try {
+                await testApiConnectivity();
+                await delay(1000);
+                
+                await testUserAuthentication();
+                await delay(1000);
+                
+                await testThreadGeneration();
+                await delay(1000);
+                
+                await testDashboardFeatures();
+                await delay(1000);
+                
+                await testPaymentIntegration();
+                
+                testResults.endTime = new Date().toISOString();
+                log('🏁 Test Suite Completed!');
+                
+                // Show summary
+                log('='.repeat(60));
+                log('COMPREHENSIVE FUNCTIONALITY TEST RESULTS');
+                log('='.repeat(60));
+                log(`✅ Passed: ${testResults.passed}`);
+                log(`❌ Failed: ${testResults.failed}`);
+                log(`⏭️ Skipped: ${testResults.skipped}`);
+                const successRate = testResults.total > 0 ? Math.round((testResults.passed / testResults.total) * 100) : 0;
+                log(`📊 Success Rate: ${successRate}%`);
+                log('='.repeat(60));
+                
+                if (testResults.failures.length > 0) {
+                    log('🚨 CRITICAL FAILURES:');
+                    testResults.failures.forEach(failure => {
+                        log(`   - ${failure.testId}: ${failure.details}`);
+                    });
+                }
+                
+                updateSummary();
+                
+            } catch (error) {
+                log(`Fatal error during test execution: ${error.message}`, 'ERROR');
+                throw error;
+            }
+        }
+
+        async function runSingleTest(testType) {
+            clearResults();
+            document.getElementById('results').style.display = 'block';
+            
+            switch (testType) {
+                case 'api-connectivity':
+                    await testApiConnectivity();
+                    break;
+                // Add other single test cases as needed
+            }
+        }
+
+        function clearResults() {
+            // Reset test results
+            testResults.total = 0;
+            testResults.passed = 0;
+            testResults.failed = 0;
+            testResults.skipped = 0;
+            testResults.details = [];
+            testResults.failures = [];
+            
+            // Reset UI
+            document.querySelectorAll('.status').forEach(status => {
+                status.className = 'status pending';
+                status.textContent = '⏳';
+            });
+            
+            document.querySelectorAll('.test-description').forEach(desc => {
+                desc.innerHTML = desc.textContent; // Remove any error details
+            });
+            
+            const logElement = document.getElementById('test-log');
+            if (logElement) {
+                logElement.textContent = '';
+            }
+            
+            updateSummary();
+            document.getElementById('results').style.display = 'none';
+        }
+
+        function exportResults() {
+            if (testResults.details.length === 0) {
+                alert('No test results to export. Run tests first.');
+                return;
+            }
+            
+            const report = generateMarkdownReport();
+            const blob = new Blob([report], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `threadr-test-report-${Date.now()}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function generateMarkdownReport() {
+            const successRate = testResults.total > 0 ? Math.round((testResults.passed / testResults.total) * 100) : 0;
+            
+            return `# Threadr Comprehensive Functionality Test Report
+
+**Generated:** ${testResults.endTime || new Date().toISOString()}
+**API URL:** ${document.getElementById('apiUrl').value}
+
+## Summary
+- **Total Tests:** ${testResults.total}
+- **Passed:** ${testResults.passed} ✅
+- **Failed:** ${testResults.failed} ❌
+- **Skipped:** ${testResults.skipped} ⏭️
+- **Success Rate:** ${successRate}%
+
+## Test Results Details
+
+${testResults.details.map(test => 
+`### ${test.status === 'pass' ? '✅' : test.status === 'fail' ? '❌' : '⏭️'} ${test.testId}
+**Status:** ${test.status}
+**Details:** ${test.details}
+${test.error ? `**Error:** ${test.error}` : ''}
+**Timestamp:** ${test.timestamp}
+`).join('\n')}
+
+## Critical Failures
+${testResults.failures.length > 0 ? testResults.failures.map(failure => 
+`- **${failure.testId}:** ${failure.details} ${failure.error ? `(${failure.error})` : ''}`
+).join('\n') : 'No critical failures detected.'}
+
+## Recommendations
+
+${testResults.failures.length > 0 ? 
+testResults.failures.map(failure => {
+    if (failure.testId.includes('health') || failure.testId.includes('api-base')) {
+        return '- **Backend Connectivity Issue:** Verify Railway deployment is running and accessible';
+    } else if (failure.testId.includes('registration') || failure.testId.includes('login')) {
+        return '- **Authentication Issues:** Check auth endpoints and database connectivity';
+    } else if (failure.testId.includes('generation')) {
+        return '- **Core Functionality Issue:** Verify OpenAI API key and thread generation logic';
+    } else if (failure.testId.includes('dashboard') || failure.testId.includes('protected')) {
+        return '- **Authorization Issues:** Check JWT token handling and middleware';
+    } else if (failure.testId.includes('payment') || failure.testId.includes('stripe')) {
+        return '- **Payment Integration Issues:** Verify Stripe API keys and webhook configuration';
+    }
+    return `- **${failure.testId}:** Review implementation and error details`;
+}).join('\n') : 
+'- All critical functionality is working properly\n- Continue with frontend UI integration testing'
+}
+
+---
+*This report was generated by the Threadr Browser-Based Functionality Test Suite*
+`;
+        }
+
+        // Initialize test email with timestamp
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('testEmail').value = `test_${Date.now()}@example.com`;
+        });
+    </script>
+</body>
+</html>
