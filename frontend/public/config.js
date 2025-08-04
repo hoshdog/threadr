@@ -45,9 +45,10 @@ const config = {
     MAX_TWEET_LENGTH: 280,
     MAX_TEXT_INPUT_LENGTH: 10000,
     
-    // SECURITY FIX: API keys removed from frontend for security
+    // SECURITY FIX v2.0: API keys completely removed from frontend for security
     // Backend now handles all authentication internally using IP-based rate limiting
     // No API keys are required or used in frontend requests
+    // Version: 2025-08-04-SECURITY_FIX_v2
     
     // Feature flags based on environment
     FEATURES: {
