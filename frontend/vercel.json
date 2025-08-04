@@ -76,11 +76,11 @@
   ],
   "env": {
     "THREADR_API_URL": "https://threadr-production.up.railway.app",
-    "THREADR_API_KEY": "@threadr-api-key"
+    "THREADR_API_KEY": "@threadr_api_key"
   },
   "build": {
     "env": {
-      "THREADR_API_KEY": "@threadr-api-key"
+      "THREADR_API_KEY": "@threadr_api_key"
     }
   }
 }

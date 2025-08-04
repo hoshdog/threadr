@@ -21,7 +21,7 @@ This guide will help you secure your Threadr API key by moving it from hardcoded
 2. Select **Environment Variables** from the left sidebar
 3. Click **Add Variable**
 4. Configure as follows:
-   - **Key**: `threadr-api-key`
+   - **Name**: `THREADR_API_KEY`
    - **Value**: `zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8`
    - **Environment**: Select all (Production, Preview, Development)
    - **Sensitive**: ✅ Check this box
@@ -82,7 +82,7 @@ THREADR_API_KEY=your-test-key npm run build
 
 ### API Key Not Working
 1. Check Vercel build logs for "Injecting API key from environment variable"
-2. Verify the environment variable name is exactly `threadr-api-key`
+2. Verify the environment variable name is exactly `THREADR_API_KEY`
 3. Ensure you've redeployed after adding the variable
 4. Check browser console for any errors
 

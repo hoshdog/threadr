@@ -20,7 +20,7 @@ This checklist ensures all Week 1 improvements are properly deployed to producti
 - [ ] Navigate to threadr project
 - [ ] Go to Settings → Environment Variables
 - [ ] Add variable:
-  - Key: `threadr-api-key`
+  - Name: `THREADR_API_KEY`
   - Value: `zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8`
   - Environments: All (Production, Preview, Development)
   - Sensitive: ✅ Checked

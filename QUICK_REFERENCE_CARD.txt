@@ -1,0 +1,62 @@
+================================================================================
+                        THREADR CONFIGURATION QUICK REFERENCE
+================================================================================
+
+STEP 1: VERCEL API KEY
+----------------------
+URL: https://vercel.com/dashboard
+Path: Project → Settings → Environment Variables → Add Variable
+
+Name:  THREADR_API_KEY
+Value: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8
+Env:   ☑ Production ☑ Preview ☑ Development
+☑ Sensitive
+
+Click: Save → Redeploy
+
+
+STEP 2: REDIS SETUP
+-------------------
+OPTION A - Railway ($5/mo):
+URL: https://railway.app/dashboard
+Path: New Service → Database → Redis
+Name: threadr-redis
+(REDIS_URL auto-added)
+
+OPTION B - Upstash (Free):
+URL: https://console.upstash.com
+Create Database → threadr-production
+Copy Redis URL → Add to Railway Variables
+
+
+STEP 3: VERIFY
+--------------
+Run: run_verification_suite.bat
+
+Check:
+✓ API Key hidden in source
+✓ Redis connected
+✓ Trust signals visible
+✓ Character counter working
+✓ Loading animations active
+
+
+QUICK COMMANDS
+--------------
+Open all dashboards:  open_dashboards.bat
+Run verification:     run_verification_suite.bat
+View monitoring:      python -m http.server 8080
+                     → http://localhost:8080/monitoring_dashboard.html
+
+
+SUPPORT FILES
+-------------
+Full Vercel Guide:    VERCEL_API_KEY_SETUP.md
+Full Redis Guide:     RAILWAY_REDIS_SETUP_GUIDE.md
+Deployment Checklist: WEEK_1_DEPLOYMENT_CHECKLIST.md
+Your Action Items:    YOUR_ACTION_ITEMS_NOW.md
+
+
+================================================================================
+           Time Required: 15 minutes | Impact: $4.99 → $49+ SaaS
+================================================================================
