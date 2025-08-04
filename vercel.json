@@ -1,27 +1,18 @@
 {
-  "version": 2,
-  "builds": [
+  "buildCommand": "cd threadr-nextjs && npm run build",
+  "outputDirectory": "threadr-nextjs/.next",
+  "installCommand": "cd threadr-nextjs && npm install",
+  "framework": "nextjs",
+  "rootDirectory": "threadr-nextjs",
+  "rewrites": [
     {
-      "src": "threadr-nextjs/package.json",
-      "use": "@vercel/next",
-      "config": {
-        "rootDirectory": "threadr-nextjs"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "https://threadr-production.up.railway.app/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "threadr-nextjs/$1"
+      "source": "/api/:path*",
+      "destination": "https://threadr-production.up.railway.app/api/:path*"
     }
   ],
   "env": {
-    "NEXT_PUBLIC_API_BASE_URL": "@next_public_api_base_url",
-    "NEXT_PUBLIC_API_KEY": "@next_public_api_key", 
-    "NEXT_PUBLIC_APP_URL": "@next_public_app_url"
+    "NEXT_PUBLIC_API_BASE_URL": "$NEXT_PUBLIC_API_BASE_URL",
+    "NEXT_PUBLIC_API_KEY": "$NEXT_PUBLIC_API_KEY",
+    "NEXT_PUBLIC_APP_URL": "$NEXT_PUBLIC_APP_URL"
   }
 }
