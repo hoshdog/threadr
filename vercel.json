@@ -1,51 +1,27 @@
 {
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/((?!logos|.*\\.).*)",
-      "destination": "/index.html"
+      "src": "threadr-nextjs/package.json",
+      "use": "@vercel/next",
+      "config": {
+        "rootDirectory": "threadr-nextjs"
+      }
     }
   ],
-  "headers": [
+  "routes": [
     {
-      "source": "/logos/(.*)",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "image/png"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400"
-        }
-      ]
+      "src": "/api/(.*)",
+      "dest": "https://threadr-production.up.railway.app/api/$1"
     },
     {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Frame-Options",
-          "value": "SAMEORIGIN"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
-    },
-    {
-      "source": "/index.html",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, must-revalidate"
-        }
-      ]
+      "src": "/(.*)",
+      "dest": "threadr-nextjs/$1"
     }
-  ]
+  ],
+  "env": {
+    "NEXT_PUBLIC_API_BASE_URL": "@next_public_api_base_url",
+    "NEXT_PUBLIC_API_KEY": "@next_public_api_key", 
+    "NEXT_PUBLIC_APP_URL": "@next_public_app_url"
+  }
 }

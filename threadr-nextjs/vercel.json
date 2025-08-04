@@ -1,7 +1,9 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
+  "buildCommand": "cd threadr-nextjs && npm run build",
+  "outputDirectory": "threadr-nextjs/.next",
+  "installCommand": "cd threadr-nextjs && npm install",
   "framework": "nextjs",
+  "rootDirectory": "threadr-nextjs",
   "rewrites": [
     {
       "source": "/api/:path*",
