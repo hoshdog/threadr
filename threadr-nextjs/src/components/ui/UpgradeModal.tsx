@@ -126,6 +126,7 @@ export default function UpgradeModal({
         document.body.style.overflow = 'unset';
       };
     }
+    return undefined;
   }, [isOpen]);
 
   if (!isOpen) return null;

@@ -85,14 +85,6 @@ export const ThreadGenerator: React.FC<ThreadGeneratorProps> = ({
       {/* Usage Indicator */}
       {usageStatus && !premium.hasAccess && (
         <UsageIndicator
-          usage={{
-            dailyUsed: usageStatus.daily_usage,
-            dailyLimit: usageStatus.daily_limit,
-            monthlyUsed: usageStatus.monthly_usage,
-            monthlyLimit: usageStatus.monthly_limit,
-            isPremium: usageStatus.has_premium,
-            premiumExpiresAt: usageStatus.premium_expires_at || undefined
-          }}
           onUpgrade={onUpgrade}
         />
       )}

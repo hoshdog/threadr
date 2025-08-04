@@ -34,6 +34,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const { register, isLoading, error, clearError } = useAuth();
   const [localError, setLocalError] = React.useState<string | null>(null);
+  const [localIsLoading, setLocalIsLoading] = React.useState(false);
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -47,8 +48,8 @@ export default function RegisterPage() {
   });
 
   const onSubmit = async (data: RegisterFormData) => {
-    setIsLoading(true);
-    setError(null);
+    setLocalIsLoading(true);
+    setLocalError(null);
 
     try {
       // TODO: Integrate with actual auth API
@@ -64,15 +65,15 @@ export default function RegisterPage() {
       // Mock success response
       router.push('/dashboard');
     } catch (err) {
-      setError('Failed to create account. Please try again.');
+      setLocalError('Failed to create account. Please try again.');
     } finally {
-      setIsLoading(false);
+      setLocalIsLoading(false);
     }
   };
 
   const handleSocialLogin = async (provider: 'google' | 'twitter') => {
-    setIsLoading(true);
-    setError(null);
+    setLocalIsLoading(true);
+    setLocalError(null);
 
     try {
       // TODO: Integrate with OAuth providers
@@ -84,9 +85,9 @@ export default function RegisterPage() {
       // Mock success response
       router.push('/dashboard');
     } catch (err) {
-      setError(`Failed to sign up with ${provider}. Please try again.`);
+      setLocalError(`Failed to sign up with ${provider}. Please try again.`);
     } finally {
-      setIsLoading(false);
+      setLocalIsLoading(false);
     }
   };
 

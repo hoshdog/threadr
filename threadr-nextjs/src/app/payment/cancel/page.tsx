@@ -1,9 +1,10 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui';
 
-export default function PaymentCancelPage() {
+function PaymentCancelContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const templateId = searchParams.get('template');
@@ -88,5 +89,22 @@ export default function PaymentCancelPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentCancelPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-8 h-8 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Loading...</h1>
+        </div>
+      </div>
+    }>
+      <PaymentCancelContent />
+    </Suspense>
   );
 }
