@@ -17,11 +17,11 @@ import json
 # Import dependencies
 try:
     from ..core.redis_manager import get_redis_manager
-    from ..middleware.auth import get_current_user_optional, get_current_user
+    from ..middleware.auth import create_auth_dependencies
     from ..services.auth.auth_service import AuthService
 except ImportError:
     from core.redis_manager import get_redis_manager
-    from middleware.auth import get_current_user_optional, get_current_user
+    from middleware.auth import create_auth_dependencies
     from services.auth.auth_service import AuthService
 
 # Configure logging
@@ -79,6 +79,11 @@ def create_subscription_router(auth_service: AuthService) -> APIRouter:
     """Create subscription router with auth service dependency"""
     router = APIRouter(prefix="/api/subscription", tags=["subscription"])
     
+    # Create auth dependencies
+    auth_deps = create_auth_dependencies(auth_service)
+    get_current_user_required = auth_deps["get_current_user_required"]
+    get_current_user_optional = auth_deps["get_current_user_optional"]
+    
     @router.get("/plans", response_model=Dict[str, Any])
     async def get_subscription_plans():
         """Get available subscription plans and pricing"""
@@ -103,7 +108,7 @@ def create_subscription_router(auth_service: AuthService) -> APIRouter:
     @router.post("/create-checkout", response_model=Dict[str, Any])
     async def create_checkout_session(
         request: CreateCheckoutRequest,
-        current_user = Depends(get_current_user)
+        current_user = Depends(get_current_user_required)
     ):
         """Create Stripe checkout session for subscription"""
         try:
@@ -121,11 +126,11 @@ def create_subscription_router(auth_service: AuthService) -> APIRouter:
                 }],
                 success_url=success_url,
                 cancel_url=cancel_url,
-                customer_email=current_user.get("email"),
-                client_reference_id=current_user.get("user_id"),
+                customer_email=current_user.email,
+                client_reference_id=current_user.user_id,
                 metadata={
-                    "user_id": current_user.get("user_id"),
-                    "email": current_user.get("email")
+                    "user_id": current_user.user_id,
+                    "email": current_user.email
                 }
             )
             
@@ -143,11 +148,11 @@ def create_subscription_router(auth_service: AuthService) -> APIRouter:
             raise HTTPException(status_code=500, detail="Failed to create checkout session")
     
     @router.get("/status", response_model=SubscriptionInfo)
-    async def get_subscription_status(current_user = Depends(get_current_user)):
+    async def get_subscription_status(current_user = Depends(get_current_user_required)):
         """Get current user's subscription status"""
         try:
             redis_manager = await get_redis_manager()
-            user_id = current_user.get("user_id")
+            user_id = current_user.user_id
             
             # Get subscription info from Redis
             subscription_data = await redis_manager.get_user_subscription(user_id)
@@ -169,11 +174,11 @@ def create_subscription_router(auth_service: AuthService) -> APIRouter:
             raise HTTPException(status_code=500, detail="Failed to fetch subscription status")
     
     @router.post("/cancel", response_model=Dict[str, Any])
-    async def cancel_subscription(current_user = Depends(get_current_user)):
+    async def cancel_subscription(current_user = Depends(get_current_user_required)):
         """Cancel user's subscription at period end"""
         try:
             redis_manager = await get_redis_manager()
-            user_id = current_user.get("user_id")
+            user_id = current_user.user_id
             
             # Get current subscription
             subscription_data = await redis_manager.get_user_subscription(user_id)
@@ -204,11 +209,11 @@ def create_subscription_router(auth_service: AuthService) -> APIRouter:
             raise HTTPException(status_code=500, detail="Failed to cancel subscription")
     
     @router.post("/reactivate", response_model=Dict[str, Any])
-    async def reactivate_subscription(current_user = Depends(get_current_user)):
+    async def reactivate_subscription(current_user = Depends(get_current_user_required)):
         """Reactivate a cancelled subscription"""
         try:
             redis_manager = await get_redis_manager()
-            user_id = current_user.get("user_id")
+            user_id = current_user.user_id
             
             # Get current subscription
             subscription_data = await redis_manager.get_user_subscription(user_id)
@@ -240,12 +245,12 @@ def create_subscription_router(auth_service: AuthService) -> APIRouter:
     @router.post("/change-plan", response_model=Dict[str, Any])
     async def change_subscription_plan(
         request: UpdateSubscriptionRequest,
-        current_user = Depends(get_current_user)
+        current_user = Depends(get_current_user_required)
     ):
         """Change subscription plan (upgrade/downgrade)"""
         try:
             redis_manager = await get_redis_manager()
-            user_id = current_user.get("user_id")
+            user_id = current_user.user_id
             
             # Get current subscription
             subscription_data = await redis_manager.get_user_subscription(user_id)
@@ -290,11 +295,11 @@ def create_subscription_router(auth_service: AuthService) -> APIRouter:
             raise HTTPException(status_code=500, detail="Failed to change subscription plan")
     
     @router.get("/usage", response_model=Dict[str, Any])
-    async def get_subscription_usage(current_user = Depends(get_current_user)):
+    async def get_subscription_usage(current_user = Depends(get_current_user_required)):
         """Get current subscription usage statistics"""
         try:
             redis_manager = await get_redis_manager()
-            user_id = current_user.get("user_id")
+            user_id = current_user.user_id
             
             # Get usage data from Redis
             usage_data = await redis_manager.get_user_usage_stats(user_id)
