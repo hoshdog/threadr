@@ -322,9 +322,14 @@ if redis_manager:
     # Thread routes added
     
     # Add subscription routes
-    subscription_router = create_subscription_router(auth_service)
-    app.include_router(subscription_router)
-    # Subscription routes added
+    try:
+        subscription_router = create_subscription_router(auth_service)
+        app.include_router(subscription_router)
+        # Subscription routes added
+        logger.info("Subscription routes successfully loaded")
+    except Exception as e:
+        logger.error(f"Failed to load subscription routes: {str(e)}", exc_info=True)
+        # Continue without subscription routes for now
     
     # Verify thread routes
     thread_routes = []
@@ -352,9 +357,14 @@ else:
     # Thread routes added (fallback mode)
     
     # Add subscription routes (fallback mode)
-    subscription_router = create_subscription_router(auth_service)
-    app.include_router(subscription_router)
-    # Subscription routes added (fallback mode)
+    try:
+        subscription_router = create_subscription_router(auth_service)
+        app.include_router(subscription_router)
+        # Subscription routes added (fallback mode)
+        logger.info("Subscription routes successfully loaded (fallback mode)")
+    except Exception as e:
+        logger.error(f"Failed to load subscription routes (fallback mode): {str(e)}", exc_info=True)
+        # Continue without subscription routes for now
 
 # Production environment - debug routes removed
 
