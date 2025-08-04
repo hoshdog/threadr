@@ -17,7 +17,7 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 def create_subscription_products():
     """Create subscription products and prices in Stripe"""
     
-    print("🚀 Setting up Threadr subscription products in Stripe...")
+    print("[INFO] Setting up Threadr subscription products in Stripe...")
     
     # Product 1: Starter Plan
     try:
@@ -42,11 +42,11 @@ def create_subscription_products():
             }
         )
         
-        print(f"✅ Starter Plan Created: {starter_product.id}")
+        print(f"[SUCCESS] Starter Plan Created: {starter_product.id}")
         print(f"   Price ID: {starter_price.id}")
         
     except stripe.error.StripeError as e:
-        print(f"❌ Error creating Starter plan: {e}")
+        print(f"[ERROR] Error creating Starter plan: {e}")
     
     # Product 2: Pro Plan (RECOMMENDED)
     try:
@@ -71,11 +71,11 @@ def create_subscription_products():
             }
         )
         
-        print(f"✅ Pro Plan Created: {pro_product.id}")
+        print(f"[SUCCESS] Pro Plan Created: {pro_product.id}")
         print(f"   Price ID: {pro_price.id}")
         
     except stripe.error.StripeError as e:
-        print(f"❌ Error creating Pro plan: {e}")
+        print(f"[ERROR] Error creating Pro plan: {e}")
     
     # Product 3: Team Plan
     try:
@@ -100,14 +100,14 @@ def create_subscription_products():
             }
         )
         
-        print(f"✅ Team Plan Created: {team_product.id}")
+        print(f"[SUCCESS] Team Plan Created: {team_product.id}")
         print(f"   Price ID: {team_price.id}")
         
     except stripe.error.StripeError as e:
-        print(f"❌ Error creating Team plan: {e}")
+        print(f"[ERROR] Error creating Team plan: {e}")
     
     # Create annual pricing options (20% discount)
-    print("\n📅 Creating annual pricing options...")
+    print("\n[INFO] Creating annual pricing options...")
     
     try:
         # Starter Annual ($95.90 = $9.99 * 12 * 0.8)
@@ -121,7 +121,7 @@ def create_subscription_products():
                 "discount": "20_percent"
             }
         )
-        print(f"✅ Starter Annual: {starter_annual_price.id} ($95.90/year)")
+        print(f"[SUCCESS] Starter Annual: {starter_annual_price.id} ($95.90/year)")
         
         # Pro Annual ($191.90 = $19.99 * 12 * 0.8)
         pro_annual_price = stripe.Price.create(
@@ -134,7 +134,7 @@ def create_subscription_products():
                 "discount": "20_percent"
             }
         )
-        print(f"✅ Pro Annual: {pro_annual_price.id} ($191.90/year)")
+        print(f"[SUCCESS] Pro Annual: {pro_annual_price.id} ($191.90/year)")
         
         # Team Annual ($479.90 = $49.99 * 12 * 0.8)
         team_annual_price = stripe.Price.create(
@@ -147,25 +147,25 @@ def create_subscription_products():
                 "discount": "20_percent"
             }
         )
-        print(f"✅ Team Annual: {team_annual_price.id} ($479.90/year)")
+        print(f"[SUCCESS] Team Annual: {team_annual_price.id} ($479.90/year)")
         
     except stripe.error.StripeError as e:
-        print(f"❌ Error creating annual plans: {e}")
+        print(f"[ERROR] Error creating annual plans: {e}")
     
-    print("\n🎯 SUBSCRIPTION SETUP COMPLETE!")
-    print("\n📋 NEXT STEPS:")
+    print("\n[COMPLETE] SUBSCRIPTION SETUP COMPLETE!")
+    print("\n[NEXT STEPS]:")
     print("1. Copy the Price IDs above and add them to your .env file")
     print("2. Update webhook to handle subscription events")
     print("3. Deploy backend subscription management endpoints")
     print("4. Update frontend with subscription selection UI")
     
-    print("\n💰 REVENUE POTENTIAL:")
-    print("   95 Pro subscribers × $19.99 = $1,899 MRR 🎯")
+    print("\n[REVENUE POTENTIAL]:")
+    print("   95 Pro subscribers x $19.99 = $1,899 MRR")
     print("   Mixed plans targeting $1,349 MRR goal")
 
 if __name__ == "__main__":
     if not os.getenv("STRIPE_SECRET_KEY"):
-        print("❌ Error: STRIPE_SECRET_KEY not found in environment variables")
+        print("[ERROR] Error: STRIPE_SECRET_KEY not found in environment variables")
         print("   Please set your Stripe secret key in .env file")
         exit(1)
     

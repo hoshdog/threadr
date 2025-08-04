@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Templates Debug - Threadr</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto p-8" x-data="{
+        templates: [
+            {
+                id: 'product-launch',
+                name: 'Product Launch Announcement',
+                description: 'Announce your new product with excitement and key features',
+                category: 'Business',
+                isPro: false,
+                popularity: 95,
+                variables: ['productName', 'keyFeatures', 'launchDate', 'specialOffer'],
+                exampleThread: [
+                    '🚀 Big news! We\'re thrilled to announce {productName} is officially launching on {launchDate}!',
+                    'After months of development and testing, we\'ve created something we\'re incredibly proud of.',
+                    'Key features that make {productName} special:\n\n{keyFeatures}',
+                    '🎉 Launch week special: {specialOffer}\n\nDon\'t miss out on this limited-time offer!',
+                    'Join thousands of early adopters who are already transforming their workflow.',
+                    'Ready to get started? Visit our website and see {productName} in action!\n\n#ProductLaunch #Innovation'
+                ]
+            },
+            {
+                id: 'tutorial-guide',
+                name: 'Tutorial/How-to Guide',
+                description: 'Step-by-step guide to teach your audience something valuable',
+                category: 'Educational',
+                isPro: false,
+                popularity: 88,
+                variables: ['topicTitle', 'problemStatement', 'steps', 'finalTip'],
+                exampleThread: [
+                    '📚 How to {topicTitle} - A Complete Guide (Thread)',
+                    'Struggling with {problemStatement}? You\'re not alone. Here\'s a simple solution that actually works.',
+                    'Step-by-step breakdown:\n\n{steps}',
+                    'Common mistakes to avoid:\n\n• Rushing through the process\n• Skipping important steps\n• Not testing your results',
+                    '💡 Pro tip: {finalTip}',
+                    'Found this helpful? Save this thread and share it with someone who needs it!\n\n#Tutorial #HowTo'
+                ]
+            }
+        ],
+        templatesLoaded: false,
+        templatesRefreshKey: 0,
+        templateSearch: '',
+        selectedCategory: 'all',
+        user: { premium: false },
+        
+        init() {
+            console.log('Templates Debug Init');
+            console.log('Initial templates:', this.templates);
+            this.loadTemplates();
+        },
+        
+        loadTemplates() {
+            console.log('loadTemplates() called');
+            this.templatesLoaded = true;
+            this.templatesRefreshKey++;
+            this.$nextTick(() => {
+                console.log('Templates loaded:', this.templates.length);
+            });
+        },
+        
+        getPopularTemplates() {
+            console.log('getPopularTemplates() called');
+            console.log('templatesRefreshKey:', this.templatesRefreshKey);
+            console.log('templates:', this.templates);
+            
+            if (!this.templates || this.templates.length === 0) {
+                return [];
+            }
+            
+            const filtered = this.templates
+                .filter(template => {
+                    if (template.isPro === true) {
+                        return this.user && this.user.premium === true;
+                    }
+                    return template.popularity >= 75;
+                })
+                .sort((a, b) => b.popularity - a.popularity)
+                .slice(0, 6);
+                
+            console.log('Popular templates found:', filtered.length);
+            return filtered;
+        },
+        
+        getFilteredTemplates() {
+            console.log('getFilteredTemplates() called');
+            console.log('templatesRefreshKey:', this.templatesRefreshKey);
+            
+            if (!this.templates || this.templates.length === 0) {
+                return [];
+            }
+            
+            let filtered = this.templates.filter(template => {
+                if (template.isPro === true && (!this.user || !this.user.premium)) {
+                    return false;
+                }
+                return true;
+            });
+            
+            if (this.selectedCategory && this.selectedCategory !== 'all') {
+                filtered = filtered.filter(t => t.category === this.selectedCategory);
+            }
+            
+            if (this.templateSearch) {
+                const search = this.templateSearch.toLowerCase();
+                filtered = filtered.filter(t => 
+                    t.name.toLowerCase().includes(search) || 
+                    t.description.toLowerCase().includes(search)
+                );
+            }
+            
+            console.log('Filtered templates found:', filtered.length);
+            return filtered;
+        }
+    }">
+        <h1 class="text-3xl font-bold mb-8">Templates Debug Page</h1>
+        
+        <!-- Debug Info Panel -->
+        <div class="bg-gray-800 p-4 rounded mb-8">
+            <h2 class="text-xl font-semibold mb-2">Debug Information</h2>
+            <div class="space-y-1 font-mono text-sm">
+                <div>Templates Loaded: <span x-text="templatesLoaded" class="text-green-400"></span></div>
+                <div>Templates Array Length: <span x-text="templates?.length || 0" class="text-green-400"></span></div>
+                <div>Refresh Key: <span x-text="templatesRefreshKey" class="text-green-400"></span></div>
+                <div>User Premium: <span x-text="user?.premium || false" class="text-green-400"></span></div>
+                <div>Selected Category: <span x-text="selectedCategory" class="text-green-400"></span></div>
+                <div>Search Query: <span x-text="templateSearch || '(empty)'" class="text-green-400"></span></div>
+            </div>
+        </div>
+        
+        <!-- Controls -->
+        <div class="bg-gray-800 p-4 rounded mb-8">
+            <h2 class="text-xl font-semibold mb-4">Controls</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block mb-2">Search Templates:</label>
+                    <input type="text" x-model="templateSearch" class="w-full p-2 bg-gray-700 rounded" placeholder="Search...">
+                </div>
+                <div>
+                    <label class="block mb-2">Category:</label>
+                    <select x-model="selectedCategory" class="w-full p-2 bg-gray-700 rounded">
+                        <option value="all">All Categories</option>
+                        <option value="Business">Business</option>
+                        <option value="Educational">Educational</option>
+                    </select>
+                </div>
+                <div class="space-x-4">
+                    <button @click="user.premium = !user.premium" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">
+                        Toggle Premium (Currently: <span x-text="user.premium ? 'Yes' : 'No'"></span>)
+                    </button>
+                    <button @click="loadTemplates()" class="px-4 py-2 bg-green-600 rounded hover:bg-green-700">
+                        Force Reload Templates
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Popular Templates -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4">
+                Popular Templates 
+                <span class="text-sm text-gray-400">(<span x-text="getPopularTemplates().length"></span> templates)</span>
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <template x-for="template in getPopularTemplates()" :key="template.id">
+                    <div class="bg-gray-800 p-4 rounded">
+                        <h3 x-text="template.name" class="font-semibold mb-2"></h3>
+                        <p x-text="template.description" class="text-gray-400 text-sm mb-2"></p>
+                        <div class="text-xs">
+                            <span class="text-gray-500">Category:</span> 
+                            <span x-text="template.category" class="text-blue-400"></span>
+                            <span class="ml-2 text-gray-500">Popularity:</span> 
+                            <span x-text="template.popularity" class="text-green-400"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div x-show="getPopularTemplates().length === 0" class="text-red-400 text-center py-8">
+                No popular templates found
+            </div>
+        </div>
+        
+        <!-- All Templates -->
+        <div>
+            <h2 class="text-2xl font-semibold mb-4">
+                All Templates 
+                <span class="text-sm text-gray-400">(<span x-text="getFilteredTemplates().length"></span> templates)</span>
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <template x-for="template in getFilteredTemplates()" :key="template.id">
+                    <div class="bg-gray-800 p-4 rounded">
+                        <h3 x-text="template.name" class="font-semibold mb-2"></h3>
+                        <p x-text="template.description" class="text-gray-400 text-sm mb-2"></p>
+                        <div class="text-xs">
+                            <span class="text-gray-500">Category:</span> 
+                            <span x-text="template.category" class="text-blue-400"></span>
+                            <span class="ml-2 text-gray-500">Pro:</span> 
+                            <span x-text="template.isPro ? 'Yes' : 'No'" class="text-yellow-400"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div x-show="getFilteredTemplates().length === 0" class="text-red-400 text-center py-8">
+                No templates found matching criteria
+            </div>
+        </div>
+    </div>
+</body>
+</html>

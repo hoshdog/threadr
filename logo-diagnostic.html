@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logo Loading Diagnostic - Threadr</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .logo-fallback {
+            display: none;
+        }
+        .logo-fallback svg {
+            width: 100%;
+            height: 100%;
+        }
+        .test-result {
+            transition: all 0.3s ease;
+        }
+        .success { @apply bg-green-100 border-green-500 text-green-800; }
+        .error { @apply bg-red-100 border-red-500 text-red-800; }
+        .loading { @apply bg-yellow-100 border-yellow-500 text-yellow-800; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Logo Loading Diagnostic</h1>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Current Environment</h2>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <strong>User Agent:</strong>
+                    <p class="text-gray-600" id="userAgent"></p>
+                </div>
+                <div>
+                    <strong>Current URL:</strong>
+                    <p class="text-gray-600" id="currentUrl"></p>
+                </div>
+                <div>
+                    <strong>Cache Status:</strong>
+                    <p class="text-gray-600" id="cacheStatus"></p>
+                </div>
+                <div>
+                    <strong>Timestamp:</strong>
+                    <p class="text-gray-600" id="timestamp"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logo Tests -->
+        <div class="space-y-6">
+            <!-- Test 1: Standard Logo Loading -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold mb-4">Test 1: Standard Logo Loading</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Black Logo -->
+                    <div class="test-case">
+                        <h4 class="font-medium mb-2">Black Logo</h4>
+                        <div class="border border-gray-200 rounded-lg p-4 h-32 flex items-center justify-center">
+                            <img id="logo-black-1" 
+                                 src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" 
+                                 alt="Threadr Black Logo" 
+                                 class="w-16 h-16"
+                                 onload="updateTestResult('test-black-1', 'success', 'Loaded successfully')"
+                                 onerror="updateTestResult('test-black-1', 'error', 'Failed to load')"
+                                 style="display: block;">
+                            <div class="logo-fallback w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center" style="display: none;">
+                                <svg width="40" height="40" viewBox="0 0 40 40" fill="white">
+                                    <circle cx="20" cy="8" r="3"/>
+                                    <circle cx="20" cy="20" r="3"/>
+                                    <circle cx="20" cy="32" r="3"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div id="test-black-1" class="test-result mt-2 p-2 border rounded loading">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <!-- White Logo -->
+                    <div class="test-case">
+                        <h4 class="font-medium mb-2">White Logo</h4>
+                        <div class="border border-gray-200 rounded-lg p-4 h-32 flex items-center justify-center bg-gray-900">
+                            <img id="logo-white-1" 
+                                 src="/logos/threadrLogo_White.png?v=2025-08-03-aggressive&t=1722675600" 
+                                 alt="Threadr White Logo" 
+                                 class="w-16 h-16"
+                                 onload="updateTestResult('test-white-1', 'success', 'Loaded successfully')"
+                                 onerror="updateTestResult('test-white-1', 'error', 'Failed to load')"
+                                 style="display: block;">
+                            <div class="logo-fallback w-16 h-16 bg-white rounded-full flex items-center justify-center" style="display: none;">
+                                <svg width="40" height="40" viewBox="0 0 40 40" fill="#1F2937">
+                                    <circle cx="20" cy="8" r="3"/>
+                                    <circle cx="20" cy="20" r="3"/>
+                                    <circle cx="20" cy="32" r="3"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div id="test-white-1" class="test-result mt-2 p-2 border rounded loading">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <!-- Banner Black -->
+                    <div class="test-case">
+                        <h4 class="font-medium mb-2">Banner Black</h4>
+                        <div class="border border-gray-200 rounded-lg p-4 h-32 flex items-center justify-center">
+                            <img id="logo-banner-black-1" 
+                                 src="/logos/threadrBanner_Black.png?v=2025-08-03-aggressive&t=1722675600" 
+                                 alt="Threadr Banner Black" 
+                                 class="h-12"
+                                 onload="updateTestResult('test-banner-black-1', 'success', 'Loaded successfully')"
+                                 onerror="updateTestResult('test-banner-black-1', 'error', 'Failed to load')"
+                                 style="display: block;">
+                        </div>
+                        <div id="test-banner-black-1" class="test-result mt-2 p-2 border rounded loading">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <!-- Banner White -->
+                    <div class="test-case">
+                        <h4 class="font-medium mb-2">Banner White</h4>
+                        <div class="border border-gray-200 rounded-lg p-4 h-32 flex items-center justify-center bg-gray-900">
+                            <img id="logo-banner-white-1" 
+                                 src="/logos/threadrBanner_White.png?v=2025-08-03-aggressive&t=1722675600" 
+                                 alt="Threadr Banner White" 
+                                 class="h-12"
+                                 onload="updateTestResult('test-banner-white-1', 'success', 'Loaded successfully')"
+                                 onerror="updateTestResult('test-banner-white-1', 'error', 'Failed to load')"
+                                 style="display: block;">
+                        </div>
+                        <div id="test-banner-white-1" class="test-result mt-2 p-2 border rounded loading">
+                            Loading...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test 2: Cache Busting Test -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold mb-4">Test 2: Cache Busting Variations</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- No cache busting -->
+                    <div class="test-case">
+                        <h4 class="font-medium mb-2">No Cache Busting</h4>
+                        <div class="border border-gray-200 rounded-lg p-4 h-24 flex items-center justify-center">
+                            <img id="logo-no-cache" 
+                                 src="/logos/threadrLogo_Black.png" 
+                                 alt="No Cache" 
+                                 class="w-12 h-12"
+                                 onload="updateTestResult('test-no-cache', 'success', 'Loaded successfully')"
+                                 onerror="updateTestResult('test-no-cache', 'error', 'Failed to load')">
+                        </div>
+                        <div id="test-no-cache" class="test-result mt-2 p-2 border rounded loading">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <!-- Old cache busting -->
+                    <div class="test-case">
+                        <h4 class="font-medium mb-2">Old Cache Busting</h4>
+                        <div class="border border-gray-200 rounded-lg p-4 h-24 flex items-center justify-center">
+                            <img id="logo-old-cache" 
+                                 src="/logos/threadrLogo_Black.png?v=2025-08-03-fix" 
+                                 alt="Old Cache" 
+                                 class="w-12 h-12"
+                                 onload="updateTestResult('test-old-cache', 'success', 'Loaded successfully')"
+                                 onerror="updateTestResult('test-old-cache', 'error', 'Failed to load')">
+                        </div>
+                        <div id="test-old-cache" class="test-result mt-2 p-2 border rounded loading">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <!-- New aggressive cache busting -->
+                    <div class="test-case">
+                        <h4 class="font-medium mb-2">Aggressive Cache Busting</h4>
+                        <div class="border border-gray-200 rounded-lg p-4 h-24 flex items-center justify-center">
+                            <img id="logo-new-cache" 
+                                 src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" 
+                                 alt="New Cache" 
+                                 class="w-12 h-12"
+                                 onload="updateTestResult('test-new-cache', 'success', 'Loaded successfully')"
+                                 onerror="updateTestResult('test-new-cache', 'error', 'Failed to load')">
+                        </div>
+                        <div id="test-new-cache" class="test-result mt-2 p-2 border rounded loading">
+                            Loading...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test 3: Fallback Mechanism Test -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold mb-4">Test 3: Fallback Mechanism</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Working fallback -->
+                    <div class="test-case">
+                        <h4 class="font-medium mb-2">Working Fallback</h4>
+                        <div class="border border-gray-200 rounded-lg p-4 h-24 flex items-center justify-center">
+                            <img id="logo-working-fallback" 
+                                 src="/logos/threadrLogo_Black.png?v=2025-08-03-aggressive&t=1722675600" 
+                                 alt="Working" 
+                                 class="w-12 h-12"
+                                 onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none'; updateTestResult('test-working-fallback', 'success', 'Image loaded successfully')"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block'; updateTestResult('test-working-fallback', 'success', 'Fallback displayed')"
+                                 style="display: block;">
+                            <div class="logo-fallback w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center" style="display: none;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                                    <circle cx="12" cy="5" r="2"/>
+                                    <circle cx="12" cy="12" r="2"/>
+                                    <circle cx="12" cy="19" r="2"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div id="test-working-fallback" class="test-result mt-2 p-2 border rounded loading">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <!-- Broken URL fallback -->
+                    <div class="test-case">
+                        <h4 class="font-medium mb-2">Broken URL (Test Fallback)</h4>
+                        <div class="border border-gray-200 rounded-lg p-4 h-24 flex items-center justify-center">
+                            <img id="logo-broken-fallback" 
+                                 src="/logos/nonexistent-logo.png?v=test" 
+                                 alt="Broken" 
+                                 class="w-12 h-12"
+                                 onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none'; updateTestResult('test-broken-fallback', 'error', 'Image should not have loaded')"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block'; updateTestResult('test-broken-fallback', 'success', 'Fallback working correctly')"
+                                 style="display: block;">
+                            <div class="logo-fallback w-12 h-12 bg-red-500 rounded-full flex items-center justify-center" style="display: none;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                                    <path d="M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z"/>
+                                    <path d="M10 14l2-2 2 2" stroke="white" stroke-width="2" fill="none"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div id="test-broken-fallback" class="test-result mt-2 p-2 border rounded loading">
+                            Loading...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test 4: Performance Test -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold mb-4">Test 4: Performance Metrics</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-medium mb-2">Load Times</h4>
+                        <div id="performance-results" class="space-y-2 text-sm">
+                            <div>Measuring logo load times...</div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-medium mb-2">Cache Status</h4>
+                        <div id="cache-results" class="space-y-2 text-sm">
+                            <div>Checking cache headers...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="mt-8 flex space-x-4">
+            <button onclick="reloadAllTests()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors">
+                Reload All Tests
+            </button>
+            <button onclick="clearCache()" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors">
+                Clear Cache & Reload
+            </button>
+            <button onclick="downloadReport()" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors">
+                Download Report
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Initialize diagnostic info
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('userAgent').textContent = navigator.userAgent;
+            document.getElementById('currentUrl').textContent = window.location.href;
+            document.getElementById('timestamp').textContent = new Date().toISOString();
+            
+            // Check cache status
+            checkCacheStatus();
+            
+            // Start performance monitoring
+            measurePerformance();
+            
+            // Set timeout for any tests that don't complete
+            setTimeout(() => {
+                const loadingElements = document.querySelectorAll('.loading');
+                loadingElements.forEach(el => {
+                    if (el.classList.contains('loading')) {
+                        updateTestResult(el.id, 'error', 'Timeout - no response');
+                    }
+                });
+            }, 10000);
+        });
+
+        function updateTestResult(testId, status, message) {
+            const element = document.getElementById(testId);
+            if (element) {
+                element.className = `test-result mt-2 p-2 border rounded ${status}`;
+                element.textContent = message;
+            }
+        }
+
+        function checkCacheStatus() {
+            const cacheKeys = [
+                '/logos/threadrLogo_Black.png',
+                '/logos/threadrLogo_White.png'
+            ];
+            
+            let cacheInfo = [];
+            
+            // Simple cache check using fetch with cache headers
+            Promise.all(cacheKeys.map(url => 
+                fetch(url, { method: 'HEAD' })
+                    .then(response => ({
+                        url,
+                        cached: response.headers.get('cache-control'),
+                        etag: response.headers.get('etag'),
+                        lastModified: response.headers.get('last-modified')
+                    }))
+                    .catch(error => ({ url, error: error.message }))
+            )).then(results => {
+                document.getElementById('cacheStatus').innerHTML = 
+                    results.map(r => `${r.url}: ${r.cached || 'No cache info'}`).join('<br>');
+                
+                const cacheResultsDiv = document.getElementById('cache-results');
+                cacheResultsDiv.innerHTML = results.map(r => 
+                    `<div class="text-xs">
+                        <strong>${r.url.split('/').pop()}:</strong><br>
+                        Cache-Control: ${r.cached || 'None'}<br>
+                        ETag: ${r.etag || 'None'}
+                    </div>`
+                ).join('');
+            });
+        }
+
+        function measurePerformance() {
+            const startTime = performance.now();
+            const performanceResults = document.getElementById('performance-results');
+            
+            // Monitor image load times
+            const images = document.querySelectorAll('img[id]');
+            const loadTimes = new Map();
+            
+            images.forEach(img => {
+                const imgStartTime = performance.now();
+                
+                const onLoad = () => {
+                    const loadTime = performance.now() - imgStartTime;
+                    loadTimes.set(img.src, loadTime);
+                    updatePerformanceDisplay();
+                };
+                
+                const onError = () => {
+                    const loadTime = performance.now() - imgStartTime;
+                    loadTimes.set(img.src + ' (ERROR)', loadTime);
+                    updatePerformanceDisplay();
+                };
+                
+                if (img.complete) {
+                    onLoad();
+                } else {
+                    img.addEventListener('load', onLoad);
+                    img.addEventListener('error', onError);
+                }
+            });
+            
+            function updatePerformanceDisplay() {
+                const results = Array.from(loadTimes.entries())
+                    .map(([url, time]) => {
+                        const filename = url.split('/').pop().split('?')[0];
+                        return `<div class="text-xs">${filename}: ${time.toFixed(2)}ms</div>`;
+                    })
+                    .join('');
+                performanceResults.innerHTML = results || '<div>No results yet...</div>';
+            }
+        }
+
+        function reloadAllTests() {
+            window.location.reload();
+        }
+
+        function clearCache() {
+            // Clear browser cache if possible
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => {
+                        caches.delete(name);
+                    });
+                });
+            }
+            
+            // Add timestamp to force cache bust
+            const timestamp = Date.now();
+            const images = document.querySelectorAll('img');
+            images.forEach(img => {
+                const url = new URL(img.src);
+                url.searchParams.set('cachebust', timestamp);
+                img.src = url.toString();
+            });
+            
+            setTimeout(() => window.location.reload(), 1000);
+        }
+
+        function downloadReport() {
+            const results = [];
+            const testResults = document.querySelectorAll('.test-result');
+            
+            testResults.forEach(result => {
+                const testCase = result.closest('.test-case');
+                const testName = testCase ? testCase.querySelector('h4').textContent : 'Unknown';
+                results.push({
+                    test: testName,
+                    status: result.classList.contains('success') ? 'PASS' : 
+                           result.classList.contains('error') ? 'FAIL' : 'PENDING',
+                    message: result.textContent
+                });
+            });
+            
+            const report = {
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                url: window.location.href,
+                results: results
+            };
+            
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `logo-diagnostic-report-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
