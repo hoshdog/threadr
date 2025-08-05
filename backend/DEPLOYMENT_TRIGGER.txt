@@ -1,0 +1,11 @@
+Railway Deployment Trigger
+==========================
+
+This file forces Railway to rebuild the application.
+
+Last Updated: 2025-08-06 08:13:00
+Target: main_minimal.py
+Purpose: Deploy ultra-minimal backend for immediate functionality
+
+If Railway is still using the old main.py after this commit,
+check the Railway dashboard for build logs or deployment settings.
