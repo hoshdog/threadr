@@ -18,8 +18,8 @@ cmds = [
 [start]
 workDir = "backend"
 # Use exec for proper signal handling in containers
-# Using main_simple.py for working deployment without complex dependencies
-cmd = "exec uvicorn src.main_simple:app --host 0.0.0.0 --port $PORT --workers 2 --log-level info --access-log"
+# Using main_minimal.py - ultra simple for debugging Railway
+cmd = "exec uvicorn src.main_minimal:app --host 0.0.0.0 --port $PORT --workers 1 --log-level info"
 
 [variables]
 PYTHONUNBUFFERED = "1"
