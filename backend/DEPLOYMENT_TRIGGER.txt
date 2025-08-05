@@ -3,9 +3,11 @@ Railway Deployment Trigger
 
 This file forces Railway to rebuild the application.
 
-Last Updated: 2025-08-06 08:13:00
+Last Updated: 2025-08-05 10:35:00  
 Target: main_minimal.py
-Purpose: Deploy ultra-minimal backend for immediate functionality
+Purpose: FORCE NIXPACKS - Removed runtime.txt and pyproject.toml to prevent Python buildpack override
 
-If Railway is still using the old main.py after this commit,
-check the Railway dashboard for build logs or deployment settings.
+CRITICAL FIX: Railway was using Python buildpack instead of nixpacks
+- Backed up runtime.txt and pyproject.toml  
+- This should now force Railway to use nixpacks.toml configuration
+- Should deploy src.main_minimal:app as specified in nixpacks.toml
