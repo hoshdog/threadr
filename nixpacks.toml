@@ -1,7 +1,6 @@
 # Railway deployment configuration following best practices
 # FORCE NIXPACKS: Disable auto-detection
-[providers]
-python = "3.11"
+providers = ["python"]
 
 [phases.build]
 workDir = "backend"
@@ -14,6 +13,7 @@ cmds = [
 
 [phases.setup]
 workDir = "backend"
+nixPkgs = ["python311", "gcc"]
 cmds = [
   "echo 'SETUP PHASE: Starting Python setup... (Updated 2025-08-06)'",
   "echo 'SETUP PHASE: Using main_minimal.py for deployment'",
@@ -36,6 +36,7 @@ workDir = "backend"
 cmd = "exec uvicorn src.main_minimal:app --host 0.0.0.0 --port $PORT --workers 1 --log-level info --access-log"
 
 [variables]
+PYTHON_VERSION = "3.11"
 PYTHONUNBUFFERED = "1"
 ENVIRONMENT = "production"
 # Prevent WSGI detection
