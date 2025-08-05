@@ -21,11 +21,11 @@ export const API_CONFIG = {
     GC_TIME: 5 * 60 * 1000, // 5 minutes (garbage collection time)
   },
   
-  // Request headers
+  // Request headers - Uses IP-based authentication (no API key required)
   HEADERS: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    ...(process.env.NEXT_PUBLIC_API_KEY && { 'X-API-Key': process.env.NEXT_PUBLIC_API_KEY }),
+    // Note: Backend uses IP-based rate limiting, no API key required
   },
   
   // Feature flags
@@ -116,7 +116,7 @@ export const getApiConfig = () => {
     CACHE: { ...API_CONFIG.CACHE },
     HEADERS: { 
       ...API_CONFIG.HEADERS,
-      ...(process.env.NEXT_PUBLIC_API_KEY && { 'X-API-Key': process.env.NEXT_PUBLIC_API_KEY }),
+      // No API key needed - backend uses IP-based authentication
     },
     FEATURES: { ...API_CONFIG.FEATURES },
     ENDPOINTS: { ...API_CONFIG.ENDPOINTS },
