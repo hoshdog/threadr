@@ -2,11 +2,12 @@
   "name": "threadr",
   "version": "1.0.0",
   "description": "Threadr - Convert Articles to Twitter Threads",
-  "main": "frontend/public/index.html",
+  "main": "threadr-nextjs/src/app/page.tsx",
   "scripts": {
-    "build": "node frontend/build.js",
-    "dev": "npm run dev --prefix frontend",
-    "start": "npm run start --prefix frontend"
+    "build": "cd threadr-nextjs && npm install && npm run build",
+    "dev": "cd threadr-nextjs && npm run dev",
+    "start": "cd threadr-nextjs && npm run start",
+    "install": "cd threadr-nextjs && npm install"
   },
   "keywords": [
     "twitter",

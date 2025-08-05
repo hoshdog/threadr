@@ -71,7 +71,9 @@
       "Bash(cat:*)",
       "Bash(set THREADR_API_KEY=test-api-key-123)",
       "Bash(THREADR_API_KEY=\"test_key_12345\" node frontend/build.js)",
-      "Bash(move:*)"
+      "Bash(move:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(PORT=3001 npm run start)"
     ],
     "deny": []
   }
