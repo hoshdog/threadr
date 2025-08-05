@@ -1,9 +1,19 @@
-# Railway ignore file - use Docker deployment
-nixpacks.toml
-railway.json
-backend/test_deploy.py
-config/
-docs/
-scripts/
-frontend/
+# Ignore Docker files to force nixpacks usage
+docker-compose.yml
+docker-compose.yml.disabled
+Dockerfile*
+.dockerignore
+
+# Ignore development files
+venv/
+node_modules/
+*.pyc
+__pycache__/
+.env.local
+.git/
+
+# Ignore archive and test files
 archive/
+tests/
+frontend/
+threadr-nextjs/
