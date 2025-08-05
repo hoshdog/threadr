@@ -8,7 +8,8 @@ workDir = "backend"
 [phases.setup]
 workDir = "backend"
 cmds = [
-  "echo 'Starting Python setup...'",
+  "echo 'Starting Python setup... (Updated 2025-08-05)'",
+  "echo 'Using main_simple.py for deployment'",
   "pip install --upgrade pip",
   "pip install --no-cache-dir -r requirements.txt",
   "echo 'Dependencies installed successfully'"

@@ -1,5 +1,6 @@
 """
 Simple Railway-ready FastAPI application with minimal dependencies
+Version: 2.0.1 - Updated 2025-08-05 for immediate deployment
 """
 
 from fastapi import FastAPI, HTTPException, Request, status
