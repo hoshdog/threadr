@@ -1,25 +1,39 @@
 # Railway deployment configuration following best practices
+# FORCE NIXPACKS: Disable auto-detection
 [providers]
 python = "3.11"
 
 [phases.build]
 workDir = "backend"
+cmds = [
+  "echo 'BUILD PHASE: Verifying main_minimal.py exists'",
+  "ls -la src/main_minimal.py",
+  "echo 'BUILD PHASE: Testing import'",
+  "python -c 'from src.main_minimal import app; print(\"✓ main_minimal.py import successful\")'"
+]
 
 [phases.setup]
 workDir = "backend"
 cmds = [
-  "echo 'Starting Python setup... (Updated 2025-08-05)'",
-  "echo 'Using main_simple.py for deployment'",
+  "echo 'SETUP PHASE: Starting Python setup... (Updated 2025-08-06)'",
+  "echo 'SETUP PHASE: Using main_minimal.py for deployment'",
+  "echo 'SETUP PHASE: Current directory contents:'",
+  "ls -la",
+  "echo 'SETUP PHASE: Source directory contents:'",
+  "ls -la src/",
   "pip install --upgrade pip",
   "pip install --no-cache-dir -r requirements.txt",
-  "echo 'Dependencies installed successfully'"
+  "echo 'SETUP PHASE: Dependencies installed successfully'",
+  "echo 'SETUP PHASE: Final verification of main_minimal.py'",
+  "python -c 'from src.main_minimal import app; print(\"✓ Final import verification successful\")'"
 ]
 
 [start]
 workDir = "backend"
 # Use exec for proper signal handling in containers
 # Using main_minimal.py - ultra simple for debugging Railway
-cmd = "exec uvicorn src.main_minimal:app --host 0.0.0.0 --port $PORT --workers 1 --log-level info"
+# FIXED: Correct path from backend working directory
+cmd = "exec uvicorn src.main_minimal:app --host 0.0.0.0 --port $PORT --workers 1 --log-level info --access-log"
 
 [variables]
 PYTHONUNBUFFERED = "1"
@@ -29,4 +43,10 @@ NIXPACKS_PYTHON_WSGI_MODULE = ""
 # Disable Django collectstatic
 DISABLE_COLLECTSTATIC = "1"
 # Set worker count
-WEB_CONCURRENCY = "2"
+WEB_CONCURRENCY = "1"
+# Force Railway to use main_minimal.py
+DEPLOYMENT_TARGET = "main_minimal"
+# Cache busting
+DEPLOYMENT_VERSION = "2025-08-06-v2"
+# Explicitly set the module
+UVICORN_MODULE = "src.main_minimal:app"
