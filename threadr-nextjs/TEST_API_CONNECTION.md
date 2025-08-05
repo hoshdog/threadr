@@ -5,7 +5,7 @@
 ### 1. Environment Configuration (.env.local)
 - **NEXT_PUBLIC_API_BASE_URL**: `https://threadr-production.up.railway.app/api`
 - **NEXT_PUBLIC_API_URL**: `https://threadr-production.up.railway.app`
-- **NEXT_PUBLIC_API_KEY**: `zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8`
+- **NEXT_PUBLIC_API_KEY**: `your-api-key-here`
 
 ### 2. API Client Configuration (src/lib/api/config.ts)
 - Updated BASE_URL to use production environment variables

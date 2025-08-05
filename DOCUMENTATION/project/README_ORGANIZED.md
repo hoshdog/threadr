@@ -65,7 +65,7 @@ OPERATIONS/
 **Problem**: OpenAI API keys exposed in `PRODUCTION/frontend-alpine/public/config.js`
 ```javascript
 // EXPOSED IN PRODUCTION:
-API_KEY: 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8'
+API_KEY: 'your-api-key-here'
 ```
 
 **Impact**: 

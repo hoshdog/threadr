@@ -84,7 +84,7 @@ The Threadr API has been comprehensively tested and is **production ready** with
 - `GET /api/cache/stats` - ✅ Cache statistics
 
 ### Working Authentication
-- **Valid API Keys**: `zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8`, `FFAvIrarUm32RGDntib20DzSU21-B_zJ4w8mzaSz1So`
+- **Valid API Keys**: `your-api-key-here`, `your-secondary-api-key-here`
 - **Header**: `X-API-Key: <key>`
 - **Rejection**: Properly rejects missing/invalid keys with 401
 
@@ -151,7 +151,7 @@ curl -s "https://threadr-production.up.railway.app/health"
 # Authenticated Request
 curl -s -X POST \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8" \
+  -H "X-API-Key: your-api-key-here" \
   -d '{"text": "Test message"}' \
   "https://threadr-production.up.railway.app/api/generate"
 

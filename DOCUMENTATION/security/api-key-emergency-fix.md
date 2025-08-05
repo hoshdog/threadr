@@ -11,7 +11,7 @@
 In `frontend/public/config.js` (line 59):
 ```javascript
 // VISIBLE TO ANYONE:
-API_KEY: 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8'
+API_KEY: 'your-api-key-here'
 ```
 
 **Anyone can**:
@@ -56,7 +56,7 @@ async def generate_thread(request: ThreadRequest, user=Depends(get_current_user)
 **File**: `frontend/public/config.js`
 ```javascript
 // REMOVE THIS LINE COMPLETELY:
-// API_KEY: 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8'
+// API_KEY: 'your-api-key-here'
 
 // REPLACE WITH:
 API_ENDPOINT: config.API_URL + '/ai/generate-thread'  // Backend proxy

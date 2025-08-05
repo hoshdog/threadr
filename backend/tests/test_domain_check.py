@@ -3,7 +3,7 @@ import json
 
 # API configuration
 api_url = "https://threadr-production.up.railway.app/api/generate"
-api_key = "zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8"
+api_key = "your-api-key-here"
 
 # Test with a domain that's likely not whitelisted
 test_urls = [

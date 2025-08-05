@@ -106,7 +106,7 @@ curl -X POST https://threadr-production.up.railway.app/api/generate \
 # With API key (should work)
 curl -X POST https://threadr-production.up.railway.app/api/generate \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8" \
+  -H "X-API-Key: your-api-key-here" \
   -d '{"text": "test"}'
 ```
 
@@ -117,7 +117,7 @@ If all else fails, add this to index.html right after loading config.js:
 <script>
 // Emergency API key fix
 if (window.location.hostname.includes('vercel.app') && config && !config.API_KEY) {
-    config.API_KEY = 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
+    config.API_KEY = 'your-api-key-here';
     console.warn('Emergency API key injection applied');
 }
 </script>
@@ -139,8 +139,8 @@ console.log('Request details:', {
 
 ## Expected Behavior
 When working correctly:
-1. config.js loads with API_KEY = 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8'
-2. Headers include: `X-API-Key: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8`
+1. config.js loads with API_KEY = 'your-api-key-here'
+2. Headers include: `X-API-Key: your-api-key-here`
 3. Backend accepts the request
 4. Thread is generated successfully
 

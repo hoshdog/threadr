@@ -4,7 +4,7 @@ import time
 
 # API configuration
 api_url = "https://threadr-production.up.railway.app/api/generate"
-api_key = "zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8"
+api_key = "your-api-key-here"
 medium_url = "https://medium.com/write-a-catalyst/what-happens-to-old-internet-data-194c22fca281"
 
 # Test cases

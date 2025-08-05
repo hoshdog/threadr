@@ -8,7 +8,7 @@ https://threadr-production.up.railway.app
 ## Authentication
 All requests to `/api/generate` require an API key:
 ```bash
-X-API-Key: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8
+X-API-Key: your-api-key-here
 ```
 
 ## Core Endpoints
@@ -79,7 +79,7 @@ GET /api/cache/stats
 ```bash
 curl -X POST \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8" \
+  -H "X-API-Key: your-api-key-here" \
   -d '{"text": "This is a sample text that will be converted into a Twitter thread format with proper character limits and numbering."}' \
   "https://threadr-production.up.railway.app/api/generate"
 ```

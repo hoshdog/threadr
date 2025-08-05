@@ -9,7 +9,7 @@ This test plan ensures the Next.js Threadr application is fully functional and r
 - **Backend API**: https://threadr-production.up.railway.app/api
 - **Frontend URL**: http://localhost:3000 (development)
 - **Production URL**: TBD (to be deployed)
-- **API Key**: `zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8`
+- **API Key**: `your-api-key-here`
 
 ### Required Test Accounts
 - **Free User Account**: For testing rate limits (5 daily/20 monthly)

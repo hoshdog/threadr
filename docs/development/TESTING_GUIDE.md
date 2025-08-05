@@ -18,8 +18,8 @@ This comprehensive guide covers:
 **Railway URL:** `https://threadr-production.up.railway.app`
 
 **API Keys:** 
-- `zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8`
-- `FFAvIrarUm32RGDntib20DzSU21-B_zJ4w8mzaSz1So`
+- `your-api-key-here`
+- `your-secondary-api-key-here`
 
 **Rate Limits:** 50 requests per hour per IP address
 
@@ -158,7 +158,7 @@ curl -X POST "https://threadr-production.up.railway.app/api/generate" \
 ```bash
 curl -X POST "https://threadr-production.up.railway.app/api/generate" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8" \
+  -H "X-API-Key: your-api-key-here" \
   -d '{"text": "This is a test message to verify API key authentication is working correctly. It should be split into multiple tweets if long enough."}'
 ```
 
@@ -175,7 +175,7 @@ curl -X POST "https://threadr-production.up.railway.app/api/generate" \
 ```bash
 curl -X POST "https://threadr-production.up.railway.app/api/generate" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8" \
+  -H "X-API-Key: your-api-key-here" \
   -d '{
     "text": "Artificial intelligence is transforming the way we work and live. From automating routine tasks to enabling new forms of creativity, AI is becoming an integral part of our daily lives. Machine learning algorithms can now process vast amounts of data to identify patterns and make predictions that were previously impossible. This technology is being applied across industries, from healthcare and finance to transportation and entertainment. However, with great power comes great responsibility, and we must ensure that AI development prioritizes safety, fairness, and transparency."
   }'
@@ -223,7 +223,7 @@ curl -X POST "https://threadr-production.up.railway.app/api/generate" \
 ```bash
 curl -X POST "https://threadr-production.up.railway.app/api/generate" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8" \
+  -H "X-API-Key: your-api-key-here" \
   -d '{
     "url": "https://blog.openai.com/chatgpt"
   }'
@@ -258,7 +258,7 @@ curl -X POST "https://threadr-production.up.railway.app/api/generate" \
 ```bash
 curl -X POST "https://threadr-production.up.railway.app/api/generate" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8" \
+  -H "X-API-Key: your-api-key-here" \
   -d '{
     "url": "https://malicious-site.com/article"
   }'
@@ -280,7 +280,7 @@ curl -X POST "https://threadr-production.up.railway.app/api/generate" \
 ```bash
 curl -X POST "https://threadr-production.up.railway.app/api/generate" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8" \
+  -H "X-API-Key: your-api-key-here" \
   -d '{
     "url": "not-a-valid-url"
   }'
@@ -344,7 +344,7 @@ for i in {1..55}; do
   echo "Request $i:"
   curl -X POST "https://threadr-production.up.railway.app/api/generate" \
     -H "Content-Type: application/json" \
-    -H "X-API-Key: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8" \
+    -H "X-API-Key: your-api-key-here" \
     -d '{"text": "Rate limit test message"}' \
     -w "\nStatus: %{http_code}\n\n"
   
@@ -393,7 +393,7 @@ curl -X OPTIONS "https://threadr-production.up.railway.app/api/generate" \
 ```bash
 curl -X POST "https://threadr-production.up.railway.app/api/generate" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8" \
+  -H "X-API-Key: your-api-key-here" \
   -H "Origin: https://threadr-plum.vercel.app" \
   -d '{"text": "CORS test message"}' \
   -v
@@ -408,7 +408,7 @@ curl -X POST "https://threadr-production.up.railway.app/api/generate" \
 ```bash
 curl -X POST "https://threadr-production.up.railway.app/api/generate" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8" \
+  -H "X-API-Key: your-api-key-here" \
   -H "Origin: https://malicious-site.com" \
   -d '{"text": "CORS test message"}' \
   -v
@@ -499,7 +499,7 @@ Save this as `test-threadr-api.sh`:
 #!/bin/bash
 
 BASE_URL="https://threadr-production.up.railway.app"
-API_KEY="zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8"
+API_KEY="your-api-key-here"
 
 echo "🚀 Testing Threadr API on Railway"
 echo "================================="

@@ -36,7 +36,7 @@ const hostname = window.location.hostname;
 const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
 
 if (!isDevelopment) {
-    headers['X-API-Key'] = config.API_KEY || 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
+    headers['X-API-Key'] = config.API_KEY || 'your-api-key-here';
     console.log('API Key header added:', headers['X-API-Key']);
 }
 ```
@@ -44,14 +44,14 @@ if (!isDevelopment) {
 ### Before (config.js):
 ```javascript
 if (hostname.includes('vercel.app') || hostname.includes('threadr.app')) {
-    return 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
+    return 'your-api-key-here';
 }
 ```
 
 ### After (config.js):
 ```javascript
 // Production API key for ALL non-localhost deployments
-return 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
+return 'your-api-key-here';
 ```
 
 ## Testing Instructions
@@ -59,7 +59,7 @@ return 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
 2. Open browser console
 3. Try to generate a thread
 4. Check console for:
-   - "API Key header added: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8"
+   - "API Key header added: your-api-key-here"
    - No 401 errors
 5. Verify thread generation works
 

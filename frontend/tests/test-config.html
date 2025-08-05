@@ -44,11 +44,11 @@
                 
                 // Production API key for ALL Vercel deployments and production domains
                 if (hostname.includes('vercel.app') || hostname.includes('threadr.app')) {
-                    return 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
+                    return 'your-api-key-here';
                 }
                 
                 // Default production API key
-                return 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
+                return 'your-api-key-here';
             })();
             
             output.innerHTML += `Direct API key test result: ${testApiKey ? testApiKey.substring(0, 15) + '...' : 'null'}\n`;

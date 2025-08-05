@@ -10,7 +10,7 @@ Threadr is a SaaS tool that converts blog articles or pasted content into Twitte
 
 **IMMEDIATE ACTION REQUIRED**: API keys are hardcoded in `frontend/public/config.js` line 59:
 ```javascript
-return 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8';
+return 'your-api-key-here';
 ```
 
 This exposes the API key to all users and is a serious security vulnerability. This needs to be moved to backend-only authentication.

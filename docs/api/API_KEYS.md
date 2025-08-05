@@ -2,14 +2,14 @@
 
 ## Secure API Keys (Generated: 2025-07-30)
 
-**API Key 1**: `zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8`
-**API Key 2**: `FFAvIrarUm32RGDntib20DzSU21-B_zJ4w8mzaSz1So`
+**API Key 1**: `your-api-key-here`
+**API Key 2**: `your-secondary-api-key-here`
 
 ## 🚀 Railway Configuration
 
 Copy this exact line to Railway Variables:
 ```
-API_KEYS=zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8,FFAvIrarUm32RGDntib20DzSU21-B_zJ4w8mzaSz1So
+API_KEYS=your-api-key-here,your-secondary-api-key-here
 ```
 
 ## 🧪 Testing Your API
@@ -18,7 +18,7 @@ API_KEYS=zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8,FFAvIrarUm32RGDntib20DzSU21
 ```bash
 curl -X POST https://your-railway-url.up.railway.app/api/generate \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8" \
+  -H "X-API-Key: your-api-key-here" \
   -d '{"text": "Test article content for thread generation"}'
 ```
 
@@ -37,7 +37,7 @@ const response = await fetch('https://your-railway-url.up.railway.app/api/genera
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'X-API-Key': 'zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8'  // Use either key
+    'X-API-Key': 'your-api-key-here'  // Use either key
   },
   body: JSON.stringify({
     url: 'https://example.com/article'
@@ -54,7 +54,7 @@ const response = await fetch('https://your-railway-url.up.railway.app/api/genera
 
 ## 📋 Complete Railway Variables Checklist
 
-- [ ] `API_KEYS=zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8,FFAvIrarUm32RGDntib20DzSU21-B_zJ4w8mzaSz1So`
+- [ ] `API_KEYS=your-api-key-here,your-secondary-api-key-here`
 - [ ] `OPENAI_API_KEY=sk-your-actual-openai-key`
 - [ ] `CORS_ORIGINS=https://your-actual-frontend-domain.vercel.app`
 - [ ] `REDIS_URL=your-redis-connection-url`

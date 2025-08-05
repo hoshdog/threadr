@@ -8,7 +8,7 @@ URL: https://vercel.com/dashboard
 Path: Project → Settings → Environment Variables → Add Variable
 
 Name:  THREADR_API_KEY
-Value: zfQBge1AsBBLF8nMNxiHdyFn-_fS7vsTtcTrveXnyD8
+Value: your-api-key-here
 Env:   ☑ Production ☑ Preview ☑ Development
 ☑ Sensitive
 
