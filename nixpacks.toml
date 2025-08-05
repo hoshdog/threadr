@@ -1,53 +1,23 @@
-# Railway deployment configuration following best practices
-# FORCE NIXPACKS: Disable auto-detection
+# Railway deployment configuration - FIXED PATHS
 providers = ["python"]
 
-[phases.build]
-workDir = "backend"
-cmds = [
-  "echo 'BUILD PHASE: Verifying main_minimal.py exists'",
-  "ls -la src/main_minimal.py",
-  "echo 'BUILD PHASE: Testing import'",
-  "python -c 'from src.main_minimal import app; print(\"✓ main_minimal.py import successful\")'"
-]
-
 [phases.setup]
-workDir = "backend"
-nixPkgs = ["python311", "gcc"]
+# Only install dependencies in setup phase - don't try to access source files
+nixPkgs = ["python311"]
 cmds = [
-  "echo 'SETUP PHASE: Starting Python setup... (Updated 2025-08-06)'",
-  "echo 'SETUP PHASE: Using main_minimal.py for deployment'",
-  "echo 'SETUP PHASE: Current directory contents:'",
-  "ls -la",
-  "echo 'SETUP PHASE: Source directory contents:'",
-  "ls -la src/",
+  "echo '=== SETUP PHASE: Installing Python dependencies ==='",
+  "python --version",
   "pip install --upgrade pip",
-  "pip install --no-cache-dir -r requirements.txt",
-  "echo 'SETUP PHASE: Dependencies installed successfully'",
-  "echo 'SETUP PHASE: Final verification of main_minimal.py'",
-  "python -c 'from src.main_minimal import app; print(\"✓ Final import verification successful\")'"
+  "pip install --no-cache-dir -r backend/requirements.txt",
+  "echo '=== Dependencies installed successfully ==='"
 ]
 
 [start]
-workDir = "backend"
-# Use exec for proper signal handling in containers
-# Using main_minimal.py - ultra simple for debugging Railway
-# FIXED: Correct path from backend working directory
-cmd = "exec uvicorn src.main_minimal:app --host 0.0.0.0 --port $PORT --workers 1 --log-level info --access-log"
+# Start from root and specify full path
+cmd = "cd backend && uvicorn src.main_minimal:app --host 0.0.0.0 --port $PORT --workers 1 --log-level info"
 
 [variables]
-PYTHON_VERSION = "3.11"
 PYTHONUNBUFFERED = "1"
 ENVIRONMENT = "production"
-# Prevent WSGI detection
-NIXPACKS_PYTHON_WSGI_MODULE = ""
-# Disable Django collectstatic
-DISABLE_COLLECTSTATIC = "1"
-# Set worker count
-WEB_CONCURRENCY = "1"
-# Force Railway to use main_minimal.py
-DEPLOYMENT_TARGET = "main_minimal"
-# Cache busting
-DEPLOYMENT_VERSION = "2025-08-06-v2"
-# Explicitly set the module
-UVICORN_MODULE = "src.main_minimal:app"
+# Force rebuild
+DEPLOYMENT_VERSION = "2025-08-06-fix-paths"
