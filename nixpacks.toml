@@ -1,24 +1,30 @@
+# Railway deployment configuration following best practices
 [providers]
 python = "3.11"
+
+[phases.build]
+workDir = "backend"
 
 [phases.setup]
 workDir = "backend"
 cmds = [
-  "echo 'Installing Python dependencies...'", 
+  "echo 'Starting Python setup...'",
   "pip install --upgrade pip",
   "pip install --no-cache-dir -r requirements.txt",
-  "echo 'Python path setup...'",
   "echo 'Dependencies installed successfully'"
 ]
 
 [start]
 workDir = "backend"
-cmd = "exec uvicorn src.main:app --host 0.0.0.0 --port $PORT --log-level debug"
+# Use exec for proper signal handling in containers
+cmd = "exec uvicorn src.main:app --host 0.0.0.0 --port $PORT --workers 2 --log-level info --access-log"
 
 [variables]
 PYTHONUNBUFFERED = "1"
 ENVIRONMENT = "production"
-PYTHONPATH = "/app/backend:/app/backend/src"
+# Prevent WSGI detection
 NIXPACKS_PYTHON_WSGI_MODULE = ""
+# Disable Django collectstatic
 DISABLE_COLLECTSTATIC = "1"
+# Set worker count
 WEB_CONCURRENCY = "2"
