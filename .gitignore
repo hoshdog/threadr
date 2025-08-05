@@ -52,7 +52,11 @@ dist/
 downloads/
 eggs/
 .eggs/
+# Python lib directories (avoid affecting src/lib in Next.js)
+backend/lib/
+*/venv/lib/
 lib/
+!threadr-nextjs/src/lib/
 lib64/
 parts/
 sdist/
