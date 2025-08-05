@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: threadr-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn src.main_minimal:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: PYTHONUNBUFFERED
+        value: 1
+      - key: ENVIRONMENT
+        value: production
+    rootDir: backend
+    autoDeploy: true
