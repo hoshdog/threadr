@@ -72,7 +72,8 @@ async def check_rate_limit(client_ip: str) -> Dict[str, Any]:
             }
         
         # Check if user is premium
-        is_premium = await redis_manager.check_premium_status(client_ip)
+        premium_check = await redis_manager.check_premium_access(client_ip)
+        is_premium = premium_check.get("has_access", False)
         if is_premium:
             return {
                 "allowed": True,
@@ -244,19 +245,9 @@ async def check_premium_status(request: Request):
                 "message": "Premium status check unavailable"
             }
         
-        is_premium = await redis_manager.check_premium_status(client_ip)
-        premium_expires = None
-        
-        if is_premium:
-            # Get expiration time
-            try:
-                premium_key = f"{redis_manager.premium_prefix}{client_ip}"
-                ttl = redis_manager.client.ttl(premium_key)
-                if ttl > 0:
-                    from datetime import datetime, timedelta
-                    premium_expires = (datetime.now() + timedelta(seconds=ttl)).isoformat()
-            except:
-                pass
+        premium_check = await redis_manager.check_premium_access(client_ip)
+        is_premium = premium_check.get("has_access", False)
+        premium_expires = premium_check.get("expires_at")
         
         return {
             "success": True,
