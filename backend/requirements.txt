@@ -17,6 +17,9 @@ email-validator==2.1.2
 beautifulsoup4>=4.12.3
 python-dotenv>=1.0.0
 
+# AI Integration
+openai>=1.0.0
+
 # Security and validation
 ipaddress>=1.0.23
 typing-extensions>=4.8.0

@@ -59,6 +59,7 @@ try:
     from routes.analytics import router as analytics_router
     from routes.subscription import router as subscription_router
     from routes.revenue import router as revenue_router
+    from routes.generate import router as generate_router
     routes_available = True
     logger.info("Routes imported successfully")
 except ImportError as e:
@@ -215,6 +216,7 @@ async def root():
 # Include routers if available
 if routes_available:
     try:
+        app.include_router(generate_router, prefix="/api", tags=["generate"])
         app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
         app.include_router(thread_router, prefix="/api", tags=["threads"])
         app.include_router(template_router, prefix="/api", tags=["templates"])
