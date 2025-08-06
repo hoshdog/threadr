@@ -14,5 +14,5 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: PYTHONPATH
-        value: /opt/render/project/src/backend:/opt/render/project/src/backend/src
+        value: /opt/render/project/src/backend
     autoDeploy: true

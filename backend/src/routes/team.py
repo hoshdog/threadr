@@ -21,7 +21,7 @@ try:
     from ..services.team.team_service import TeamService
     from ..models.auth import User
 except ImportError:
-    from models.team import (
+    from src.models.team import (
         CreateTeamRequest, UpdateTeamRequest, InviteMemberRequest, 
         UpdateMemberRequest, AcceptInviteRequest, TeamResponse,
         MemberResponse, InviteResponse, TeamStatsResponse,
@@ -29,8 +29,8 @@ except ImportError:
         TeamAccessDeniedError, TeamLimitExceededError,
         InviteError, InviteNotFoundError, InviteExpiredError
     )
-    from services.team.team_service import TeamService
-    from models.auth import User
+    from src.services.team.team_service import TeamService
+    from src.models.auth import User
 
 
 logger = logging.getLogger(__name__)
@@ -636,3 +636,14 @@ def create_team_router(team_service: TeamService, auth_dependencies: Dict[str, A
             )
     
     return router
+
+
+# Create a default router instance for backward compatibility with main.py imports
+# This will be a minimal router that can be imported but requires proper initialization
+router = APIRouter(prefix="/api/teams", tags=["teams"])
+
+# Add a note that this router needs to be properly initialized
+@router.get("/")
+async def team_router_not_initialized():
+    """Placeholder endpoint - this router needs proper initialization via create_team_router()"""
+    return {"error": "Team router not properly initialized. Use create_team_router() function."}

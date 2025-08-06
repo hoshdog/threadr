@@ -13,7 +13,7 @@ from jose import JWTError, jwt
 try:
     from ...models.auth import TokenPayload, User, InvalidTokenError, TokenExpiredError
 except ImportError:
-    from models.auth import TokenPayload, User, InvalidTokenError, TokenExpiredError
+    from src.models.auth import TokenPayload, User, InvalidTokenError, TokenExpiredError
 
 logger = logging.getLogger(__name__)
 

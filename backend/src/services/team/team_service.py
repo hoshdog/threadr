@@ -13,21 +13,21 @@ from email_validator import validate_email
 
 # Import models
 try:
-    from .team_models import (
+    from ...models.team import (
         Team, TeamMembership, TeamInvite, TeamActivity, TeamRole, TeamPlan,
         InviteStatus, ThreadStatus, TeamError, TeamNotFoundError,
         TeamAccessDeniedError, TeamLimitExceededError, InviteError,
         InviteNotFoundError, InviteExpiredError
     )
-    from .auth_models import User
+    from ...models.auth import User
 except ImportError:
-    from team_models import (
+    from src.models.team import (
         Team, TeamMembership, TeamInvite, TeamActivity, TeamRole, TeamPlan,
         InviteStatus, ThreadStatus, TeamError, TeamNotFoundError,
         TeamAccessDeniedError, TeamLimitExceededError, InviteError,
         InviteNotFoundError, InviteExpiredError
     )
-    from auth_models import User
+    from src.models.auth import User
 
 
 logger = logging.getLogger(__name__)

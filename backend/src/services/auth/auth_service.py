@@ -16,7 +16,7 @@ try:
         InvalidCredentialsError, AccountSuspendedError, AuthError
     )
 except ImportError:
-    from models.auth import (
+    from src.models.auth import (
         User, UserRole, UserStatus, UserRegistrationRequest, UserLoginRequest,
         TokenResponse, UserResponse, UserAlreadyExistsError, UserNotFoundError,
         InvalidCredentialsError, AccountSuspendedError, AuthError
@@ -28,7 +28,7 @@ try:
         generate_user_id
     )
 except ImportError:
-    from auth_utils import (
+    from src.services.auth.auth_utils import (
         PasswordService, TokenService, SecurityUtils, hash_password, 
         verify_password, create_access_token, create_refresh_token,
         generate_user_id

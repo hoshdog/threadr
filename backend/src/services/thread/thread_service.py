@@ -8,6 +8,7 @@ from typing import Optional, List, Dict, Any, Tuple
 import logging
 import json
 import uuid
+import os
 try:
     from ...models.thread import (
         SavedThread, ThreadTweet, ThreadMetadata, ThreadHistoryFilter,
@@ -15,7 +16,7 @@ try:
         ThreadStorageError
     )
 except ImportError:
-    from models.thread import (
+    from src.models.thread import (
         SavedThread, ThreadTweet, ThreadMetadata, ThreadHistoryFilter,
         ThreadHistoryResponse, ThreadNotFoundError, ThreadAccessDeniedError,
         ThreadStorageError

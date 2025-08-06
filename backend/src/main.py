@@ -35,7 +35,7 @@ redis_available = False
 database_available = False
 
 try:
-    from core.redis_manager import initialize_redis, get_redis_manager
+    from src.core.redis_manager import initialize_redis, get_redis_manager
     redis_available = True
     logger.info("Redis manager imported successfully")
 except ImportError as e:
@@ -43,7 +43,7 @@ except ImportError as e:
 
 try:
     if not BYPASS_DATABASE:
-        from core.database import initialize_database, get_database_manager
+        from src.core.database import initialize_database, get_database_manager
         database_available = True
         logger.info("Database manager imported successfully")
     else:
@@ -53,13 +53,13 @@ except ImportError as e:
 
 # Import routes
 try:
-    from routes.auth import router as auth_router
-    from routes.thread import router as thread_router
-    from routes.template import router as template_router
-    from routes.analytics import router as analytics_router
-    from routes.subscription import router as subscription_router
-    from routes.revenue import router as revenue_router
-    from routes.generate import router as generate_router
+    from src.routes.auth import router as auth_router
+    from src.routes.thread import router as thread_router
+    from src.routes.template import router as template_router
+    from src.routes.analytics import router as analytics_router
+    from src.routes.subscription import router as subscription_router
+    from src.routes.revenue import router as revenue_router
+    from src.routes.generate import router as generate_router
     routes_available = True
     logger.info("Routes imported successfully")
 except ImportError as e:

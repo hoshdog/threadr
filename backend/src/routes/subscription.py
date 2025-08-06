@@ -20,9 +20,9 @@ try:
     from ..middleware.auth import create_auth_dependencies
     from ..services.auth.auth_service import AuthService
 except ImportError:
-    from core.redis_manager import get_redis_manager
-    from middleware.auth import create_auth_dependencies
-    from services.auth.auth_service import AuthService
+    from src.core.redis_manager import get_redis_manager
+    from src.middleware.auth import create_auth_dependencies
+    from src.services.auth.auth_service import AuthService
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -432,3 +432,14 @@ async def handle_subscription_webhook(event_type: str, data: Dict[str, Any]) -> 
     except Exception as e:
         logger.error(f"Error handling subscription webhook {event_type}: {str(e)}", exc_info=True)
         return False
+
+
+# Create a default router instance for backward compatibility with main.py imports
+# This will be a minimal router that can be imported but requires proper initialization
+router = APIRouter(prefix="/api/subscriptions", tags=["subscriptions"])
+
+# Add a note that this router needs to be properly initialized
+@router.get("/")
+async def subscription_router_not_initialized():
+    """Placeholder endpoint - this router needs proper initialization via create_subscription_router()"""
+    return {"error": "Subscription router not properly initialized. Use create_subscription_router() function."}

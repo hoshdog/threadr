@@ -14,13 +14,13 @@ try:
     from ..services.analytics.analytics_service import AnalyticsService
     from ..core.redis_manager import get_redis_manager
 except ImportError:
-    from models.auth import User
-    from models.analytics import (
+    from src.models.auth import User
+    from src.models.analytics import (
         ThreadAnalytics, DashboardSummary, MetricPeriod, ContentType,
         ThreadComparison, InsightRecommendation, BenchmarkData, AnalyticsExport
     )
-    from services.analytics.analytics_service import AnalyticsService
-    from core.redis_manager import get_redis_manager
+    from src.services.analytics.analytics_service import AnalyticsService
+    from src.core.redis_manager import get_redis_manager
 
 
 def create_analytics_router(get_current_user_func: Callable, require_premium_func: Callable) -> APIRouter:
@@ -142,5 +142,12 @@ def create_analytics_router(get_current_user_func: Callable, require_premium_fun
     return router
 
 
-# Default router for backwards compatibility (will be None if not properly configured)
-router = None
+# Create a default router instance for backward compatibility with main.py imports
+# This will be a minimal router that can be imported but requires proper initialization
+router = APIRouter(prefix="/api/analytics", tags=["analytics"])
+
+# Add a note that this router needs to be properly initialized
+@router.get("/")
+async def analytics_router_not_initialized():
+    """Placeholder endpoint - this router needs proper initialization via create_analytics_router()"""
+    return {"error": "Analytics router not properly initialized. Use create_analytics_router() function."}

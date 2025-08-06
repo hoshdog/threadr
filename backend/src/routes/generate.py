@@ -16,8 +16,8 @@ try:
     from ..services.thread_generator import thread_generator
     from ..core.redis_manager import get_redis_manager
 except ImportError:
-    from services.thread_generator import thread_generator
-    from core.redis_manager import get_redis_manager
+    from src.services.thread_generator import thread_generator
+    from src.core.redis_manager import get_redis_manager
 
 logger = logging.getLogger(__name__)
 

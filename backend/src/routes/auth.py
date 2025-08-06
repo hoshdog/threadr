@@ -17,7 +17,7 @@ try:
         AuthError, User
     )
 except ImportError:
-    from models.auth import (
+    from src.models.auth import (
         UserRegistrationRequest, UserLoginRequest, TokenResponse, UserResponse,
         TokenRefreshRequest, PasswordChangeRequest, UserAlreadyExistsError,
         UserNotFoundError, InvalidCredentialsError, AccountSuspendedError,
@@ -26,15 +26,15 @@ except ImportError:
 try:
     from ..services.auth.auth_service import AuthService
 except ImportError:
-    from services.auth.auth_service import AuthService
+    from src.services.auth.auth_service import AuthService
 try:
     from ..middleware.auth import create_auth_dependencies, log_request, get_request_context
 except ImportError:
-    from middleware.auth import create_auth_dependencies, log_request, get_request_context
+    from src.middleware.auth import create_auth_dependencies, log_request, get_request_context
 try:
     from ..services.auth.auth_utils import SecurityUtils
 except ImportError:
-    from services.auth.auth_utils import SecurityUtils
+    from src.services.auth.auth_utils import SecurityUtils
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +236,7 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
             try:
                 from ..services.auth.auth_utils import verify_password, hash_password
             except ImportError:
-                from services.auth.auth_utils import verify_password, hash_password
+                from src.services.auth.auth_utils import verify_password, hash_password
             
             if not verify_password(password_data.current_password, current_user.password_hash):
                 log_request(request, f"Password change failed - invalid current password: {SecurityUtils.mask_email(current_user.email)}", "warning")
@@ -330,3 +330,14 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
             }
     
     return router
+
+
+# Create a default router instance for backward compatibility with main.py imports
+# This will be a minimal router that can be imported but requires proper initialization
+router = APIRouter(prefix="/api/auth", tags=["authentication"])
+
+# Add a note that this router needs to be properly initialized
+@router.get("/")
+async def auth_router_not_initialized():
+    """Placeholder endpoint - this router needs proper initialization via create_auth_router()"""
+    return {"error": "Auth router not properly initialized. Use create_auth_router() function."}

@@ -14,7 +14,7 @@ try:
         BenchmarkData, ThreadComparison, EngagementType
     )
 except ImportError:
-    from models.analytics import (
+    from src.models.analytics import (
         ThreadAnalytics, TweetMetrics, DashboardSummary, MetricPeriod,
         TimeSeriesDataPoint, MetricSummary, ContentType, InsightRecommendation,
         BenchmarkData, ThreadComparison, EngagementType

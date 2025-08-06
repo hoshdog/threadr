@@ -17,7 +17,7 @@ try:
         ThreadNotFoundError, ThreadAccessDeniedError, ThreadStorageError
     )
 except ImportError:
-    from models.thread import (
+    from src.models.thread import (
         SaveThreadRequest, UpdateThreadRequest, ThreadHistoryRequest,
         ThreadHistoryResponse, ThreadHistoryFilter, SavedThread,
         ThreadNotFoundError, ThreadAccessDeniedError, ThreadStorageError
@@ -25,11 +25,11 @@ except ImportError:
 try:
     from ..services.thread.thread_service import ThreadHistoryService
 except ImportError:
-    from services.thread.thread_service import ThreadHistoryService
+    from src.services.thread.thread_service import ThreadHistoryService
 try:
     from ..models.auth import User
 except ImportError:
-    from models.auth import User
+    from src.models.auth import User
 
 logger = logging.getLogger(__name__)
 
@@ -409,3 +409,14 @@ def create_thread_router(thread_service: ThreadHistoryService, get_current_user)
             )
     
     return router
+
+
+# Create a default router instance for backward compatibility with main.py imports
+# This will be a minimal router that can be imported but requires proper initialization
+router = APIRouter(prefix="/api/threads", tags=["threads"])
+
+# Add a note that this router needs to be properly initialized
+@router.get("/")
+async def thread_router_not_initialized():
+    """Placeholder endpoint - this router needs proper initialization via create_thread_router()"""
+    return {"error": "Thread router not properly initialized. Use create_thread_router() function."}

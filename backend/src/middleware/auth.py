@@ -10,15 +10,15 @@ import logging
 try:
     from ..models.auth import User, InvalidTokenError, TokenExpiredError
 except ImportError:
-    from models.auth import User, InvalidTokenError, TokenExpiredError
+    from src.models.auth import User, InvalidTokenError, TokenExpiredError
 try:
     from ..services.auth.auth_service import AuthService
 except ImportError:
-    from services.auth.auth_service import AuthService
+    from src.services.auth.auth_service import AuthService
 try:
     from ..services.auth.auth_utils import SecurityUtils
 except ImportError:
-    from services.auth.auth_utils import SecurityUtils
+    from src.services.auth.auth_utils import SecurityUtils
 
 logger = logging.getLogger(__name__)
 
