@@ -59,7 +59,7 @@ try:
     from src.routes.thread import create_thread_router
     from src.routes.template import router as template_router
     from src.routes.analytics import router as analytics_router
-    from src.routes.subscription import router as subscription_router
+    from src.routes.subscription import create_subscription_router
     from src.routes.revenue import router as revenue_router
     from src.routes.generate import router as generate_router
     from src.services.auth.auth_service import AuthService
@@ -73,6 +73,7 @@ except ImportError as e:
 # Router instances (will be initialized in lifespan)
 auth_router = None
 thread_router = None
+subscription_router = None
 
 # Service status tracking
 service_status = {
@@ -111,22 +112,24 @@ async def lifespan(app: FastAPI):
         service_status["database"] = False
     
     # Initialize routers with services if routes are available
-    global auth_router, thread_router
+    global auth_router, thread_router, subscription_router
     if routes_available and service_status["redis"]:
         try:
             # Initialize services
-            auth_service = AuthService(redis_backend=redis_manager)
-            thread_service = ThreadHistoryService(redis_backend=redis_manager)
+            auth_service = AuthService(redis_manager)
+            thread_service = ThreadHistoryService(redis_manager)
             
             # Create routers using factory functions
             auth_router = create_auth_router(auth_service)
             thread_router = create_thread_router(thread_service)
+            subscription_router = create_subscription_router(auth_service)
             
-            logger.info("Authentication and thread routers initialized successfully")
+            logger.info("Authentication, thread, and subscription routers initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize routers: {e}")
             auth_router = None
             thread_router = None
+            subscription_router = None
     
     # Set overall health
     if service_status["redis"] or BYPASS_DATABASE:
@@ -255,9 +258,14 @@ if routes_available:
         else:
             logger.warning("Thread router not initialized")
             
+        if subscription_router:
+            app.include_router(subscription_router)
+            logger.info("Subscription router included successfully")
+        else:
+            logger.warning("Subscription router not initialized")
+            
         app.include_router(template_router, prefix="/api", tags=["templates"])
         app.include_router(analytics_router, prefix="/api", tags=["analytics"])
-        app.include_router(subscription_router, prefix="/api", tags=["subscriptions"])
         app.include_router(revenue_router, prefix="/api", tags=["revenue"])
         logger.info("All available routers included")
     except Exception as e:

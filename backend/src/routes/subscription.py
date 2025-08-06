@@ -13,6 +13,8 @@ import os
 import logging
 from datetime import datetime, timedelta
 import json
+import hmac
+import hashlib
 
 # Import dependencies
 try:
@@ -31,28 +33,56 @@ logger = logging.getLogger(__name__)
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
-# Subscription plan configuration
+# Threadr Subscription Plans Configuration
 SUBSCRIPTION_PLANS = {
-    "starter": {
-        "name": "Starter",
+    "threadr_starter": {
+        "name": "Threadr Starter",
+        "display_name": "Starter",
         "monthly_price": 999,  # $9.99
         "annual_price": 9590,  # $95.90 (20% discount)
         "thread_limit": 100,
-        "features": ["basic_analytics", "email_support"]
+        "tier_level": 1,
+        "features": [
+            "basic_analytics", 
+            "email_support", 
+            "100_threads_per_month",
+            "basic_templates"
+        ]
     },
-    "pro": {
-        "name": "Pro", 
+    "threadr_pro": {
+        "name": "Threadr Pro",
+        "display_name": "Pro",
         "monthly_price": 1999,  # $19.99
         "annual_price": 19190,  # $191.90 (20% discount)
         "thread_limit": -1,  # Unlimited
-        "features": ["unlimited_threads", "advanced_analytics", "premium_templates", "priority_support"]
+        "tier_level": 2,
+        "features": [
+            "unlimited_threads", 
+            "advanced_analytics", 
+            "premium_templates", 
+            "priority_support",
+            "custom_scheduling",
+            "export_threads"
+        ]
     },
-    "team": {
-        "name": "Team",
+    "threadr_team": {
+        "name": "Threadr Team",
+        "display_name": "Team",
         "monthly_price": 4999,  # $49.99
         "annual_price": 47990,  # $479.90 (20% discount)
         "thread_limit": -1,  # Unlimited
-        "features": ["unlimited_threads", "team_collaboration", "admin_dashboard", "dedicated_support", "custom_branding"]
+        "tier_level": 3,
+        "features": [
+            "unlimited_threads", 
+            "team_collaboration", 
+            "admin_dashboard", 
+            "dedicated_support", 
+            "custom_branding",
+            "api_access",
+            "bulk_processing",
+            "analytics_export",
+            "white_labeling"
+        ]
     }
 }
 
@@ -60,12 +90,17 @@ SUBSCRIPTION_PLANS = {
 class SubscriptionInfo(BaseModel):
     subscription_id: Optional[str] = None
     plan_name: Optional[str] = None
+    plan_display_name: Optional[str] = None
+    tier_level: Optional[int] = None
     status: Optional[str] = None
     current_period_start: Optional[datetime] = None
     current_period_end: Optional[datetime] = None
     cancel_at_period_end: Optional[bool] = None
     thread_limit: Optional[int] = None
     features: Optional[List[str]] = None
+    is_annual: Optional[bool] = None
+    monthly_price: Optional[int] = None
+    annual_price: Optional[int] = None
 
 class CreateCheckoutRequest(BaseModel):
     price_id: str
@@ -167,7 +202,14 @@ def create_subscription_router(auth_service: AuthService) -> APIRouter:
                 )
             
             # Parse subscription data
-            return SubscriptionInfo(**subscription_data)
+            # Convert datetime objects for the response
+            response_data = subscription_data.copy()
+            if 'current_period_start' in response_data and isinstance(response_data['current_period_start'], str):
+                response_data['current_period_start'] = datetime.fromisoformat(response_data['current_period_start'])
+            if 'current_period_end' in response_data and isinstance(response_data['current_period_end'], str):
+                response_data['current_period_end'] = datetime.fromisoformat(response_data['current_period_end'])
+            
+            return SubscriptionInfo(**response_data)
             
         except Exception as e:
             logger.error(f"Error fetching subscription status: {str(e)}", exc_info=True)
@@ -271,19 +313,25 @@ def create_subscription_router(auth_service: AuthService) -> APIRouter:
             )
             
             # Update subscription data in Redis
-            plan_name = get_plan_name_from_price_id(request.new_price_id)
+            plan_name, is_annual = get_plan_name_from_price_id(request.new_price_id)
+            plan_info = get_plan_by_name(plan_name)
             subscription_data.update({
                 "plan_name": plan_name,
+                "plan_display_name": plan_info.get("display_name", "Unknown"),
+                "tier_level": plan_info.get("tier_level", 0),
                 "current_period_start": datetime.fromtimestamp(updated_subscription.current_period_start),
                 "current_period_end": datetime.fromtimestamp(updated_subscription.current_period_end),
-                "thread_limit": SUBSCRIPTION_PLANS.get(plan_name, {}).get("thread_limit", 5),
-                "features": SUBSCRIPTION_PLANS.get(plan_name, {}).get("features", [])
+                "thread_limit": plan_info.get("thread_limit", 5),
+                "features": plan_info.get("features", []),
+                "is_annual": is_annual,
+                "monthly_price": plan_info.get("monthly_price", 0),
+                "annual_price": plan_info.get("annual_price", 0)
             })
             await redis_manager.update_user_subscription(user_id, subscription_data)
             
             return {
                 "success": True,
-                "message": f"Plan changed to {plan_name.title()}",
+                "message": f"Plan changed to {plan_info.get('display_name', plan_name)}",
                 "new_plan": plan_name
             }
             
@@ -326,18 +374,66 @@ def create_subscription_router(auth_service: AuthService) -> APIRouter:
             logger.error(f"Error fetching subscription usage: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail="Failed to fetch subscription usage")
     
+    @router.post("/webhook", response_model=Dict[str, Any])
+    async def stripe_webhook(request: Request):
+        """Handle Stripe webhook events for subscription lifecycle"""
+        try:
+            payload = await request.body()
+            sig_header = request.headers.get("stripe-signature")
+            
+            if not sig_header:
+                logger.error("Missing stripe-signature header")
+                raise HTTPException(status_code=400, detail="Missing stripe-signature header")
+            
+            # Verify webhook signature
+            try:
+                event = stripe.Webhook.construct_event(
+                    payload, sig_header, STRIPE_WEBHOOK_SECRET
+                )
+            except ValueError:
+                logger.error("Invalid payload in webhook")
+                raise HTTPException(status_code=400, detail="Invalid payload")
+            except stripe.error.SignatureVerificationError:
+                logger.error("Invalid signature in webhook")
+                raise HTTPException(status_code=400, detail="Invalid signature")
+            
+            # Handle the event
+            event_type = event['type']
+            logger.info(f"Processing Stripe webhook: {event_type}")
+            
+            success = await handle_subscription_webhook(event_type, event['data'])
+            
+            if success:
+                return {"success": True, "message": f"Processed {event_type}"}
+            else:
+                logger.error(f"Failed to process webhook: {event_type}")
+                raise HTTPException(status_code=500, detail="Webhook processing failed")
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected webhook error: {str(e)}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Webhook processing failed")
+    
     return router
 
-def get_plan_name_from_price_id(price_id: str) -> str:
-    """Extract plan name from Stripe price ID using environment variables"""
-    for plan_name in SUBSCRIPTION_PLANS.keys():
-        monthly_price_id = os.getenv(f"STRIPE_{plan_name.upper()}_MONTHLY_PRICE_ID")
-        annual_price_id = os.getenv(f"STRIPE_{plan_name.upper()}_ANNUAL_PRICE_ID")
-        
-        if price_id in [monthly_price_id, annual_price_id]:
-            return plan_name
+def get_plan_name_from_price_id(price_id: str) -> tuple[str, bool]:
+    """Extract plan name from Stripe price ID using environment variables
     
-    return "unknown"
+    Returns:
+        tuple: (plan_name, is_annual)
+    """
+    for plan_name in SUBSCRIPTION_PLANS.keys():
+        env_key = plan_name.replace('_', '_').upper()
+        monthly_price_id = os.getenv(f"STRIPE_{env_key}_MONTHLY_PRICE_ID")
+        annual_price_id = os.getenv(f"STRIPE_{env_key}_ANNUAL_PRICE_ID")
+        
+        if price_id == monthly_price_id:
+            return plan_name, False
+        elif price_id == annual_price_id:
+            return plan_name, True
+    
+    return "unknown", False
 
 async def handle_subscription_webhook(event_type: str, data: Dict[str, Any]) -> bool:
     """Handle subscription-related webhook events"""
@@ -355,19 +451,24 @@ async def handle_subscription_webhook(event_type: str, data: Dict[str, Any]) -> 
             
             # Extract plan information
             price_id = subscription["items"]["data"][0]["price"]["id"]
-            plan_name = get_plan_name_from_price_id(price_id)
+            plan_name, is_annual = get_plan_name_from_price_id(price_id)
             plan_info = SUBSCRIPTION_PLANS.get(plan_name, {})
             
             # Store subscription data
             subscription_data = {
                 "subscription_id": subscription["id"],
                 "plan_name": plan_name,
+                "plan_display_name": plan_info.get("display_name", "Unknown"),
+                "tier_level": plan_info.get("tier_level", 0),
                 "status": subscription["status"],
                 "current_period_start": datetime.fromtimestamp(subscription["current_period_start"]),
                 "current_period_end": datetime.fromtimestamp(subscription["current_period_end"]),
                 "cancel_at_period_end": subscription["cancel_at_period_end"],
                 "thread_limit": plan_info.get("thread_limit", 5),
-                "features": plan_info.get("features", [])
+                "features": plan_info.get("features", []),
+                "is_annual": is_annual,
+                "monthly_price": plan_info.get("monthly_price", 0),
+                "annual_price": plan_info.get("annual_price", 0)
             }
             
             # Save to Redis (use email as key for now, update when user_id available)

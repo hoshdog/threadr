@@ -581,72 +581,196 @@ class RedisManager:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(self.executor, _get)
     
-    async def check_premium_access(self, client_ip: str, email: Optional[str] = None) -> Dict[str, Any]:
-        """Check if user has premium access"""
+    async def check_subscription_access(self, user_id: str = None, client_ip: str = None, email: Optional[str] = None) -> Dict[str, Any]:
+        """Check user's subscription tier and access level
+        
+        Returns subscription information including tier level, features, and limits.
+        Can check by user_id (preferred), client_ip, or email.
+        """
         def _check():
             with self._redis_operation() as r:
                 if not r:
-                    return {"has_premium": False, "source": "redis_unavailable"}
+                    return {"tier_level": 0, "plan_name": "free", "has_access": False, "source": "redis_unavailable"}
                 
                 try:
-                    pipe = r.pipeline()
+                    subscription_data = None
+                    source = "none"
                     
-                    # Check IP-based premium access
-                    ip_premium_key = f"{self.premium_prefix}ip:{client_ip}"
-                    pipe.get(ip_premium_key)
+                    # Check by user_id first (most reliable)
+                    if user_id:
+                        subscription_key = f"threadr:subscription:user:{user_id}"
+                        data = r.get(subscription_key)
+                        if data:
+                            try:
+                                subscription_data = json.loads(data)
+                                source = "user_id"
+                            except json.JSONDecodeError:
+                                pass
                     
-                    # Check email-based premium access if provided
-                    if email:
+                    # Fallback to IP-based premium access (legacy support)
+                    if not subscription_data and client_ip:
+                        ip_premium_key = f"{self.premium_prefix}ip:{client_ip}"
+                        data = r.get(ip_premium_key)
+                        if data:
+                            try:
+                                legacy_data = json.loads(data)
+                                # Convert legacy premium to subscription format
+                                subscription_data = {
+                                    "plan_name": "legacy_premium",
+                                    "tier_level": 2,  # Treat as Pro level
+                                    "status": "active",
+                                    "expires_at": legacy_data.get("expires_at"),
+                                    "thread_limit": -1,
+                                    "features": ["unlimited_threads", "legacy_access"]
+                                }
+                                source = "ip_legacy"
+                            except json.JSONDecodeError:
+                                pass
+                    
+                    # Fallback to email-based premium access (legacy support)
+                    if not subscription_data and email:
                         email_premium_key = f"{self.premium_prefix}email:{email}"
-                        pipe.get(email_premium_key)
-                    else:
-                        pipe.get("dummy")
+                        data = r.get(email_premium_key)
+                        if data:
+                            try:
+                                legacy_data = json.loads(data)
+                                subscription_data = {
+                                    "plan_name": "legacy_premium",
+                                    "tier_level": 2,
+                                    "status": "active",
+                                    "expires_at": legacy_data.get("expires_at"),
+                                    "thread_limit": -1,
+                                    "features": ["unlimited_threads", "legacy_access"]
+                                }
+                                source = "email_legacy"
+                            except json.JSONDecodeError:
+                                pass
                     
-                    results = pipe.execute()
-                    
-                    ip_premium_data = None
-                    email_premium_data = None
-                    
-                    if results[0]:
-                        try:
-                            ip_premium_data = json.loads(results[0])
-                        except json.JSONDecodeError:
-                            pass
-                    
-                    if email and results[1]:
-                        try:
-                            email_premium_data = json.loads(results[1])
-                        except json.JSONDecodeError:
-                            pass
-                    
-                    # Determine premium status (either IP or email can grant access)
-                    premium_data = email_premium_data or ip_premium_data
-                    
-                    if premium_data:
-                        # Check if premium access is still valid
-                        expires_at = premium_data.get("expires_at")
-                        if expires_at:
-                            expiry_time = datetime.fromisoformat(expires_at)
-                            if datetime.now() > expiry_time:
-                                return {"has_premium": False, "source": "expired", "expired_at": expires_at}
-                        
+                    # No subscription found - free tier
+                    if not subscription_data:
                         return {
-                            "has_premium": True,
-                            "source": "email" if email_premium_data else "ip",
-                            "granted_at": premium_data.get("granted_at"),
-                            "expires_at": premium_data.get("expires_at"),
-                            "plan": premium_data.get("plan", "premium")
+                            "tier_level": 0,
+                            "plan_name": "free",
+                            "plan_display_name": "Free",
+                            "has_access": True,
+                            "thread_limit": 5,
+                            "features": ["basic_threads"],
+                            "source": "free_tier",
+                            "status": "active"
                         }
                     
-                    return {"has_premium": False, "source": "none"}
+                    # Check if subscription is still valid
+                    expires_at = subscription_data.get("expires_at")
+                    if expires_at:
+                        try:
+                            if isinstance(expires_at, str):
+                                expiry_time = datetime.fromisoformat(expires_at)
+                            else:
+                                expiry_time = expires_at
+                            
+                            if datetime.now() > expiry_time:
+                                return {
+                                    "tier_level": 0,
+                                    "plan_name": "expired",
+                                    "has_access": False,
+                                    "source": "expired",
+                                    "expired_at": expires_at,
+                                    "thread_limit": 5,
+                                    "features": ["basic_threads"]
+                                }
+                        except (ValueError, TypeError) as e:
+                            logger.warning(f"Invalid expiry date format: {expires_at}, error: {e}")
+                    
+                    # Check subscription status
+                    status = subscription_data.get("status", "inactive")
+                    if status not in ["active", "trialing"]:
+                        return {
+                            "tier_level": 0,
+                            "plan_name": "inactive",
+                            "has_access": False,
+                            "source": "inactive",
+                            "status": status,
+                            "thread_limit": 5,
+                            "features": ["basic_threads"]
+                        }
+                    
+                    # Return active subscription info
+                    return {
+                        "tier_level": subscription_data.get("tier_level", 1),
+                        "plan_name": subscription_data.get("plan_name", "unknown"),
+                        "plan_display_name": subscription_data.get("plan_display_name", "Unknown"),
+                        "has_access": True,
+                        "thread_limit": subscription_data.get("thread_limit", 100),
+                        "features": subscription_data.get("features", []),
+                        "source": source,
+                        "status": status,
+                        "expires_at": expires_at,
+                        "subscription_id": subscription_data.get("subscription_id"),
+                        "is_annual": subscription_data.get("is_annual", False)
+                    }
                     
                 except Exception as e:
-                    logger.error(f"Error checking premium access: {e}")
-                    return {"has_premium": False, "source": "error", "error": str(e)}
+                    logger.error(f"Error checking subscription access: {e}")
+                    return {"tier_level": 0, "plan_name": "error", "has_access": False, "source": "error", "error": str(e)}
         
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(self.executor, _check)
     
+    # Backward compatibility method
+    async def check_premium_access(self, client_ip: str, email: Optional[str] = None) -> Dict[str, Any]:
+        """Legacy method for backward compatibility - checks for any paid tier"""
+        result = await self.check_subscription_access(client_ip=client_ip, email=email)
+        
+        return {
+            "has_premium": result.get("tier_level", 0) > 0,
+            "has_access": result.get("has_access", False),
+            "tier_level": result.get("tier_level", 0),
+            "plan": result.get("plan_name", "free"),
+            "source": result.get("source", "none"),
+            "expires_at": result.get("expires_at")
+        }
+    
+    async def grant_subscription_access(self, user_id: str, subscription_data: Dict[str, Any]) -> bool:
+        """Grant subscription access to a user with full subscription data"""
+        def _grant():
+            with self._redis_operation() as r:
+                if not r:
+                    return False
+                
+                try:
+                    subscription_key = f"threadr:subscription:user:{user_id}"
+                    subscription_json = json.dumps(subscription_data, default=str)
+                    
+                    # Calculate TTL based on subscription end date
+                    ttl = 31536000  # Default 1 year
+                    if subscription_data.get("current_period_end"):
+                        try:
+                            end_date = subscription_data["current_period_end"]
+                            if isinstance(end_date, str):
+                                end_date = datetime.fromisoformat(end_date)
+                            
+                            ttl = int((end_date - datetime.now()).total_seconds()) + 7 * 24 * 3600  # +7 days buffer
+                            ttl = max(ttl, 86400)  # Minimum 1 day
+                        except (ValueError, TypeError) as e:
+                            logger.warning(f"Error calculating TTL: {e}")
+                    
+                    r.setex(subscription_key, ttl, subscription_json)
+                    
+                    # Add to active subscriptions set if active
+                    if subscription_data.get("status") == "active":
+                        r.sadd("threadr:subscriptions:active", user_id)
+                    
+                    logger.info(f"Granted subscription access to user {user_id}: {subscription_data.get('plan_name')}")
+                    return True
+                    
+                except Exception as e:
+                    logger.error(f"Error granting subscription access: {e}")
+                    return False
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _grant)
+    
+    # Legacy method for backward compatibility
     async def grant_premium_access(self, client_ip: str, email: Optional[str] = None, 
                                  plan: str = "premium", duration_days: int = 30,
                                  payment_info: Optional[Dict[str, Any]] = None) -> bool:
