@@ -49,7 +49,9 @@ try:
     else:
         logger.info("Database bypassed by configuration")
 except ImportError as e:
-    logger.warning(f"Database manager import failed: {e}")
+    if not BYPASS_DATABASE:
+        logger.info(f"Database manager not available (expected for now): {e}")
+    database_available = False
 
 # Import routes
 try:
@@ -82,27 +84,25 @@ async def lifespan(app: FastAPI):
     # Initialize Redis
     if redis_available:
         try:
-            redis_client = await initialize_redis()
-            if redis_client:
-                await redis_client.ping()
-                service_status["redis"] = True
-                logger.info("Redis initialized successfully")
+            redis_manager = initialize_redis()  # Not async
+            if redis_manager and redis_manager.is_available:
+                # Test Redis connection
+                if redis_manager.client:
+                    redis_manager.client.ping()
+                    service_status["redis"] = True
+                    logger.info("Redis initialized successfully")
+                else:
+                    logger.warning("Redis client not connected")
             else:
-                logger.warning("Redis client not initialized")
+                logger.warning("Redis manager not available")
         except Exception as e:
             logger.error(f"Redis initialization failed: {e}")
     
-    # Initialize Database
+    # Database initialization (skipped for now - no database module yet)
     if database_available and not BYPASS_DATABASE:
-        try:
-            db_manager = await initialize_database()
-            if db_manager:
-                service_status["database"] = True
-                logger.info("Database initialized successfully")
-            else:
-                logger.warning("Database manager not initialized")
-        except Exception as e:
-            logger.error(f"Database initialization failed: {e}")
+        # Database module not implemented yet
+        logger.info("Database module not implemented - using Redis only")
+        service_status["database"] = False
     
     # Set overall health
     if service_status["redis"] or BYPASS_DATABASE:
