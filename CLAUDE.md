@@ -6,34 +6,46 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Threadr is a SaaS tool that converts blog articles or pasted content into Twitter threads. This is a greenfield project with the specification defined in MVP.md.
 
-## 🚨 LATEST UPDATE (August 6, 2025)
+## 🚨 CRITICAL PROJECT STATUS (August 7, 2025)
 
-### Railway → Render.com Migration
-- **Issue**: Railway deployment stuck on old code due to service-level caching
-- **Decision**: Migrating to Render.com for cleaner deployment
-- **Status**: Project cleaned and ready for Render deployment
-- **Action**: Deploy to Render.com first thing next session
+### THE ONLY PRIORITY: DEPLOY NEXT.JS
+- **Stop**: Working on Alpine.js - it's deprecated and at architectural limits
+- **Start**: Deploy the Next.js app that's 80% complete
+- **Reality**: We've been fixing the wrong thing - Next.js is the solution
 
-### Project Cleanup Completed
-- **Archived**: 113+ redundant files moved to archive/
-- **Organized**: Scripts, documentation, and deployment configs
-- **Result**: Clean repository structure ready for deployment
-- **Guides**: See DEPLOY_NOW_ACTION_PLAN.md for deployment steps
+### Current Reality
+- **Alpine.js Frontend**: DEPRECATED - 260KB monolithic file, can't add features
+- **Next.js Frontend**: READY TO DEPLOY - complete implementation in `threadr-nextjs/`
+- **Backend**: Working on Render.com at https://threadr-pw0s.onrender.com
+- **Problem**: We keep trying to fix Alpine.js instead of deploying Next.js
 
-## 🚨 CRITICAL SECURITY ISSUE
+### DO NOT DO THESE THINGS
+- ❌ Fix Alpine.js bugs (it's deprecated)
+- ❌ Add features to Alpine.js (architectural limit reached)
+- ❌ Create more status reports (use git history)
+- ❌ Work on `frontend/public/index.html` (deprecated)
 
-**IMMEDIATE ACTION REQUIRED**: API keys are hardcoded in `frontend/public/config.js` line 59:
-```javascript
-return 'your-api-key-here';
-```
+### ONLY DO THESE THINGS
+- ✅ Deploy Next.js to production
+- ✅ Work in `threadr-nextjs/` directory
+- ✅ Connect Next.js to Render backend
+- ✅ Focus on revenue features in Next.js
 
-This exposes the API key to all users and is a serious security vulnerability. This needs to be moved to backend-only authentication.
+## 🚨 DEPRECATED ALPINE.JS ISSUES (DON'T FIX THESE)
+
+**Note**: The Alpine.js frontend has multiple issues including:
+- Hardcoded API keys (security issue)
+- Old $4.99 pricing (should be 3-tier)
+- Broken navigation
+- Cramped UI elements
+
+**DO NOT FIX THESE** - Deploy Next.js instead where these are already solved.
 
 ## Current Production Status
 
-**PRODUCTION REALITY (2025-08-04):**
-✅ **Live Production App**: https://threadr-plum.vercel.app - Fully functional SaaS (Alpine.js)
-✅ **Backend API**: https://threadr-production.up.railway.app (MIGRATING TO RENDER.COM) - 95.7% test coverage
+**PRODUCTION REALITY (August 7, 2025):**
+⚠️ **Live Production App**: https://threadr-plum.vercel.app - DEPRECATED Alpine.js, partially broken
+✅ **Backend API**: https://threadr-pw0s.onrender.com - Working on Render.com
 ✅ **Monetization Active**: Stripe payments ($4.99 for 30-day premium access - FLAT RATE, not monthly)
 ✅ **Free Tier Limits**: 5 daily / 20 monthly thread generations enforced
 ✅ **URL Scraping**: Working for 15+ domains (Medium, Dev.to, Substack, etc.)
