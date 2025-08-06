@@ -79,7 +79,9 @@
       "Bash(tree:*)",
       "Bash(cmd:*)",
       "WebFetch(domain:threadr-pw0s.onrender.com)",
-      "Bash(robocopy:*)"
+      "Bash(robocopy:*)",
+      "WebFetch(domain:docs.render.com)",
+      "WebFetch(domain:render.com)"
     ],
     "deny": []
   }
