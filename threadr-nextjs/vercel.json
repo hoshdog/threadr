@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://threadr-production.up.railway.app/api/:path*"
+      "destination": "https://threadr-pw0s.onrender.com/api/:path*"
     }
   ],
   "env": {

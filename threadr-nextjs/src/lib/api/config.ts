@@ -3,7 +3,7 @@ export const API_CONFIG = {
   // Base URL - use production by default, fallback to localhost for development
   BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 
            (process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL + '/api' : null) || 
-           'https://threadr-production.up.railway.app/api',
+           'https://threadr-pw0s.onrender.com/api',
   
   // Timeouts
   TIMEOUT: 30000, // 30 seconds
