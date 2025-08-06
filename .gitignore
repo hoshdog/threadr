@@ -162,7 +162,7 @@ railway.json
 nixpacks.toml
 Dockerfile.disabled
 fly.toml
-render.yaml
+# render.yaml - Now tracked for Render.com deployment
 
 # Temporary files
 *.tmp
