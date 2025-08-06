@@ -76,7 +76,10 @@
       "Bash(PORT=3001 npm run start)",
       "Bash(git cherry-pick:*)",
       "Bash(ren:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(cmd:*)",
+      "WebFetch(domain:threadr-pw0s.onrender.com)",
+      "Bash(robocopy:*)"
     ],
     "deny": []
   }
