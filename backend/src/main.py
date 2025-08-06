@@ -156,8 +156,8 @@ async def health_check():
         if redis_available and service_status["redis"]:
             try:
                 redis_manager = get_redis_manager()
-                if redis_manager and redis_manager.redis:
-                    await redis_manager.redis.ping()
+                if redis_manager and redis_manager.client:
+                    redis_manager.client.ping()
                     checks["services"]["redis_ping"] = "ok"
             except Exception as e:
                 checks["services"]["redis_ping"] = f"failed: {str(e)}"
