@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
 import logging
+import os
 from datetime import datetime
 
 # Import services
@@ -269,6 +270,3 @@ async def check_premium_status(request: Request):
             "success": False,
             "error": str(e)
         }
-
-# Missing import
-import os

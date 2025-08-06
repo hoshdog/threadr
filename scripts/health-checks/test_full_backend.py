@@ -211,10 +211,18 @@ def test_backend(base_url):
     return all_critical_working
 
 if __name__ == "__main__":
+    import sys
+    
     print("\n[THREADR BACKEND COMPREHENSIVE TEST]")
     print("====================================\n")
     
-    backend_url = input("Enter your backend URL (e.g., https://threadr-pw0s.onrender.com): ").strip()
+    # Get URL from command line argument or use default
+    if len(sys.argv) > 1:
+        backend_url = sys.argv[1].strip()
+    else:
+        # Default to Render.com deployment
+        backend_url = "https://threadr-pw0s.onrender.com"
+        print(f"Using default backend URL: {backend_url}")
     
     if not backend_url:
         print("[ERROR] No URL provided")
