@@ -6,6 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Threadr is a SaaS tool that converts blog articles or pasted content into Twitter threads. This is a greenfield project with the specification defined in MVP.md.
 
+## 🚨 LATEST UPDATE (August 6, 2025)
+
+### Railway → Render.com Migration
+- **Issue**: Railway deployment stuck on old code due to service-level caching
+- **Decision**: Migrating to Render.com for cleaner deployment
+- **Status**: Project cleaned and ready for Render deployment
+- **Action**: Deploy to Render.com first thing next session
+
+### Project Cleanup Completed
+- **Archived**: 113+ redundant files moved to archive/
+- **Organized**: Scripts, documentation, and deployment configs
+- **Result**: Clean repository structure ready for deployment
+- **Guides**: See DEPLOY_NOW_ACTION_PLAN.md for deployment steps
+
 ## 🚨 CRITICAL SECURITY ISSUE
 
 **IMMEDIATE ACTION REQUIRED**: API keys are hardcoded in `frontend/public/config.js` line 59:
@@ -19,7 +33,7 @@ This exposes the API key to all users and is a serious security vulnerability. T
 
 **PRODUCTION REALITY (2025-08-04):**
 ✅ **Live Production App**: https://threadr-plum.vercel.app - Fully functional SaaS (Alpine.js)
-✅ **Backend API**: https://threadr-production.up.railway.app - 95.7% test coverage
+✅ **Backend API**: https://threadr-production.up.railway.app (MIGRATING TO RENDER.COM) - 95.7% test coverage
 ✅ **Monetization Active**: Stripe payments ($4.99 for 30-day premium access - FLAT RATE, not monthly)
 ✅ **Free Tier Limits**: 5 daily / 20 monthly thread generations enforced
 ✅ **URL Scraping**: Working for 15+ domains (Medium, Dev.to, Substack, etc.)
@@ -339,7 +353,7 @@ For detailed analysis, see: `THREADR_PROJECT_STATUS_REPORT.md`
 - **AI Integration**: OpenAI GPT-3.5-turbo API
 - **Deployment**: 
   - Frontend: Vercel (static HTML hosting)
-  - Backend: Railway (Python FastAPI)
+  - Backend: Render.com (Python FastAPI) - MIGRATION IN PROGRESS
   - Protection: Cloudflare free tier
 - **⚠️ Security Issue**: API keys hardcoded in frontend config.js (line 59)
 
@@ -414,10 +428,13 @@ black .
 ### Deployment
 ```bash
 # Frontend to Vercel
-vercel --prod
+cd threadr-nextjs
+.\deploy-now.bat
 
-# Backend to Railway
-railway up
+# Backend to Render.com
+# 1. Go to render.com
+# 2. New+ → Web Service → Connect "threadr" repo
+# 3. Auto-deploys with backend/render.yaml
 ```
 
 ## Architecture Considerations

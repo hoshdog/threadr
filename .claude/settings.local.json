@@ -75,7 +75,8 @@
       "Bash(git check-ignore:*)",
       "Bash(PORT=3001 npm run start)",
       "Bash(git cherry-pick:*)",
-      "Bash(ren:*)"
+      "Bash(ren:*)",
+      "Bash(tree:*)"
     ],
     "deny": []
   }
