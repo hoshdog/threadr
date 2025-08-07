@@ -15,9 +15,12 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import relationship, validates
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import MutableDict
-from werkzeug.security import generate_password_hash, check_password_hash
+from passlib.context import CryptContext
 
 from .config import Base
+
+# Password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Helper function for UUID generation
 def generate_uuid():
@@ -68,11 +71,11 @@ class User(Base):
     
     def set_password(self, password: str):
         """Hash and set user password."""
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = pwd_context.hash(password)
     
     def check_password(self, password: str) -> bool:
         """Check if provided password matches hash."""
-        return check_password_hash(self.password_hash, password)
+        return pwd_context.verify(password, self.password_hash)
     
     @hybrid_property
     def is_premium_active(self) -> bool:
