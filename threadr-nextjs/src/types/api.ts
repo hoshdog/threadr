@@ -620,8 +620,8 @@ export interface TeamStatsResponse {
 
 // Core Thread Generation
 export interface GenerateThreadRequest {
+  content: string;
   url?: string | null;
-  text?: string | null;
 }
 
 export interface Tweet {
