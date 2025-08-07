@@ -196,12 +196,17 @@ app = FastAPI(
 # CORS configuration with production fallback
 default_cors_origins = "http://localhost:3000,https://threadr-plum.vercel.app,https://threadr-nextjs-eight-red.vercel.app"
 cors_origins = os.getenv("CORS_ORIGINS", default_cors_origins).split(",")
+# Strip whitespace from origins to prevent configuration issues
+cors_origins = [origin.strip() for origin in cors_origins if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
+    expose_headers=["Content-Length", "X-Request-ID"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 # Health check endpoints
