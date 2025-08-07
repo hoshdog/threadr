@@ -48,5 +48,10 @@ alembic==1.13.0
 # Database monitoring and utilities
 psutil==5.9.6
 
+# Testing dependencies (for OPERATIONS/testing/ scripts)
+aiohttp==3.9.1
+colorama==0.4.6
+PyJWT==2.8.0
+
 # ASGI server configuration handled in nixpacks.toml
 # Only uvicorn is used for this deployment
