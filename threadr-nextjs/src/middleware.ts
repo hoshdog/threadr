@@ -68,11 +68,12 @@ function getUserFromToken(token: string): { isPremium: boolean } | null {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Skip middleware for static files and API routes (except auth-related ones)
+  // Skip middleware for static files, Next.js internals, and external API calls
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api/') ||
-    pathname.includes('.') // Static files (images, css, js, etc.)
+    pathname.includes('.') || // Static files (images, css, js, etc.)
+    pathname.startsWith('/favicon')
   ) {
     return NextResponse.next();
   }
@@ -150,7 +151,7 @@ export function middleware(request: NextRequest) {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: blob:",
-    "connect-src 'self' https://api.stripe.com https://api.openai.com",
+    "connect-src 'self' https://api.stripe.com https://api.openai.com https://threadr-pw0s.onrender.com",
     "frame-src https://js.stripe.com",
     "object-src 'none'",
     "base-uri 'self'",

@@ -108,13 +108,21 @@ class ApiClient {
     // Request interceptor to add auth token and handle token refresh
     this.client.interceptors.request.use(
       async (config) => {
-        // For auth endpoints except profile/logout, don't add token
-        const isAuthEndpoint = config.url?.includes('/auth/');
-        const needsAuth = config.url?.includes('/auth/me') || 
-                         config.url?.includes('/auth/profile') || 
-                         config.url?.includes('/auth/logout');
+        // Define public endpoints that don't need authentication
+        const publicEndpoints = [
+          '/auth/login',
+          '/auth/register', 
+          '/auth/forgot-password',
+          '/auth/reset-password',
+          '/subscriptions/plans',  // Public pricing plans
+          '/health',
+          '/readiness'
+        ];
         
-        if (isAuthEndpoint && !needsAuth) {
+        // Check if this is a public endpoint
+        const isPublicEndpoint = publicEndpoints.some(endpoint => config.url?.includes(endpoint));
+        
+        if (isPublicEndpoint) {
           return config;
         }
 

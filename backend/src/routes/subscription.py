@@ -132,9 +132,17 @@ def create_subscription_router(auth_service: AuthService) -> APIRouter:
                     "annual_price_id": os.getenv(f"STRIPE_{plan_id.upper()}_ANNUAL_PRICE_ID")
                 }
             
+            # Convert plans dict to array format expected by frontend
+            plans_array = []
+            for plan_id, plan_info in plans_with_prices.items():
+                plans_array.append({
+                    "id": plan_id,
+                    **plan_info
+                })
+            
             return {
                 "success": True,
-                "plans": plans_with_prices
+                "data": plans_array
             }
         except Exception as e:
             logger.error(f"Error fetching subscription plans: {str(e)}", exc_info=True)

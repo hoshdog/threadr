@@ -156,12 +156,15 @@ export interface PaymentIntent {
 export interface SubscriptionPlan {
   id: string;
   name: string;
-  description: string;
-  price: number;
-  currency: string;
-  interval: 'month' | 'year';
+  display_name: string;
+  monthly_price: number; // Price in cents
+  annual_price: number;  // Price in cents
+  thread_limit: number;  // -1 for unlimited
+  tier_level: number;
   features: string[];
-  isPopular?: boolean;
+  monthly_price_id: string; // Stripe price ID
+  annual_price_id: string;  // Stripe price ID
+  isPopular?: boolean; // Frontend-only property
 }
 
 // Error types
