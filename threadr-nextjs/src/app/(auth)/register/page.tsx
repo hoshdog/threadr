@@ -83,7 +83,7 @@ export default function RegisterPage() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Mock success response
-      router.push('/dashboard');
+      router.push('/generate');
     } catch (err) {
       setLocalError(`Failed to sign up with ${provider}. Please try again.`);
     } finally {

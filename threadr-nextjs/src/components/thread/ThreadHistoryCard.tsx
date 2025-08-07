@@ -262,7 +262,7 @@ export const ThreadHistoryCard: React.FC<ThreadHistoryCardProps> = ({
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => window.location.href = `/dashboard/generate?edit=${thread.id}`}
+              onClick={() => window.location.href = `/generate?edit=${thread.id}`}
               className="flex items-center gap-1"
             >
               <Edit3 className="h-3 w-3" />
@@ -272,7 +272,7 @@ export const ThreadHistoryCard: React.FC<ThreadHistoryCardProps> = ({
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => window.location.href = `/dashboard/generate?duplicate=${thread.id}`}
+              onClick={() => window.location.href = `/generate?duplicate=${thread.id}`}
               className="flex items-center gap-1"
             >
               <Copy className="h-3 w-3" />
@@ -347,7 +347,7 @@ export const ThreadHistoryCard: React.FC<ThreadHistoryCardProps> = ({
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => window.location.href = `/dashboard/thread/${thread.id}`}
+              onClick={() => window.location.href = `/thread/${thread.id}`}
               className="w-full flex items-center gap-2"
             >
               <Eye className="h-4 w-4" />

@@ -196,7 +196,7 @@ export default function HistoryPage() {
           
           <Button
             size="sm"
-            onClick={() => window.location.href = '/dashboard/generate'}
+            onClick={() => window.location.href = '/generate'}
             className="flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
@@ -269,7 +269,7 @@ export default function HistoryPage() {
               sortBy: 'newest',
               showFavorites: false,
             })}
-            onCreateThread={() => window.location.href = '/dashboard/generate'}
+            onCreateThread={() => window.location.href = '/generate'}
           />
         ) : (
           <ThreadHistoryList

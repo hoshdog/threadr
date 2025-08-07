@@ -173,7 +173,7 @@ export const ThreadHistoryEmpty: React.FC<ThreadHistoryEmptyProps> = ({
           <Button 
             variant="secondary" 
             size="sm"
-            onClick={() => window.location.href = '/dashboard/templates'}
+            onClick={() => window.location.href = '/templates'}
             className="flex items-center gap-2"
           >
             Browse Templates
@@ -182,7 +182,7 @@ export const ThreadHistoryEmpty: React.FC<ThreadHistoryEmptyProps> = ({
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => window.location.href = '/dashboard/analytics'}
+            onClick={() => window.location.href = '/analytics'}
           >
             View Analytics
           </Button>

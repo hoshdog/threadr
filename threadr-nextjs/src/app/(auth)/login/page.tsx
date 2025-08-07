@@ -72,7 +72,7 @@ export default function LoginPage() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Mock success response
-      router.push('/dashboard');
+      router.push('/generate');
     } catch (err) {
       setLocalError(`Failed to sign in with ${provider}. Please try again.`);
     }
