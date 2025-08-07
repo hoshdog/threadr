@@ -46,14 +46,15 @@ export function useSubscriptionPlan(planId: string, enabled = true) {
 }
 
 // Current Subscription
-export function useCurrentSubscription() {
+export function useCurrentSubscription(enabled = true) {
   return useQuery({
     queryKey: subscriptionKeys.current(),
     queryFn: subscriptionsApi.getCurrentSubscription,
+    enabled: enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: (failureCount, error: any) => {
-      // Don't retry on 404 (no subscription)
-      if (error?.status === 404) return false;
+      // Don't retry on 401/403 (not authenticated) or 404 (no subscription)
+      if (error?.status === 401 || error?.status === 403 || error?.status === 404) return false;
       return failureCount < 3;
     },
   });
@@ -351,8 +352,8 @@ export function useRefreshSubscription() {
 }
 
 // Combined hook for subscription overview
-export function useSubscriptionOverview() {
-  const subscription = useCurrentSubscription();
+export function useSubscriptionOverview(enabled = true) {
+  const subscription = useCurrentSubscription(enabled);
   const premiumStatus = usePremiumStatus();
   const usage = useUsageDetails();
   const plans = useSubscriptionPlans();
@@ -369,13 +370,13 @@ export function useSubscriptionOverview() {
 }
 
 // Utility hooks for common subscription states
-export function useIsSubscribed() {
-  const { data: subscription } = useCurrentSubscription();
+export function useIsSubscribed(enabled = true) {
+  const { data: subscription } = useCurrentSubscription(enabled);
   return subscription?.status === 'active' || subscription?.status === 'trialing';
 }
 
-export function useSubscriptionStatus() {
-  const { data: subscription } = useCurrentSubscription();
+export function useSubscriptionStatus(enabled = true) {
+  const { data: subscription } = useCurrentSubscription(enabled);
   const { data: premiumStatus } = usePremiumStatus();
   
   return {

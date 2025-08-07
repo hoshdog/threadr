@@ -17,7 +17,11 @@ import { useAuth } from '@/contexts/auth';
 
 const registerSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/\d/, 'Password must contain at least one number'),
   confirmPassword: z.string(),
   username: z.string().min(2, 'Username must be at least 2 characters').optional(),
   acceptTerms: z.boolean().refine(val => val === true, {
@@ -48,26 +52,22 @@ export default function RegisterPage() {
   });
 
   const onSubmit = async (data: RegisterFormData) => {
-    setLocalIsLoading(true);
     setLocalError(null);
+    clearError();
 
     try {
-      // TODO: Integrate with actual auth API
-      console.log('Registration attempt:', { 
-        ...data, 
-        password: '[REDACTED]',
-        confirmPassword: '[REDACTED]'
+      await register({
+        email: data.email,
+        password: data.password,
+        username: data.username,
       });
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock success response
-      router.push('/dashboard');
-    } catch (err) {
-      setLocalError('Failed to create account. Please try again.');
-    } finally {
-      setLocalIsLoading(false);
+      // Redirect to generate page on successful registration
+      router.push('/generate');
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to create account. Please try again.';
+      setLocalError(errorMessage);
+      console.error('Registration failed:', err);
     }
   };
 
@@ -116,9 +116,9 @@ export default function RegisterPage() {
           
           <CardContent className="space-y-6">
             {/* Error Message */}
-            {error && (
+            {(error || localError) && (
               <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
-                <p className="text-sm text-destructive text-center">{error}</p>
+                <p className="text-sm text-destructive text-center">{error || localError}</p>
               </div>
             )}
 

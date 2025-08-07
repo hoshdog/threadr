@@ -12,9 +12,27 @@ export const threadsApi = {
     
     // Handle the raw response from the backend
     if (response.data.success) {
-      return response.data as GenerateThreadResponse;
+      // Transform backend response to match frontend expectations
+      const backendData = response.data;
+      
+      // Convert string array to Tweet array with proper structure
+      const tweets = (backendData.tweets || []).map((content: string, index: number) => ({
+        number: index + 1,
+        total: backendData.thread_count || backendData.tweets?.length || 0,
+        content: content,
+        character_count: content.length
+      }));
+      
+      return {
+        success: true,
+        thread: tweets,
+        source_type: request.url ? 'url' : 'text',
+        title: backendData.title || null,
+        error: null,
+        saved_thread_id: backendData.saved_thread_id || null
+      };
     } else {
-      throw new Error(response.data.error || 'Failed to generate thread');
+      throw new Error(response.data.error || 'Invalid response format from server');
     }
   },
 
