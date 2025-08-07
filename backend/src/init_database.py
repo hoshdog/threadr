@@ -8,6 +8,7 @@ import os
 import sys
 import logging
 from pathlib import Path
+from sqlalchemy import text
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
@@ -34,11 +35,11 @@ def init_database():
         # Test connection first
         logger.info("Testing database connection...")
         with engine.connect() as conn:
-            result = conn.execute("SELECT 1")
+            result = conn.execute(text("SELECT 1"))
             logger.info("✅ Database connection successful!")
             
             # Get PostgreSQL version
-            version = conn.execute("SELECT version()").scalar()
+            version = conn.execute(text("SELECT version()")).scalar()
             logger.info(f"PostgreSQL version: {version.split(',')[0]}")
         
         # Create all tables
@@ -48,12 +49,12 @@ def init_database():
         # Verify tables were created
         with engine.connect() as conn:
             # Check what tables were created
-            result = conn.execute("""
+            result = conn.execute(text("""
                 SELECT tablename 
                 FROM pg_tables 
                 WHERE schemaname = 'public'
                 ORDER BY tablename;
-            """)
+            """))
             tables = [row[0] for row in result]
             
             logger.info(f"✅ Successfully created {len(tables)} tables:")

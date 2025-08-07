@@ -5,7 +5,7 @@ Production-ready with connection pooling and monitoring.
 
 import os
 from typing import Generator, AsyncGenerator
-from sqlalchemy import create_engine, event, pool
+from sqlalchemy import create_engine, event, pool, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
@@ -174,11 +174,11 @@ async def check_database_health() -> dict:
     try:
         # Check sync connection
         with get_db_session() as db:
-            db.execute("SELECT 1")
+            db.execute(text("SELECT 1"))
         
         # Check async connection
         async with get_async_db_session() as db:
-            await db.execute("SELECT 1")
+            await db.execute(text("SELECT 1"))
         
         # Get pool statistics
         pool_status = engine.pool.status()

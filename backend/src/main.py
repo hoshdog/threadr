@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, Request, Depends, Header, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from sqlalchemy import text
 from contextlib import asynccontextmanager
 from datetime import datetime
 import os
@@ -170,7 +171,7 @@ async def lifespan(app: FastAPI):
             
             # Test connection
             with engine.connect() as conn:
-                conn.execute("SELECT 1")
+                conn.execute(text("SELECT 1"))
                 service_status["database"] = True
                 logger.info("PostgreSQL database initialized and connected successfully")
         except ImportError as e:
