@@ -101,7 +101,7 @@ export default function PricingCard({
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
           </div>
-          <span className="text-sm text-gray-700 font-medium">{displayName}</span>
+          <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">{displayName}</span>
         </div>
       );
     });
@@ -126,13 +126,13 @@ export default function PricingCard({
   return (
     <Card className={`relative transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ${
       tier.popular 
-        ? 'border-2 border-purple-400 shadow-2xl scale-105 bg-gradient-to-b from-purple-50 to-indigo-50' 
-        : 'border border-gray-200 shadow-lg hover:border-gray-300'
+        ? 'border-2 border-purple-400 shadow-2xl scale-105 bg-gradient-to-b from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20' 
+        : 'border border-gray-200 dark:border-gray-700 shadow-lg hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
     } ${
-      isCurrentPlan ? 'ring-2 ring-blue-400' : ''
+      isCurrentPlan ? 'ring-2 ring-blue-400 dark:ring-blue-500' : ''
     }`}>
       {tier.popular && (
-        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
+        <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 z-10">
           <span className="bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 text-white px-8 py-2 rounded-full text-sm font-bold shadow-lg animate-pulse whitespace-nowrap">
             ✨ Most Popular ✨
           </span>
@@ -165,16 +165,16 @@ export default function PricingCard({
         </div>
         
         <CardTitle className="text-2xl font-bold mb-2">{tier.display_name}</CardTitle>
-        <CardDescription className="text-gray-600 mb-6 leading-relaxed">{tier.description}</CardDescription>
+        <CardDescription className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">{tier.description}</CardDescription>
         
         <div className="mb-4">
-          <div className={`text-5xl font-bold mb-2 ${tier.popular ? 'text-purple-600' : 'text-gray-900'}`}>
+          <div className={`text-5xl font-bold mb-2 ${tier.popular ? 'text-purple-600 dark:text-purple-400' : 'text-gray-900 dark:text-gray-100'}`}>
             {isFree ? (
               'Free'
             ) : (
               <>
                 ${displayPrice.toFixed(0)}
-                <span className="text-xl font-normal text-gray-500">
+                <span className="text-xl font-normal text-gray-500 dark:text-gray-400">
                   /{billingFrequency === 'monthly' ? 'mo' : 'yr'}
                 </span>
               </>
@@ -187,7 +187,7 @@ export default function PricingCard({
             </div>
           )}
           
-          <div className="text-sm text-gray-600 font-medium">
+          <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">
             {renderThreadLimits()}
           </div>
         </div>
