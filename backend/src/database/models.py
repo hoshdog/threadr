@@ -363,7 +363,7 @@ class AnalyticsTimeseries(Base):
     # Metrics
     metric_name = Column(String(100), nullable=False)
     metric_value = Column(Float, nullable=False)
-    metadata = Column(JSONB, nullable=True)
+    metric_metadata = Column(JSONB, nullable=True)
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -385,7 +385,7 @@ class TeamActivity(Base):
     action = Column(String(100), nullable=False)
     entity_type = Column(String(50), nullable=True)
     entity_id = Column(String(255), nullable=True)
-    metadata = Column(JSONB, nullable=True)
+    activity_data = Column(JSONB, nullable=True)
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
