@@ -94,17 +94,17 @@ export interface CreatePaymentIntentRequest {
 class SubscriptionsApi {
   // Subscription Plans
   async getPlans(): Promise<SubscriptionPlan[]> {
-    return apiClient.get('/api/subscriptions/plans');
+    return apiClient.get('/subscriptions/plans');
   }
 
   async getPlan(planId: string): Promise<SubscriptionPlan> {
-    return apiClient.get(`/api/subscriptions/plans/${planId}`);
+    return apiClient.get(`/subscriptions/plans/${planId}`);
   }
 
   // Current Subscription
   async getCurrentSubscription(): Promise<SubscriptionStatus | null> {
     try {
-      return await apiClient.get('/api/subscriptions/current');
+      return await apiClient.get('/subscriptions/current');
     } catch (error: any) {
       // Return null if no active subscription (404)
       if (error.status === 404) {
@@ -115,59 +115,59 @@ class SubscriptionsApi {
   }
 
   async createSubscription(request: CreateSubscriptionRequest): Promise<SubscriptionStatus> {
-    return apiClient.post('/api/subscriptions', request);
+    return apiClient.post('/subscriptions', request);
   }
 
   async updateSubscription(request: UpdateSubscriptionRequest): Promise<SubscriptionStatus> {
-    return apiClient.put('/api/subscriptions/current', request);
+    return apiClient.put('/subscriptions/current', request);
   }
 
   async cancelSubscription(immediate = false): Promise<SubscriptionStatus> {
-    return apiClient.post('/api/subscriptions/current/cancel', { immediate });
+    return apiClient.post('/subscriptions/current/cancel', { immediate });
   }
 
   async reactivateSubscription(): Promise<SubscriptionStatus> {
-    return apiClient.post('/api/subscriptions/current/reactivate');
+    return apiClient.post('/subscriptions/current/reactivate');
   }
 
   // Payment Methods
   async getPaymentMethods(): Promise<PaymentMethod[]> {
-    return apiClient.get('/api/subscriptions/payment-methods');
+    return apiClient.get('/subscriptions/payment-methods');
   }
 
   async addPaymentMethod(paymentMethodId: string, makeDefault = false): Promise<PaymentMethod> {
-    return apiClient.post('/api/subscriptions/payment-methods', {
+    return apiClient.post('/subscriptions/payment-methods', {
       paymentMethodId,
       makeDefault,
     });
   }
 
   async removePaymentMethod(paymentMethodId: string): Promise<void> {
-    return apiClient.delete(`/api/subscriptions/payment-methods/${paymentMethodId}`);
+    return apiClient.delete(`/subscriptions/payment-methods/${paymentMethodId}`);
   }
 
   async setDefaultPaymentMethod(paymentMethodId: string): Promise<PaymentMethod> {
-    return apiClient.put(`/api/subscriptions/payment-methods/${paymentMethodId}/default`);
+    return apiClient.put(`/subscriptions/payment-methods/${paymentMethodId}/default`);
   }
 
   // Payment Intents (for one-time payments)
   async createPaymentIntent(request: CreatePaymentIntentRequest): Promise<PaymentIntent> {
-    return apiClient.post('/api/subscriptions/payment-intents', request);
+    return apiClient.post('/subscriptions/payment-intents', request);
   }
 
   // Billing & Invoices
   async getBillingHistory(page = 1, limit = 10): Promise<BillingHistory> {
-    return apiClient.get('/api/subscriptions/billing-history', {
+    return apiClient.get('/subscriptions/billing-history', {
       params: { page, limit },
     });
   }
 
   async getInvoice(invoiceId: string): Promise<Invoice> {
-    return apiClient.get(`/api/subscriptions/invoices/${invoiceId}`);
+    return apiClient.get(`/subscriptions/invoices/${invoiceId}`);
   }
 
   async downloadInvoice(invoiceId: string): Promise<Blob> {
-    const response = await apiClient.getRaw(`/api/subscriptions/invoices/${invoiceId}/download`, {
+    const response = await apiClient.getRaw(`/subscriptions/invoices/${invoiceId}/download`, {
       responseType: 'blob',
     });
     return response.data;
@@ -175,7 +175,7 @@ class SubscriptionsApi {
 
   // Usage Tracking
   async getUsageDetails(): Promise<UsageDetails> {
-    return apiClient.get('/api/subscriptions/usage');
+    return apiClient.get('/subscriptions/usage');
   }
 
   // Coupons & Discounts
@@ -188,7 +188,7 @@ class SubscriptionsApi {
     } | null;
     expiresAt?: string;
   }> {
-    return apiClient.post('/api/subscriptions/coupons/validate', {
+    return apiClient.post('/subscriptions/coupons/validate', {
       couponCode,
       planId,
     });
@@ -202,33 +202,33 @@ class SubscriptionsApi {
     trialEndsAt?: string;
     subscription?: SubscriptionStatus;
   }> {
-    return apiClient.get('/api/subscriptions/premium-status');
+    return apiClient.get('/subscriptions/premium-status');
   }
 
   // Subscription Management
   async upgradePlan(planId: string, immediate = false): Promise<SubscriptionStatus> {
-    return apiClient.post('/api/subscriptions/current/upgrade', {
+    return apiClient.post('/subscriptions/current/upgrade', {
       planId,
       immediate,
     });
   }
 
   async downgradePlan(planId: string): Promise<SubscriptionStatus> {
-    return apiClient.post('/api/subscriptions/current/downgrade', {
+    return apiClient.post('/subscriptions/current/downgrade', {
       planId,
     });
   }
 
   // Portal Session (Stripe Customer Portal)
   async createPortalSession(returnUrl?: string): Promise<{ url: string }> {
-    return apiClient.post('/api/subscriptions/portal-session', {
+    return apiClient.post('/subscriptions/portal-session', {
       returnUrl: returnUrl || window.location.href,
     });
   }
 
   // Webhooks (for internal use, testing)
   async refreshSubscriptionData(): Promise<SubscriptionStatus | null> {
-    return apiClient.post('/api/subscriptions/refresh');
+    return apiClient.post('/subscriptions/refresh');
   }
 }
 

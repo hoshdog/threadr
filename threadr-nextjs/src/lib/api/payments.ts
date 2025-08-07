@@ -57,21 +57,21 @@ class PaymentsApi {
       ...request,
     };
 
-    return apiClient.post('/api/stripe/create-checkout-session', defaultRequest);
+    return apiClient.post('/stripe/create-checkout-session', defaultRequest);
   }
 
   /**
    * Check premium status and usage limits
    */
   async getPremiumStatus(): Promise<PremiumStatusResponse> {
-    return apiClient.get('/api/premium-status');
+    return apiClient.get('/premium-status');
   }
 
   /**
    * Get current usage statistics
    */
   async getUsageStats(): Promise<UsageStatsResponse> {
-    return apiClient.get('/api/usage-stats');
+    return apiClient.get('/usage-stats');
   }
 
   /**
