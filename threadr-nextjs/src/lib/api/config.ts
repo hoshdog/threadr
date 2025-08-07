@@ -126,6 +126,8 @@ export const getApiConfig = () => {
   if (process.env.NODE_ENV === 'development') {
     config.RETRY.ATTEMPTS = 1; // Fewer retries in development
     config.TIMEOUT = 10000; // Shorter timeout
+    config.FEATURES.ENABLE_REQUEST_LOGGING = true; // Force enable for debugging 403 issues
+    config.FEATURES.ENABLE_RESPONSE_LOGGING = true; // Force enable for debugging 403 issues
   }
   
   // Production optimizations

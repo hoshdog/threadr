@@ -56,8 +56,12 @@ export const ThreadGenerator: React.FC<ThreadGeneratorProps> = ({
       }
     }
 
+    // Backend expects: content (required), url (optional)
+    // If type is 'url', pass input as both content AND url
+    // If type is 'text', pass input as content only
     const request: GenerateThreadRequest = {
-      [type]: input
+      content: input,
+      ...(type === 'url' && { url: input })
     };
 
     await generateThread(request);

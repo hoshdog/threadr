@@ -52,6 +52,7 @@ class ApiClient {
     const token = getToken();
     const refreshToken = getRefreshToken();
 
+    // No tokens available - user not authenticated
     if (!token || !refreshToken) {
       return null;
     }
@@ -119,10 +120,17 @@ class ApiClient {
           '/readiness'
         ];
         
-        // Check if this is a public endpoint
-        const isPublicEndpoint = publicEndpoints.some(endpoint => config.url?.includes(endpoint));
+        // Check if this is a public endpoint - more robust matching
+        const isPublicEndpoint = publicEndpoints.some(endpoint => {
+          // Handle exact match or endpoint at end of URL
+          return config.url === endpoint || config.url?.endsWith(endpoint);
+        });
         
         if (isPublicEndpoint) {
+          // Log public endpoint access in development
+          if (this.config.FEATURES.ENABLE_REQUEST_LOGGING) {
+            console.log(`🔓 Public endpoint: ${config.method?.toUpperCase()} ${config.url} (no auth required)`);
+          }
           return config;
         }
 
@@ -130,6 +138,16 @@ class ApiClient {
         const token = await this.refreshTokenIfNeeded();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          
+          // Log authenticated request in development
+          if (this.config.FEATURES.ENABLE_REQUEST_LOGGING) {
+            console.log(`🔒 Protected endpoint: ${config.method?.toUpperCase()} ${config.url} (auth added)`);
+          }
+        } else {
+          // No valid token for protected endpoint - still send request but backend will reject
+          if (this.config.FEATURES.ENABLE_REQUEST_LOGGING) {
+            console.log(`⚠️ Protected endpoint without auth: ${config.method?.toUpperCase()} ${config.url} (will likely fail)`);
+          }
         }
         
         // Log requests in development
