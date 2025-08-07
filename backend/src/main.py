@@ -193,8 +193,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS configuration
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+# CORS configuration with production fallback
+default_cors_origins = "http://localhost:3000,https://threadr-plum.vercel.app,https://threadr-nextjs-eight-red.vercel.app"
+cors_origins = os.getenv("CORS_ORIGINS", default_cors_origins).split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
