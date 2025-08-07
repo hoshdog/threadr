@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { useAuth } from '@/hooks/useAuth';
 import Logo from '@/components/ui/Logo';
+import { PricingSection } from '@/components/pricing';
 
 export default function Home() {
   const [url, setUrl] = useState('');
@@ -143,43 +144,8 @@ export default function Home() {
           </div>
 
           {/* Pricing */}
-          <div className='mt-16 text-center'>
-            <h2 className='text-3xl font-bold mb-8'>Simple, Transparent Pricing</h2>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto'>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Free</CardTitle>
-                  <CardDescription>Perfect for getting started</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className='text-3xl font-bold mb-4'>$0</div>
-                  <ul className='text-sm space-y-2 text-left'>
-                    <li>• 5 threads per day</li>
-                    <li>• 20 threads per month</li>
-                    <li>• All supported domains</li>
-                    <li>• Basic thread editing</li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card className='border-accent'>
-                <CardHeader>
-                  <CardTitle>Premium</CardTitle>
-                  <CardDescription>For power users</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className='text-3xl font-bold mb-4'>$4.99</div>
-                  <div className='text-sm text-muted-foreground mb-4'>per 30 days</div>
-                  <ul className='text-sm space-y-2 text-left'>
-                    <li>• Unlimited threads</li>
-                    <li>• Priority processing</li>
-                    <li>• Advanced templates</li>
-                    <li>• Thread analytics</li>
-                  </ul>
-                  <Button className='w-full mt-4'>Upgrade Now</Button>
-                </CardContent>
-              </Card>
-            </div>
+          <div className='mt-16'>
+            <PricingSection showHeader={true} showBillingToggle={true} />
           </div>
         </div>
       </div>

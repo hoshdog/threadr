@@ -4,9 +4,41 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscriptionStatus } from '@/hooks/api/useSubscription';
 
 export default function AccountPage() {
   const { user, updateProfile } = useAuth();
+  const { isSubscribed, isPremium, plan, expiresAt } = useSubscriptionStatus();
+
+  // Get current plan details
+  const getCurrentPlanDetails = () => {
+    if (!isPremium) {
+      return { name: 'Free Plan', description: 'Limited to 5 threads per day' };
+    }
+    
+    // Map plan IDs to display info
+    const planDetails = {
+      threadr_starter: { 
+        name: 'Threadr Starter', 
+        description: '100 threads per month with premium templates' 
+      },
+      threadr_pro: { 
+        name: 'Threadr Pro', 
+        description: 'Unlimited threads with advanced analytics' 
+      },
+      threadr_team: { 
+        name: 'Threadr Team', 
+        description: 'Team collaboration with advanced features' 
+      },
+    };
+    
+    return planDetails[plan?.id as keyof typeof planDetails] || { 
+      name: 'Premium Plan', 
+      description: 'Premium features enabled' 
+    };
+  };
+
+  const currentPlanDetails = getCurrentPlanDetails();
 
   const handleSaveProfile = () => {
     // Profile update logic will be implemented
@@ -67,18 +99,18 @@ export default function AccountPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-white">
-                  {user?.isPremium ? '✨ Premium Plan' : '🆓 Free Plan'}
+                  {isPremium ? `✨ ${currentPlanDetails.name}` : '🆓 Free Plan'}
                 </p>
                 <p className="text-sm text-x-gray">
-                  {user?.isPremium 
-                    ? `Expires: ${user.premiumExpiresAt ? new Date(user.premiumExpiresAt).toLocaleDateString() : 'Never'}` 
-                    : 'Limited to 5 threads per day'
+                  {isPremium 
+                    ? `Expires: ${expiresAt ? new Date(expiresAt).toLocaleDateString() : 'Never'}` 
+                    : currentPlanDetails.description
                   }
                 </p>
               </div>
-              {!user?.isPremium && (
+              {!isPremium && (
                 <Button className="bg-amber-500 hover:bg-amber-600 text-black font-medium">
-                  Upgrade to Premium
+                  Choose Plan
                 </Button>
               )}
             </div>
@@ -96,12 +128,12 @@ export default function AccountPage() {
               <div className="text-center p-4 bg-x-hover rounded-lg">
                 <div className="text-2xl font-bold text-white">0</div>
                 <div className="text-sm text-x-gray">Threads Today</div>
-                <div className="text-xs text-x-gray">{user?.isPremium ? 'Unlimited' : '5 remaining'}</div>
+                <div className="text-xs text-x-gray">{isPremium ? 'Unlimited' : '5 remaining'}</div>
               </div>
               <div className="text-center p-4 bg-x-hover rounded-lg">
                 <div className="text-2xl font-bold text-white">0</div>
                 <div className="text-sm text-x-gray">This Month</div>
-                <div className="text-xs text-x-gray">{user?.isPremium ? 'Unlimited' : '20 remaining'}</div>
+                <div className="text-xs text-x-gray">{isPremium ? 'Unlimited' : '20 remaining'}</div>
               </div>
               <div className="text-center p-4 bg-x-hover rounded-lg">
                 <div className="text-2xl font-bold text-white">0</div>

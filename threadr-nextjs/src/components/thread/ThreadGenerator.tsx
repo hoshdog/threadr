@@ -104,7 +104,7 @@ export const ThreadGenerator: React.FC<ThreadGeneratorProps> = ({
               onClick={onUpgrade}
               className="bg-twitter-blue hover:bg-twitter-hover text-white px-8 py-3 rounded-full font-semibold transition-colors"
             >
-              Upgrade to Premium - $4.99
+              Upgrade - Starting at $9.99
             </Button>
           </div>
         </div>

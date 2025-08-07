@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui';
 import { useUpgradeToPremium, useSubscriptionStatus, useFeatureAccess } from '@/hooks/api/useSubscription';
+import { PricingSection } from '@/components/pricing';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface UpgradeModalProps {
   description?: string;
   successUrl?: string;
   cancelUrl?: string;
+  showAllPlans?: boolean;
 }
 
 export default function UpgradeModal({ 
@@ -21,9 +23,11 @@ export default function UpgradeModal({
   title,
   description,
   successUrl,
-  cancelUrl
+  cancelUrl,
+  showAllPlans = false
 }: UpgradeModalProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string>('threadr_pro');
   const upgradeMutation = useUpgradeToPremium();
   const { premiumPrice } = useSubscriptionStatus();
   const { remainingThreadsDaily, remainingThreadsMonthly, dailyLimit, monthlyLimit } = useFeatureAccess();
@@ -86,12 +90,16 @@ export default function UpgradeModal({
   const displayTitle = title || content.title;
   const displayDescription = description || content.description;
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (planId?: string) => {
     try {
       setIsLoading(true);
       
+      // Use selected plan or provided plan ID
+      const targetPlan = planId || selectedPlan;
+      
       // Redirect to Stripe checkout
       await upgradeMutation.mutateAsync({
+        plan_id: targetPlan,
         success_url: successUrl || `${window.location.origin}/payment/success`,
         cancel_url: cancelUrl || window.location.href,
       });
@@ -101,6 +109,13 @@ export default function UpgradeModal({
       
       // Show error to user
       alert('Failed to start payment process. Please try again.');
+    }
+  };
+
+  const handlePlanSelect = (planId: string) => {
+    setSelectedPlan(planId);
+    if (!showAllPlans) {
+      handleUpgrade(planId);
     }
   };
 
@@ -200,18 +215,32 @@ export default function UpgradeModal({
               </div>
             </div>
 
-            {/* Pricing Info */}
-            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4 mb-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900 mb-1">
-                  ${premiumPrice || 4.99}
-                  <span className="text-sm font-normal text-gray-600"> for 30 days</span>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Unlimited access • No recurring charges
-                </p>
+            {/* Pricing Options */}
+            {showAllPlans ? (
+              <div className="mb-6">
+                <PricingSection 
+                  showHeader={false} 
+                  showBillingToggle={true}
+                  onTierSelect={handlePlanSelect}
+                  showUpgradeButtons={false}
+                />
               </div>
-            </div>
+            ) : (
+              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4 mb-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900 mb-1">
+                    $19.99
+                    <span className="text-sm font-normal text-gray-600"> /month</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    Threadr Pro • Most Popular Plan
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Unlimited access • Cancel anytime
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Actions */}
@@ -226,7 +255,7 @@ export default function UpgradeModal({
             </Button>
             <Button
               variant="primary"
-              onClick={handleUpgrade}
+              onClick={() => handleUpgrade()}
               disabled={isLoading || upgradeMutation.isPending}
               className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -235,8 +264,10 @@ export default function UpgradeModal({
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                   Processing...
                 </div>
+              ) : showAllPlans ? (
+                'Upgrade to Selected Plan'
               ) : (
-                'Upgrade Now'
+                'Upgrade to Pro'
               )}
             </Button>
           </div>

@@ -388,7 +388,7 @@ export function useSubscriptionStatus() {
     expiresAt: subscription?.currentPeriodEnd || premiumStatus?.expires_at,
     trialEndsAt: subscription?.trialEnd,
     needsPayment: premiumStatus?.needs_payment || false,
-    premiumPrice: premiumStatus?.premium_price || 4.99,
+    premiumPrice: premiumStatus?.premium_price || 19.99, // Default to Pro plan pricing
   };
 }
 

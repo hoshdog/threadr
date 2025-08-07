@@ -3,27 +3,49 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscriptionStatus, useSubscriptionPlans } from '@/hooks/api/useSubscription';
+import { PricingSection } from '@/components/pricing';
 
 export default function BillingPage() {
   const { user } = useAuth();
+  const { isSubscribed, isPremium, plan, expiresAt } = useSubscriptionStatus();
+  const { data: plans } = useSubscriptionPlans();
 
-  // Mock billing data
+  // Mock billing data with updated pricing
   const billingHistory = [
     {
       id: '1',
       date: '2024-01-15',
-      description: 'Premium Plan - 30 days',
-      amount: '$4.99',
+      description: 'Threadr Pro - Monthly',
+      amount: '$19.99',
       status: 'Paid'
     },
     {
       id: '2',
       date: '2023-12-15',
-      description: 'Premium Plan - 30 days',
-      amount: '$4.99',
+      description: 'Threadr Starter - Monthly',
+      amount: '$9.99',
       status: 'Paid'
     }
   ];
+
+  // Get current plan details
+  const getCurrentPlanDetails = () => {
+    if (!isPremium) {
+      return { name: 'Free Plan', price: '$0' };
+    }
+    
+    // Map plan IDs to display info
+    const planDetails = {
+      threadr_starter: { name: 'Threadr Starter', price: '$9.99/month' },
+      threadr_pro: { name: 'Threadr Pro', price: '$19.99/month' },
+      threadr_team: { name: 'Threadr Team', price: '$49.99/month' },
+    };
+    
+    return planDetails[plan?.id as keyof typeof planDetails] || { name: 'Premium Plan', price: '$19.99/month' };
+  };
+
+  const currentPlanDetails = getCurrentPlanDetails();
 
   const usageStats = {
     threadsThisMonth: 15,
@@ -54,20 +76,20 @@ export default function BillingPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold">
-                      {user?.isPremium ? '✨ Premium Plan' : '🆓 Free Plan'}
+                      {isPremium ? `✨ ${currentPlanDetails.name}` : '🆓 Free Plan'}
                     </h3>
                     <p className="text-muted-foreground">
-                      {user?.isPremium 
-                        ? `$4.99/month • Expires ${user.premiumExpiresAt ? new Date(user.premiumExpiresAt).toLocaleDateString() : 'Never'}`
+                      {isPremium 
+                        ? `${currentPlanDetails.price} • Expires ${expiresAt ? new Date(expiresAt).toLocaleDateString() : 'Never'}`
                         : 'Limited features with usage caps'
                       }
                     </p>
                   </div>
                   <div className="text-right">
-                    {user?.isPremium ? (
+                    {isPremium ? (
                       <Button variant="secondary">Manage Subscription</Button>
                     ) : (
-                      <Button>Upgrade to Premium</Button>
+                      <Button>Upgrade Now</Button>
                     )}
                   </div>
                 </div>
@@ -90,7 +112,7 @@ export default function BillingPage() {
                         / {usageStats.threadsLimit}
                       </span>
                     </div>
-                    {!user?.isPremium && (
+                    {!isPremium && (
                       <div className="w-full bg-muted rounded-full h-2 mt-2">
                         <div 
                           className="bg-accent h-2 rounded-full" 
@@ -108,7 +130,7 @@ export default function BillingPage() {
                         / {usageStats.dailyLimit}
                       </span>
                     </div>
-                    {!user?.isPremium && (
+                    {!isPremium && (
                       <div className="w-full bg-muted rounded-full h-2 mt-2">
                         <div 
                           className="bg-accent h-2 rounded-full" 
@@ -128,7 +150,7 @@ export default function BillingPage() {
                 <CardDescription>Your payment history and invoices</CardDescription>
               </CardHeader>
               <CardContent>
-                {user?.isPremium ? (
+                {isPremium ? (
                   <div className="space-y-4">
                     {billingHistory.map((invoice) => (
                       <div key={invoice.id} className="flex items-center justify-between p-4 border rounded-lg">
@@ -155,30 +177,18 @@ export default function BillingPage() {
             </Card>
 
             {/* Upgrade Options */}
-            {!user?.isPremium && (
+            {!isPremium && (
               <Card className="border-accent">
                 <CardHeader>
-                  <CardTitle>Upgrade to Premium</CardTitle>
-                  <CardDescription>Unlock unlimited threads and advanced features</CardDescription>
+                  <CardTitle>Choose Your Plan</CardTitle>
+                  <CardDescription>Unlock unlimited threads and advanced features with any paid plan</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="font-medium mb-2">Premium Features:</h4>
-                      <ul className="text-sm text-muted-foreground space-y-1">
-                        <li>• Unlimited thread generation</li>
-                        <li>• Priority processing</li>
-                        <li>• Advanced templates</li>
-                        <li>• Thread analytics</li>
-                        <li>• Priority support</li>
-                      </ul>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold mb-2">$4.99</div>
-                      <div className="text-sm text-muted-foreground mb-4">per 30 days</div>
-                      <Button className="w-full">Upgrade Now</Button>
-                    </div>
-                  </div>
+                  <PricingSection 
+                    showHeader={false} 
+                    showBillingToggle={true}
+                    currentTier={plan?.id || 'free'}
+                  />
                 </CardContent>
               </Card>
             )}
