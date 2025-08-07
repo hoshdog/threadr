@@ -81,7 +81,12 @@
       "WebFetch(domain:threadr-pw0s.onrender.com)",
       "Bash(robocopy:*)",
       "WebFetch(domain:docs.render.com)",
-      "WebFetch(domain:render.com)"
+      "WebFetch(domain:render.com)",
+      "Bash(PYTHONPATH=. python src/main.py)",
+      "Bash(PYTHONPATH=. PORT=8001 python src/main.py)",
+      "Bash(PYTHONPATH=. PORT=8002 python src/main.py)",
+      "Bash(PYTHONPATH=. PORT=8003 python src/main.py)",
+      "Bash(PYTHONPATH=.. uvicorn main:app --host 0.0.0.0 --port 8004)"
     ],
     "deny": []
   }

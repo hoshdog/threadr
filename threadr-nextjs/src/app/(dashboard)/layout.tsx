@@ -112,7 +112,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-x-black text-white flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 text-gray-900 dark:text-white flex">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div 
@@ -121,21 +121,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         />
       )}
 
-      {/* Twitter/X-style Sidebar */}
+      {/* Professional SaaS Sidebar */}
       <div className={cn(
-        "fixed lg:relative inset-y-0 left-0 z-50 w-64 lg:w-72 transform lg:transform-none transition-transform duration-300 ease-in-out",
-        "glass-effect lg:bg-x-black h-full border-r border-x-border",
+        "fixed lg:relative inset-y-0 left-0 z-50 w-72 lg:w-80 transform lg:transform-none transition-all duration-300 ease-in-out",
+        "bg-white dark:bg-gray-800 h-full border-r border-gray-200 dark:border-gray-700 shadow-xl",
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="p-8 border-b border-x-border">
-            <div className="flex items-center space-x-4">
-              <Logo variant="white" size="md" />
-              <div>
-                <p className="text-x-gray text-sm">Convert articles to Twitter/X threads</p>
-              </div>
-            </div>
+          {/* Logo Section */}
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <Logo 
+              variant="auto" 
+              size="lg" 
+              showText 
+              clickable 
+              className="mb-3"
+            />
+            <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+              AI-powered Twitter thread generation for content creators
+            </p>
           </div>
 
           {/* Navigation */}
@@ -147,50 +151,56 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   key={item.name}
                   href={item.href}
                   className={cn(
+                    "flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 group",
                     isActive 
-                      ? "nav-twitter-item-active" 
-                      : "nav-twitter-item-inactive"
+                      ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 shadow-sm" 
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 border border-transparent"
                   )}
                   onClick={() => setSidebarOpen(false)}
                 >
-                  {item.icon}
-                  <span>{item.name}</span>
+                  <span className={cn(
+                    "transition-colors duration-200",
+                    isActive ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300"
+                  )}>
+                    {item.icon}
+                  </span>
+                  <span className="font-medium">{item.name}</span>
                 </Link>
               );
             })}
           </nav>
 
           {/* User section */}
-          <div className="p-4 border-t border-x-border">
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="w-full flex items-center space-x-3 p-3 rounded-full hover:bg-x-hover transition-colors duration-200"
+                className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
               >
-                <div className="w-10 h-10 bg-x-blue rounded-full flex items-center justify-center text-white font-semibold">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold shadow-md">
                   {user?.email?.[0]?.toUpperCase() || 'U'}
                 </div>
                 <div className="flex-1 text-left">
-                  <div className="text-white font-semibold text-sm truncate">{user?.email}</div>
+                  <div className="text-gray-900 dark:text-white font-semibold text-sm truncate">{user?.email}</div>
                   <div className="flex items-center space-x-2">
                     <span 
                       className={cn(
                         "text-xs font-medium",
-                        user?.isPremium ? "text-amber-400" : "text-x-gray"
+                        user?.isPremium ? "text-amber-600 dark:text-amber-400" : "text-gray-500 dark:text-gray-400"
                       )}
                     >
-                      {user?.isPremium ? 'Premium' : 'Free Plan'}
+                      {user?.isPremium ? 'Premium Account' : 'Free Plan'}
                     </span>
                     {user?.isPremium && (
-                      <span className="text-xs bg-amber-500 text-black px-2 py-0.5 rounded-full font-medium">
-                        Pro
+                      <span className="text-xs bg-gradient-to-r from-amber-400 to-orange-500 text-white px-2 py-0.5 rounded-full font-bold shadow-sm">
+                        PRO
                       </span>
                     )}
                   </div>
                 </div>
                 <svg 
                   className={cn(
-                    "w-4 h-4 text-x-gray transition-transform",
+                    "w-4 h-4 text-gray-400 transition-transform",
                     userMenuOpen && "rotate-180"
                   )} 
                   fill="none" 
@@ -204,36 +214,54 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               {/* User dropdown menu */}
               {userMenuOpen && (
                 <div 
-                  className="absolute bottom-full left-0 right-0 mb-2 bg-x-dark rounded-xl border border-x-border shadow-2xl py-2 z-50"
+                  className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 shadow-2xl py-2 z-50"
                   onBlur={() => setUserMenuOpen(false)}
                 >
                   <Link
                     href="/account"
-                    className="block w-full text-left px-4 py-3 text-white hover:bg-x-hover transition-colors duration-200"
+                    className="block w-full text-left px-4 py-3 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                     onClick={() => {
                       setUserMenuOpen(false);
                       setSidebarOpen(false);
                     }}
                   >
                     <div className="flex items-center space-x-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
-                      <span>Account Settings</span>
+                      <span className="font-medium">Account Settings</span>
                     </div>
                   </Link>
                   
-                  <div className="border-t border-x-border my-2"></div>
+                  {!user?.isPremium && (
+                    <Link
+                      href="/billing"
+                      className="block w-full text-left px-4 py-3 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors duration-200"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        setSidebarOpen(false);
+                      }}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span className="font-medium">Upgrade to Pro</span>
+                      </div>
+                    </Link>
+                  )}
+                  
+                  <div className="border-t border-gray-200 dark:border-gray-600 my-2"></div>
                   
                   <button
                     onClick={handleLogout}
-                    className="block w-full text-left px-4 py-3 text-white hover:bg-x-hover transition-colors duration-200"
+                    className="block w-full text-left px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
                   >
                     <div className="flex items-center space-x-2">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                       </svg>
-                      <span>Sign Out</span>
+                      <span className="font-medium">Sign Out</span>
                     </div>
                   </button>
                 </div>
@@ -246,20 +274,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main content area */}
       <div className="flex-1 lg:ml-0">
         {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between p-6 border-b border-x-border">
-          <Logo variant="white" size="sm" />
+        <div className="lg:hidden flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <Logo variant="auto" size="sm" />
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)} 
-            className="p-2 rounded-full hover:bg-x-hover"
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
         </div>
 
         {/* Page content */}
-        <main className="min-h-screen bg-x-black">
+        <main className="min-h-screen bg-slate-50 dark:bg-gray-900">
           {children}
         </main>
       </div>

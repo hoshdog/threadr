@@ -104,44 +104,53 @@ export default function PricingSection({
   }
 
   return (
-    <div className="py-12">
+    <div className="py-20">
       {showHeader && (
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Simple, Transparent Pricing
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-blue-50 text-blue-700 text-sm font-medium mb-6">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Trusted by 10,000+ creators
+          </div>
+          <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+            Choose Your 
+            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent block mt-2">
+              Growth Plan
+            </span>
           </h2>
-          <p className="text-xl text-gray-600 mb-8">
-            Choose the plan that fits your needs. Upgrade or downgrade at any time.
+          <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+            From individual creators to enterprise teams, we have the perfect plan to amplify your content reach and engagement.
           </p>
         </div>
       )}
 
       {showBillingToggle && (
-        <div className="flex justify-center mb-12">
-          <div className="bg-gray-100 rounded-lg p-1">
+        <div className="flex justify-center mb-16">
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-2 inline-flex shadow-lg">
             <Button
               onClick={() => setBillingFrequency('monthly')}
-              variant={billingFrequency === 'monthly' ? 'primary' : 'ghost'}
-              className={`px-6 py-2 rounded-md font-medium transition-all ${
+              variant="ghost"
+              className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 billingFrequency === 'monthly'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               Monthly
             </Button>
             <Button
               onClick={() => setBillingFrequency('annual')}
-              variant={billingFrequency === 'annual' ? 'primary' : 'ghost'}
-              className={`px-6 py-2 rounded-md font-medium transition-all relative ${
+              variant="ghost"
+              className={`px-8 py-3 rounded-lg font-semibold transition-all relative ${
                 billingFrequency === 'annual'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               Annual
-              <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                20% OFF
+              <span className="absolute -top-1 -right-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg">
+                Save 20%
               </span>
             </Button>
           </div>

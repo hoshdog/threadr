@@ -91,21 +91,57 @@ export const ThreadGenerator: React.FC<ThreadGeneratorProps> = ({
 
       {/* Premium Upgrade CTA */}
       {shouldShowUpgrade && (
-        <div className="bg-gradient-to-r from-twitter-blue/20 to-twitter-blue/30 rounded-2xl p-6 border border-twitter-blue/30">
-          <div className="text-center space-y-4">
-            <h3 className="text-xl font-bold text-white">Upgrade to Continue</h3>
-            <p className="text-twitter-gray">
+        <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-2xl p-8 border border-purple-400/30 shadow-2xl">
+          <div className="text-center space-y-6">
+            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-white">Unlock Unlimited Power</h3>
+            <p className="text-white/90 text-lg leading-relaxed max-w-md mx-auto">
               {needsPayment 
-                ? "You've reached your daily limit. Upgrade to premium for unlimited thread generation."
-                : "Get unlimited access to thread generation and premium features."
+                ? "You've reached your free limit. Join thousands of creators generating unlimited viral threads."
+                : "Generate unlimited threads, access premium templates, and boost your engagement 300%."
               }
             </p>
-            <Button
-              onClick={onUpgrade}
-              className="bg-twitter-blue hover:bg-twitter-hover text-white px-8 py-3 rounded-full font-semibold transition-colors"
-            >
-              Upgrade - Starting at $9.99
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button
+                onClick={onUpgrade}
+                variant="primary"
+                size="lg"
+                className="bg-white text-indigo-600 hover:bg-gray-100 shadow-lg font-bold"
+              >
+                Upgrade to Pro - $9.99/month
+              </Button>
+              <Button
+                variant="ghost"
+                size="lg"
+                className="text-white border-white/30 hover:bg-white/10"
+              >
+                View All Plans
+              </Button>
+            </div>
+            <div className="flex items-center justify-center gap-6 text-sm text-white/80">
+              <div className="flex items-center space-x-2">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>Unlimited threads</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>Premium templates</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>Analytics</span>
+              </div>
+            </div>
           </div>
         </div>
       )}

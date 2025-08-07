@@ -5,51 +5,67 @@
 /* Twitter/X uses system fonts - no external font imports needed */
 
 :root {
-  /* Twitter/X Light theme - exact Twitter colors */
-  --twitter-blue: #1d9bf0;
-  --twitter-dark: #15202b;
-  --twitter-black: #000000;
-  --twitter-gray: #8899ac;
-  --twitter-border: #38444d;
-  --twitter-hover: #1a8cd8;
-  --twitter-light-gray: #f7f9fa;
-  --twitter-text-gray: #536471;
+  /* Premium SaaS Color Palette */
+  --primary-blue: #3b82f6;
+  --primary-indigo: #6366f1;
+  --primary-purple: #8b5cf6;
+  --primary-pink: #ec4899;
+  
+  /* Grays for professional look */
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
   
   /* Semantic mappings for light theme */
   --background: #ffffff;
-  --foreground: var(--twitter-black);
-  --muted: var(--twitter-light-gray);
-  --muted-foreground: var(--twitter-text-gray);
-  --border: #cfd9de;
+  --foreground: var(--gray-900);
+  --muted: var(--gray-50);
+  --muted-foreground: var(--gray-500);
+  --border: var(--gray-200);
   --input: #ffffff;
-  --ring: var(--twitter-blue);
-  --primary: var(--twitter-blue);
+  --ring: var(--primary-blue);
+  --primary: var(--primary-blue);
   --primary-foreground: #ffffff;
-  --secondary: var(--twitter-light-gray);
-  --secondary-foreground: var(--twitter-black);
-  --accent: var(--twitter-blue);
+  --secondary: var(--gray-100);
+  --secondary-foreground: var(--gray-900);
+  --accent: var(--primary-indigo);
   --accent-foreground: #ffffff;
-  --destructive: #f4212e;
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
+  --success: #22c55e;
+  --success-foreground: #ffffff;
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
 }
 
 .dark {
-  /* Twitter/X Dark theme - exact Twitter dark colors matching Alpine.js */
-  --background: #000000; /* x-black */
+  /* Premium SaaS Dark theme */
+  --background: var(--gray-900);
   --foreground: #ffffff;
-  --muted: #15202b; /* x-dark */
-  --muted-foreground: #8899ac; /* x-gray */
-  --border: #38444d; /* x-border */
-  --input: #15202b; /* x-dark */
-  --ring: #1d9bf0; /* x-blue */
-  --primary: #1d9bf0; /* x-blue */
+  --muted: var(--gray-800);
+  --muted-foreground: var(--gray-400);
+  --border: var(--gray-700);
+  --input: var(--gray-800);
+  --ring: var(--primary-blue);
+  --primary: var(--primary-blue);
   --primary-foreground: #ffffff;
-  --secondary: #15202b; /* x-dark */
+  --secondary: var(--gray-800);
   --secondary-foreground: #ffffff;
-  --accent: #1d9bf0; /* x-blue */
+  --accent: var(--primary-indigo);
   --accent-foreground: #ffffff;
-  --destructive: #f4212e;
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
+  --success: #22c55e;
+  --success-foreground: #ffffff;
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
 }
 
 * {
@@ -171,22 +187,13 @@ body {
     text-wrap: balance;
   }
   
-  /* Twitter/X tight spacing utilities */
-  .space-twitter > * + * {
-    margin-top: 12px;
+  /* Professional SaaS spacing utilities */
+  .space-saas > * + * {
+    margin-top: 1.5rem;
   }
   
-  .gap-twitter {
-    gap: 12px;
-  }
-  
-  /* Twitter compact margins */
-  .m-twitter {
-    margin: 12px;
-  }
-  
-  .p-twitter {
-    padding: 12px;
+  .gap-saas {
+    gap: 1.5rem;
   }
   
   /* Custom scrollbar */
@@ -213,45 +220,104 @@ body {
     opacity: 0.8;
   }
   
-  /* Authentication page background pattern */
-  .bg-grid-pattern {
-    background-image: 
-      linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
-    background-size: 20px 20px;
+  /* Gradient backgrounds */
+  .bg-gradient-saas {
+    background: linear-gradient(135deg, var(--primary-blue), var(--primary-indigo), var(--primary-purple));
   }
   
-  /* Glass effect matching Alpine.js */
+  .bg-gradient-saas-light {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  }
+  
+  /* Glass effect for modern UI */
   .glass-effect {
-    background: rgba(21, 32, 43, 0.8);
+    background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(56, 68, 77, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.3);
   }
   
-  /* Twitter/X specific button styles */
-  .btn-twitter {
-    @apply rounded-full px-6 py-3 font-semibold transition-all duration-200;
+  .glass-effect-dark {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(51, 65, 85, 0.3);
   }
   
-  .btn-twitter-primary {
-    @apply btn-twitter bg-x-blue text-white hover:bg-x-blue-hover;
+  /* Focus visible styles for accessibility */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
   }
   
-  .btn-twitter-secondary {
-    @apply btn-twitter border border-x-border text-white hover:bg-x-hover;
+  /* Professional hover effects */
+  .hover-lift {
+    @apply transition-all duration-200 hover:-translate-y-1 hover:shadow-lg;
   }
   
-  /* Navigation hover effects matching Twitter */
-  .nav-twitter-item {
-    @apply flex items-center space-x-3 px-4 py-3 rounded-full font-medium transition-all duration-200;
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-lg hover:shadow-primary/25;
   }
   
-  .nav-twitter-item-active {
-    @apply nav-twitter-item bg-x-blue text-white;
+  /* Text gradient utilities */
+  .text-gradient {
+    @apply bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent;
   }
   
-  .nav-twitter-item-inactive {
-    @apply nav-twitter-item text-x-gray hover:text-white hover:bg-x-hover;
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
   }
+  
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+  
+  .animate-pulse-soft {
+    animation: pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  /* Responsive text sizing */
+  .text-responsive-xs { font-size: clamp(0.75rem, 2vw, 0.875rem); }
+  .text-responsive-sm { font-size: clamp(0.875rem, 2.5vw, 1rem); }
+  .text-responsive-base { font-size: clamp(1rem, 3vw, 1.125rem); }
+  .text-responsive-lg { font-size: clamp(1.125rem, 4vw, 1.25rem); }
+  .text-responsive-xl { font-size: clamp(1.25rem, 5vw, 1.5rem); }
+  .text-responsive-2xl { font-size: clamp(1.5rem, 6vw, 2rem); }
+  .text-responsive-3xl { font-size: clamp(1.875rem, 8vw, 3rem); }
+  .text-responsive-4xl { font-size: clamp(2.25rem, 10vw, 4rem); }
+}
+
+/* High contrast mode support for accessibility */
+@media (prefers-contrast: high) {
+  :root {
+    --primary: #0066cc;
+    --border: #666666;
+    --muted-foreground: #333333;
+  }
+}
+
+/* Reduced motion support for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
 }

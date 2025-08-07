@@ -35,17 +35,27 @@ redis_available = False
 database_available = False
 
 try:
-    from src.core.redis_manager import initialize_redis, get_redis_manager
+    from core.redis_manager import initialize_redis, get_redis_manager
     redis_available = True
     logger.info("Redis manager imported successfully")
 except ImportError as e:
-    logger.warning(f"Redis manager import failed: {e}")
+    try:
+        from src.core.redis_manager import initialize_redis, get_redis_manager
+        redis_available = True
+        logger.info("Redis manager imported successfully")
+    except ImportError as e2:
+        logger.warning(f"Redis manager import failed: {e2}")
 
 try:
     if not BYPASS_DATABASE:
-        from src.core.database import initialize_database, get_database_manager
-        database_available = True
-        logger.info("Database manager imported successfully")
+        try:
+            from core.database import initialize_database, get_database_manager
+            database_available = True
+            logger.info("Database manager imported successfully")
+        except ImportError:
+            from src.core.database import initialize_database, get_database_manager
+            database_available = True
+            logger.info("Database manager imported successfully")
     else:
         logger.info("Database bypassed by configuration")
 except ImportError as e:
@@ -55,20 +65,33 @@ except ImportError as e:
 
 # Import route factory functions and services
 try:
-    from src.routes.auth import create_auth_router
-    from src.routes.thread import create_thread_router
-    from src.routes.template import router as template_router
-    from src.routes.analytics import router as analytics_router
-    from src.routes.subscription import create_subscription_router
-    from src.routes.revenue import router as revenue_router
-    from src.routes.generate import router as generate_router
-    from src.services.auth.auth_service import AuthService
-    from src.services.thread.thread_service import ThreadHistoryService
+    from routes.auth import create_auth_router
+    from routes.thread import create_thread_router
+    from routes.template import router as template_router
+    from routes.analytics import router as analytics_router
+    from routes.subscription import create_subscription_router
+    from routes.revenue import router as revenue_router
+    from routes.generate import router as generate_router
+    from services.auth.auth_service import AuthService
+    from services.thread.thread_service import ThreadHistoryService
     routes_available = True
     logger.info("Routes and services imported successfully")
 except ImportError as e:
-    logger.warning(f"Routes/services import failed: {e}")
-    routes_available = False
+    try:
+        from src.routes.auth import create_auth_router
+        from src.routes.thread import create_thread_router
+        from src.routes.template import router as template_router
+        from src.routes.analytics import router as analytics_router
+        from src.routes.subscription import create_subscription_router
+        from src.routes.revenue import router as revenue_router
+        from src.routes.generate import router as generate_router
+        from src.services.auth.auth_service import AuthService
+        from src.services.thread.thread_service import ThreadHistoryService
+        routes_available = True
+        logger.info("Routes and services imported successfully")
+    except ImportError as e2:
+        logger.warning(f"Routes/services import failed: {e2}")
+        routes_available = False
 
 # Router instances (will be initialized in lifespan)
 auth_router = None
@@ -113,15 +136,24 @@ async def lifespan(app: FastAPI):
     
     # Initialize routers with services if routes are available
     global auth_router, thread_router, subscription_router
-    if routes_available and service_status["redis"]:
+    if routes_available:
         try:
-            # Initialize services
-            auth_service = AuthService(redis_manager)
-            thread_service = ThreadHistoryService(redis_manager)
+            # Initialize services (they can handle None redis_manager)
+            redis_manager_instance = get_redis_manager() if redis_available else None
+            auth_service = AuthService(redis_manager_instance)
+            thread_service = ThreadHistoryService(redis_manager_instance)
+            
+            # Get auth dependencies for thread router
+            try:
+                from middleware.auth import create_auth_dependencies
+            except ImportError:
+                from src.middleware.auth import create_auth_dependencies
+            auth_deps = create_auth_dependencies(auth_service)
+            get_current_user_required = auth_deps["get_current_user_required"]
             
             # Create routers using factory functions
             auth_router = create_auth_router(auth_service)
-            thread_router = create_thread_router(thread_service)
+            thread_router = create_thread_router(thread_service, get_current_user_required)
             subscription_router = create_subscription_router(auth_service)
             
             logger.info("Authentication, thread, and subscription routers initialized successfully")
@@ -132,7 +164,7 @@ async def lifespan(app: FastAPI):
             subscription_router = None
     
     # Set overall health
-    if service_status["redis"] or BYPASS_DATABASE:
+    if service_status["redis"] or routes_available:
         service_status["health"] = "healthy"
         logger.info("Application started successfully")
     else:
