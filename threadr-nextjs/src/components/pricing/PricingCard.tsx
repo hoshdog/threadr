@@ -133,7 +133,7 @@ export default function PricingCard({
     }`}>
       {tier.popular && (
         <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
-          <span className="bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg animate-pulse">
+          <span className="bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 text-white px-8 py-2 rounded-full text-sm font-bold shadow-lg animate-pulse whitespace-nowrap">
             ✨ Most Popular ✨
           </span>
         </div>

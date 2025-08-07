@@ -12,6 +12,7 @@ import { PricingSection } from '@/components/pricing';
 
 export default function Home() {
   const [url, setUrl] = useState('');
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const { isAuthenticated, user, isLoading } = useAuth();
   const router = useRouter();
 
@@ -21,6 +22,15 @@ export default function Home() {
       router.push('/generate');
     }
   }, [isAuthenticated, isLoading, router]);
+
+  // Handle dark mode toggle
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   const handleGenerate = () => {
     console.log('Generating thread for:', url);
@@ -45,12 +55,29 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-slate-900">
       {/* Navigation Header */}
-      <nav className="w-full py-6 px-4 border-b border-gray-100">
+      <nav className="w-full py-6 px-4 border-b border-gray-100 dark:border-gray-800">
         <div className="container mx-auto flex items-center justify-between">
-          <Logo variant="black" size="lg" showText clickable />
+          <Logo variant={isDarkMode ? "white" : "black"} size="lg" showText clickable />
           <div className="flex items-center space-x-4">
+            {/* Dark Mode Toggle */}
+            <Button 
+              onClick={() => setIsDarkMode(!isDarkMode)} 
+              variant="ghost" 
+              size="md"
+              className="p-2"
+            >
+              {isDarkMode ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+            </Button>
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-600">
