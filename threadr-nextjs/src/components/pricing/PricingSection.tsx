@@ -94,8 +94,9 @@ export default function PricingSection({
     },
   ];
 
-  // Use real data if available, otherwise use mock data
-  const plans = plansData || mockPlans;
+  // For now, always use mock data to ensure type compatibility
+  // TODO: Map plansData from API to PricingTier format when backend is ready
+  const plans: PricingTier[] = mockPlans;
   const effectiveCurrentTier = currentTier || currentPlan?.id || 'free';
 
   if (error) {
@@ -120,7 +121,7 @@ export default function PricingSection({
           <div className="bg-gray-100 rounded-lg p-1">
             <Button
               onClick={() => setBillingFrequency('monthly')}
-              variant={billingFrequency === 'monthly' ? 'default' : 'ghost'}
+              variant={billingFrequency === 'monthly' ? 'primary' : 'ghost'}
               className={`px-6 py-2 rounded-md font-medium transition-all ${
                 billingFrequency === 'monthly'
                   ? 'bg-white text-gray-900 shadow-sm'
@@ -131,7 +132,7 @@ export default function PricingSection({
             </Button>
             <Button
               onClick={() => setBillingFrequency('annual')}
-              variant={billingFrequency === 'annual' ? 'default' : 'ghost'}
+              variant={billingFrequency === 'annual' ? 'primary' : 'ghost'}
               className={`px-6 py-2 rounded-md font-medium transition-all relative ${
                 billingFrequency === 'annual'
                   ? 'bg-white text-gray-900 shadow-sm'

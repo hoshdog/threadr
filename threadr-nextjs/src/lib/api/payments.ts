@@ -5,6 +5,9 @@ export interface CreateCheckoutSessionRequest {
   success_url?: string;
   cancel_url?: string;
   customer_email?: string;
+  plan_id?: string;
+  billing_frequency?: 'monthly' | 'annual';
+  price_id?: string;
 }
 
 export interface CreateCheckoutSessionResponse {
