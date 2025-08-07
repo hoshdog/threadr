@@ -64,7 +64,7 @@ class PaymentsApi {
    * Check premium status and usage limits
    */
   async getPremiumStatus(): Promise<PremiumStatusResponse> {
-    return apiClient.get('/api/premium/check');
+    return apiClient.get('/api/premium-status');
   }
 
   /**
