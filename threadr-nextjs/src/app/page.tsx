@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { useAuth } from '@/hooks/useAuth';
+import { useThreadGeneration } from '@/lib/api/hooks/useThreadGeneration';
 import Logo from '@/components/ui/Logo';
 import { PricingSection } from '@/components/pricing';
 
@@ -14,6 +15,7 @@ export default function Home() {
   const [url, setUrl] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const { isAuthenticated, user, isLoading } = useAuth();
+  const { generateThread, loading: threadLoading, error: threadError, tweets, clearError, copyTweet, copyAllTweets, updateTweet } = useThreadGeneration();
   const router = useRouter();
 
   // Redirect authenticated users to the dashboard
@@ -32,9 +34,22 @@ export default function Home() {
     }
   }, [isDarkMode]);
 
-  const handleGenerate = () => {
-    console.log('Generating thread for:', url);
-    // This would connect to the thread generation API
+  const handleGenerate = async () => {
+    if (!url.trim()) return;
+    
+    clearError();
+    
+    try {
+      await generateThread({
+        content: url.trim(),
+        // You can add more options here like:
+        // tone: 'professional',
+        // length: 'medium',
+        // include_cta: true
+      });
+    } catch (error) {
+      console.error('Thread generation failed:', error);
+    }
   };
 
   // Show loading while checking authentication
@@ -186,11 +201,18 @@ export default function Home() {
                 />
                 <Button 
                   onClick={handleGenerate} 
-                  disabled={!url}
+                  disabled={!url.trim() || threadLoading}
                   size="lg"
                   className="w-full sm:w-auto whitespace-nowrap"
                 >
-                  Generate Thread Free
+                  {threadLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Generating...
+                    </>
+                  ) : (
+                    'Generate Thread Free'
+                  )}
                 </Button>
               </div>
               
@@ -224,6 +246,76 @@ export default function Home() {
                 </div>
               </div>
             </Card>
+          </div>
+        )}
+
+        {/* Generated Thread Results */}
+        {threadError && (
+          <div className="max-w-5xl mx-auto mb-12">
+            <Card className="p-6 border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-red-800 dark:text-red-200 font-semibold mb-2">Thread Generation Failed</h3>
+                  <p className="text-red-600 dark:text-red-300">{threadError}</p>
+                </div>
+                <Button onClick={clearError} variant="ghost" size="sm">
+                  ✕
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {tweets.length > 0 && (
+          <div className="max-w-5xl mx-auto mb-20">
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Your Generated Thread</h3>
+              <p className="text-gray-600 dark:text-gray-300">Edit, copy, and share your Twitter thread</p>
+            </div>
+            
+            <div className="space-y-4">
+              {tweets.map((tweet, index) => (
+                <Card key={tweet.id} className="p-6 shadow-lg">
+                  <div className="flex items-start justify-between mb-4">
+                    <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm font-medium">
+                      Tweet {index + 1}/{tweets.length}
+                    </span>
+                    <span className={`text-sm ${tweet.characterCount > 280 ? 'text-red-500' : 'text-gray-500'}`}>
+                      {tweet.characterCount}/280
+                    </span>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <textarea 
+                      value={tweet.content}
+                      onChange={(e) => updateTweet(index, e.target.value)}
+                      className="w-full p-3 border rounded-lg resize-none dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                      rows={Math.ceil(tweet.content.length / 60) || 3}
+                    />
+                  </div>
+                  
+                  <Button 
+                    onClick={() => copyTweet(index)}
+                    variant="outline" 
+                    size="sm"
+                    className="w-full sm:w-auto"
+                  >
+                    Copy Tweet
+                  </Button>
+                </Card>
+              ))}
+              
+              <div className="text-center pt-4">
+                <Button 
+                  onClick={copyAllTweets}
+                  variant="primary"
+                  size="lg"
+                  className="w-full sm:w-auto"
+                >
+                  Copy Entire Thread
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
