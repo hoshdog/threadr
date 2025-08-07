@@ -581,6 +581,57 @@ class RedisManager:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(self.executor, _get)
     
+    async def increment_usage(self, client_ip: str, email: Optional[str] = None) -> Dict[str, int]:
+        """Increment usage count for IP and/or email for current period"""
+        current_time = datetime.now()
+        daily_key = current_time.strftime("%Y-%m-%d")
+        monthly_key = current_time.strftime("%Y-%m")
+        
+        def _increment():
+            with self._redis_operation() as r:
+                if not r:
+                    return {"daily_usage": 0, "monthly_usage": 0}
+                
+                try:
+                    pipe = r.pipeline()
+                    
+                    # Increment daily IP usage
+                    daily_ip_key = f"{self.usage_prefix}ip:{client_ip}:daily:{daily_key}"
+                    pipe.incr(daily_ip_key)
+                    pipe.expire(daily_ip_key, 86400)  # Expire after 1 day
+                    
+                    # Increment monthly IP usage
+                    monthly_ip_key = f"{self.usage_prefix}ip:{client_ip}:monthly:{monthly_key}"
+                    pipe.incr(monthly_ip_key)
+                    pipe.expire(monthly_ip_key, 2678400)  # Expire after 31 days
+                    
+                    # Increment email usage if provided
+                    if email:
+                        daily_email_key = f"{self.usage_prefix}email:{email}:daily:{daily_key}"
+                        pipe.incr(daily_email_key)
+                        pipe.expire(daily_email_key, 86400)
+                        
+                        monthly_email_key = f"{self.usage_prefix}email:{email}:monthly:{monthly_key}"
+                        pipe.incr(monthly_email_key)
+                        pipe.expire(monthly_email_key, 2678400)
+                    
+                    results = pipe.execute()
+                    
+                    daily_usage = int(results[0] or 1)
+                    monthly_usage = int(results[2] or 1)
+                    
+                    return {
+                        "daily_usage": daily_usage,
+                        "monthly_usage": monthly_usage
+                    }
+                    
+                except Exception as e:
+                    logger.error(f"Error incrementing usage: {e}")
+                    return {"daily_usage": 0, "monthly_usage": 0}
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self.executor, _increment)
+    
     async def check_subscription_access(self, user_id: str = None, client_ip: str = None, email: Optional[str] = None) -> Dict[str, Any]:
         """Check user's subscription tier and access level
         

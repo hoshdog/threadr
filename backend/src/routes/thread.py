@@ -38,7 +38,7 @@ def create_thread_router(thread_service: ThreadHistoryService, get_current_user)
     """Create and configure the thread API router"""
     
     router = APIRouter(
-        prefix="",
+        prefix="/api/threads",
         tags=["Thread History"],
         responses={404: {"description": "Not found"}}
     )

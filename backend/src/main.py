@@ -93,18 +93,48 @@ except ImportError as e:
         logger.warning(f"Routes/services import failed: {e2}")
         routes_available = False
 
-# Router instances (will be initialized in lifespan)
+# Router instances (initialized immediately)
 auth_router = None
 thread_router = None
 subscription_router = None
 
-# Service status tracking
+# Service status tracking 
 service_status = {
     "redis": False,
     "database": False,
     "routes": routes_available,
     "health": "starting"
 }
+
+# Initialize routers immediately if routes are available
+if routes_available:
+    try:
+        # Initialize services (they can handle None redis_manager)
+        redis_manager_instance = get_redis_manager() if redis_available else None
+        auth_service = AuthService(redis_manager_instance)
+        thread_service = ThreadHistoryService(redis_manager_instance)
+        
+        # Get auth dependencies for thread router
+        try:
+            from middleware.auth import create_auth_dependencies
+        except ImportError:
+            from src.middleware.auth import create_auth_dependencies
+        auth_deps = create_auth_dependencies(auth_service)
+        get_current_user_required = auth_deps["get_current_user_required"]
+        
+        # Create routers using factory functions
+        auth_router = create_auth_router(auth_service)
+        thread_router = create_thread_router(thread_service, get_current_user_required)
+        subscription_router = create_subscription_router(auth_service)
+        
+        logger.info("Authentication, thread, and subscription routers initialized successfully")
+        service_status["routes"] = True
+    except Exception as e:
+        logger.error(f"Failed to initialize routers: {e}")
+        auth_router = None
+        thread_router = None
+        subscription_router = None
+        service_status["routes"] = False
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -134,34 +164,12 @@ async def lifespan(app: FastAPI):
         logger.info("Database module not implemented - using Redis only")
         service_status["database"] = False
     
-    # Initialize routers with services if routes are available
-    global auth_router, thread_router, subscription_router
+    # Routers are now initialized at startup, just log their status
     if routes_available:
-        try:
-            # Initialize services (they can handle None redis_manager)
-            redis_manager_instance = get_redis_manager() if redis_available else None
-            auth_service = AuthService(redis_manager_instance)
-            thread_service = ThreadHistoryService(redis_manager_instance)
-            
-            # Get auth dependencies for thread router
-            try:
-                from middleware.auth import create_auth_dependencies
-            except ImportError:
-                from src.middleware.auth import create_auth_dependencies
-            auth_deps = create_auth_dependencies(auth_service)
-            get_current_user_required = auth_deps["get_current_user_required"]
-            
-            # Create routers using factory functions
-            auth_router = create_auth_router(auth_service)
-            thread_router = create_thread_router(thread_service, get_current_user_required)
-            subscription_router = create_subscription_router(auth_service)
-            
-            logger.info("Authentication, thread, and subscription routers initialized successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize routers: {e}")
-            auth_router = None
-            thread_router = None
-            subscription_router = None
+        if auth_router and thread_router and subscription_router:
+            logger.info("All routers available for lifespan management")
+        else:
+            logger.warning("Some routers failed to initialize during startup")
     
     # Set overall health
     if service_status["redis"] or routes_available:

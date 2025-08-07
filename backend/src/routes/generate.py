@@ -79,9 +79,9 @@ async def check_rate_limit(client_ip: str) -> Dict[str, Any]:
                 "allowed": True,
                 "is_premium": True,
                 "daily_used": 0,
-                "daily_limit": "unlimited",
+                "daily_limit": 999999,  # Very large number represents unlimited
                 "monthly_used": 0,
-                "monthly_limit": "unlimited"
+                "monthly_limit": 999999  # Very large number represents unlimited
             }
         
         # Check rate limits for free tier
