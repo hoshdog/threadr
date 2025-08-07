@@ -15,6 +15,13 @@ import sys
 import logging
 import asyncio
 from typing import Optional
+from pathlib import Path
+
+# Add current directory and parent directories to Python path for flexible imports
+current_dir = Path(__file__).parent
+sys.path.insert(0, str(current_dir))  # /backend/src
+sys.path.insert(0, str(current_dir.parent))  # /backend
+sys.path.insert(0, str(current_dir.parent.parent))  # /project_root
 
 # Configure logging first
 logging.basicConfig(
@@ -162,9 +169,40 @@ async def lifespan(app: FastAPI):
     # Database initialization for PostgreSQL
     if not BYPASS_DATABASE:
         try:
-            # Import database components
-            from database.config import init_db, engine
-            from database import models  # Import models to register them
+            # Import database components with comprehensive fallback paths for Render
+            init_db = None
+            engine = None
+            models = None
+            
+            # Try multiple import paths to handle different deployment environments
+            import_attempts = [
+                # Direct import (works in shell/manual commands)
+                ("database.config", "database"),
+                # Src prefixed (standard structure)
+                ("src.database.config", "src.database"), 
+                # Absolute path attempts for Render
+                ("backend.src.database.config", "backend.src.database"),
+                ("backend.database.config", "backend.database")
+            ]
+            
+            for config_path, models_path in import_attempts:
+                try:
+                    logger.info(f"Attempting database import: {config_path}")
+                    config_module = __import__(config_path, fromlist=['init_db', 'engine'])
+                    models_module = __import__(models_path, fromlist=['models'])
+                    
+                    init_db = getattr(config_module, 'init_db')
+                    engine = getattr(config_module, 'engine')
+                    models = models_module  # Import models to register them
+                    
+                    logger.info(f"Successfully imported database from: {config_path}")
+                    break
+                except ImportError as e:
+                    logger.debug(f"Import attempt failed for {config_path}: {e}")
+                    continue
+            
+            if not init_db or not engine:
+                raise ImportError("Could not import database components from any path")
             
             # Initialize database tables
             init_db()

@@ -14,7 +14,7 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: PYTHONPATH
-        value: /opt/render/project/src/backend
+        value: /opt/render/project/src/backend:/opt/render/project/src/backend/src:/opt/render/project/src
       - key: BYPASS_DATABASE
-        value: "true"
+        value: "false"
     autoDeploy: true
