@@ -158,10 +158,33 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.error(f"Redis initialization failed: {e}")
     
-    # Database initialization (skipped for now - no database module yet)
-    if database_available and not BYPASS_DATABASE:
-        # Database module not implemented yet
-        logger.info("Database module not implemented - using Redis only")
+    # Database initialization for PostgreSQL
+    if not BYPASS_DATABASE:
+        try:
+            # Import database components
+            from database.config import init_db, engine
+            from database import models  # Import models to register them
+            
+            # Initialize database tables
+            init_db()
+            
+            # Test connection
+            with engine.connect() as conn:
+                conn.execute("SELECT 1")
+                service_status["database"] = True
+                logger.info("PostgreSQL database initialized and connected successfully")
+        except ImportError as e:
+            logger.warning(f"Database modules not found: {e}")
+            service_status["database"] = False
+        except Exception as e:
+            logger.error(f"PostgreSQL initialization failed: {e}")
+            service_status["database"] = False
+            # Continue without database if Redis is available
+            if not service_status["redis"]:
+                logger.error("Both database and Redis failed - cannot continue")
+                raise
+    else:
+        logger.info("Database bypassed by BYPASS_DATABASE=true - using Redis only")
         service_status["database"] = False
     
     # Routers are now initialized at startup, just log their status
