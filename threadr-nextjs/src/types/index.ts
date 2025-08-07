@@ -33,7 +33,7 @@ export interface Tweet {
 }
 
 export interface GenerateThreadRequest {
-  content?: string;
+  content: string;
   url?: string;
   customPrompt?: string;
 }
