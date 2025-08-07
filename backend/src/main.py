@@ -266,7 +266,7 @@ async def root():
     """Root endpoint"""
     return {
         "message": "Threadr API",
-        "version": "2.0.0",
+        "version": "2.0.1",
         "status": service_status["health"],
         "environment": ENVIRONMENT,
         "docs": "/docs"
