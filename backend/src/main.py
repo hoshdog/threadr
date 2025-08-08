@@ -80,7 +80,7 @@ try:
     from routes.subscription import create_subscription_router
     from routes.revenue import router as revenue_router
     from routes.generate import router as generate_router
-    from services.auth.auth_service import AuthService
+    from services.auth.auth_service import AuthServiceFixed as AuthService
     from services.thread.thread_service import ThreadHistoryService
     routes_available = True
     logger.info("Routes and services imported successfully")
@@ -93,7 +93,7 @@ except ImportError as e:
         from src.routes.subscription import create_subscription_router
         from src.routes.revenue import router as revenue_router
         from src.routes.generate import router as generate_router
-        from src.services.auth.auth_service import AuthService
+        from src.services.auth.auth_service import AuthServiceFixed as AuthService
         from src.services.thread.thread_service import ThreadHistoryService
         routes_available = True
         logger.info("Routes and services imported successfully")

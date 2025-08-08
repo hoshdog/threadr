@@ -24,9 +24,9 @@ except ImportError:
         AuthError, User
     )
 try:
-    from ..services.auth.auth_service import AuthService
+    from ..services.auth.auth_service import AuthServiceFixed as AuthService
 except ImportError:
-    from src.services.auth.auth_service import AuthService
+    from src.services.auth.auth_service import AuthServiceFixed as AuthService
 try:
     from ..middleware.auth import create_auth_dependencies, log_request, get_request_context
 except ImportError:
