@@ -70,13 +70,13 @@ class UserRegistrationRequest(BaseModel):
         
         return v
     
-    @field_validator('confirm_password')
-    @classmethod
-    def validate_password_match(cls, v, info):
+    @model_validator(mode='after')
+    def validate_passwords_match(self):
         """Validate password confirmation matches password"""
-        if 'password' in info.data and v != info.data['password']:
-            raise ValueError('Passwords do not match')
-        return v
+        if hasattr(self, 'password') and hasattr(self, 'confirm_password'):
+            if self.password != self.confirm_password:
+                raise ValueError('Passwords do not match')
+        return self
 
 
 class UserLoginRequest(BaseModel):
@@ -160,13 +160,13 @@ class PasswordChangeRequest(BaseModel):
         
         return v
     
-    @field_validator('confirm_new_password')
-    @classmethod
-    def validate_new_password_match(cls, v, info):
+    @model_validator(mode='after')  
+    def validate_new_passwords_match(self):
         """Validate new password confirmation matches new password"""
-        if 'new_password' in info.data and v != info.data['new_password']:
-            raise ValueError('New passwords do not match')
-        return v
+        if hasattr(self, 'new_password') and hasattr(self, 'confirm_new_password'):
+            if self.new_password != self.confirm_new_password:
+                raise ValueError('New passwords do not match')
+        return self
 
 
 # Internal Data Models (for storage)

@@ -60,6 +60,14 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
         log_request(request, f"User registration attempt for {SecurityUtils.mask_email(registration_data.email)}")
         
         try:
+            # Manual password validation as fallback for model validation issues
+            if registration_data.password != registration_data.confirm_password:
+                log_request(request, f"Registration validation error: Passwords do not match", "warning")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Passwords do not match"
+                )
+                
             user, token_response = await auth_service.register_user(registration_data, client_ip)
             
             log_request(request, f"User registered successfully: {SecurityUtils.mask_email(user.email)}")
