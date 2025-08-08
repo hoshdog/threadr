@@ -3,7 +3,7 @@ Authentication models and Pydantic schemas for Threadr
 Handles user data structures and validation for the authentication system
 """
 
-from pydantic import BaseModel, EmailStr, field_validator, Field
+from pydantic import BaseModel, EmailStr, field_validator, Field, model_validator
 from typing import Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -70,10 +70,12 @@ class UserRegistrationRequest(BaseModel):
         
         return v
     
-    def model_post_init(self, __context: Any) -> None:
-        """Validate password confirmation after model initialization"""
+    @model_validator(mode='after')
+    def validate_passwords_match(self) -> 'UserRegistrationRequest':
+        """Validate password confirmation matches password"""
         if self.password != self.confirm_password:
             raise ValueError('Passwords do not match')
+        return self
 
 
 class UserLoginRequest(BaseModel):
@@ -157,10 +159,12 @@ class PasswordChangeRequest(BaseModel):
         
         return v
     
-    def model_post_init(self, __context: Any) -> None:
-        """Validate password confirmation after model initialization"""
+    @model_validator(mode='after')
+    def validate_new_passwords_match(self) -> 'PasswordChangeRequest':
+        """Validate new password confirmation matches new password"""
         if self.new_password != self.confirm_new_password:
             raise ValueError('New passwords do not match')
+        return self
 
 
 # Internal Data Models (for storage)

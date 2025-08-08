@@ -81,7 +81,9 @@ class AuthService:
             )
             
             # Store user in Redis
+            logger.info(f"Attempting to store user: {SecurityUtils.mask_email(user.email)}")
             store_success = await self._store_user(user)
+            logger.info(f"User storage result: {store_success}")
             if not store_success:
                 logger.error(f"Failed to store user in Redis: {SecurityUtils.mask_email(user.email)}")
                 raise AuthError("Failed to create user account")
@@ -345,33 +347,51 @@ class AuthService:
     
     async def _store_user(self, user: User) -> bool:
         """Store user in Redis with email index"""
+        # Check if Redis manager is available
+        if not self.redis_manager:
+            logger.error("Redis manager not available - cannot store user")
+            return False
+            
         user_key = f"{self.user_prefix}{user.user_id}"
         email_index_key = f"{self.user_email_index}{user.email}"
         
         def _store():
-            with self.redis_manager._redis_operation() as r:
-                if not r:
-                    return False
-                try:
+            try:
+                with self.redis_manager._redis_operation() as r:
+                    if not r:
+                        logger.error("Redis client not available")
+                        return False
+                    
                     pipe = r.pipeline()
                     
                     # Store user data (2 year expiry)
                     user_ttl = 2 * 365 * 24 * 3600
-                    pipe.setex(user_key, user_ttl, user.model_dump_json())
+                    user_json = user.model_dump_json()
+                    logger.debug(f"Storing user data: {len(user_json)} bytes")
                     
-                    # Store email index
+                    pipe.setex(user_key, user_ttl, user_json)
                     pipe.setex(email_index_key, user_ttl, user.user_id)
                     
                     results = pipe.execute()
+                    logger.debug(f"Pipeline results: {results}")
                     return all(results)
-                except Exception as e:
-                    logger.error(f"Error storing user: {e}")
-                    return False
+            except Exception as e:
+                logger.error(f"Error in _store_user: {e}", exc_info=True)
+                return False
         
+        # Check if we have an executor
+        if not hasattr(self.redis_manager, 'executor'):
+            logger.error("Redis manager missing executor")
+            return False
+            
         # Run in thread pool
         import asyncio
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(self.redis_manager.executor, _store)
+        try:
+            return await loop.run_in_executor(self.redis_manager.executor, _store)
+        except Exception as e:
+            logger.error(f"Executor error in _store_user: {e}", exc_info=True)
+            return False
     
     async def _create_session(self, user: User, client_ip: str, access_token: str) -> bool:
         """Create user session in Redis"""
