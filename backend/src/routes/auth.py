@@ -435,6 +435,94 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
                 "timestamp": datetime.utcnow().isoformat()
             }
     
+    @router.post("/debug/test-postgres")
+    async def debug_test_postgres(request: Request, test_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Direct PostgreSQL storage test"""
+        log_request(request, "PostgreSQL direct test request")
+        
+        try:
+            email = test_data.get("email", "pgtest@example.com")
+            
+            # Import required modules
+            try:
+                from ..database import get_async_db, User as DBUser
+            except ImportError:
+                from src.database import get_async_db, User as DBUser
+                
+            if not DBUser or not get_async_db:
+                return {"status": "error", "error": "PostgreSQL not available"}
+            
+            # Test direct PostgreSQL user creation
+            import uuid
+            from datetime import datetime
+            test_uuid = str(uuid.uuid4())
+            
+            result = {"status": "testing", "steps": {}}
+            
+            try:
+                async for db_session in get_async_db():
+                    try:
+                        # Create minimal test user
+                        db_user = DBUser(
+                            id=uuid.UUID(test_uuid),
+                            email=email,
+                            username=None,
+                            password_hash="test_hash_" + test_uuid[:8],
+                            is_active=True,
+                            is_verified=False,
+                            is_premium=False,
+                            created_at=datetime.utcnow(),
+                            updated_at=datetime.utcnow()
+                        )
+                        
+                        result["steps"]["user_creation"] = {"success": True, "user_id": test_uuid}
+                        
+                        db_session.add(db_user)
+                        result["steps"]["session_add"] = {"success": True}
+                        
+                        await db_session.commit()
+                        result["steps"]["commit"] = {"success": True}
+                        
+                        # Clean up test user
+                        await db_session.delete(db_user)
+                        await db_session.commit()
+                        result["steps"]["cleanup"] = {"success": True}
+                        
+                        result["status"] = "success"
+                        result["message"] = "PostgreSQL storage test successful"
+                        
+                    except Exception as e:
+                        await db_session.rollback()
+                        result["status"] = "error"
+                        result["error"] = f"{type(e).__name__}: {str(e)}"
+                        result["steps"]["error_at"] = "during_transaction"
+                        
+                        # Try to get more specific error info
+                        import traceback
+                        result["traceback"] = traceback.format_exc()
+                        
+                    finally:
+                        await db_session.close()
+                        break
+                        
+            except Exception as e:
+                result["status"] = "error" 
+                result["error"] = f"Connection error: {type(e).__name__}: {str(e)}"
+                result["steps"]["error_at"] = "connection"
+            
+            return result
+            
+        except Exception as e:
+            log_request(request, f"PostgreSQL test error: {e}", "error")
+            import traceback
+            return {
+                "status": "error",
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "traceback": traceback.format_exc(),
+                "timestamp": datetime.utcnow().isoformat()
+            }
+    
     @router.get("/debug/storage")  
     async def debug_storage_components(request: Request) -> Dict[str, Any]:
         """Debug endpoint to test storage components (Redis and PostgreSQL) - Updated"""
