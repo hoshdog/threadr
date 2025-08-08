@@ -346,9 +346,9 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
                 }
             }
     
-    @router.get("/debug/storage")
+    @router.get("/debug/storage")  
     async def debug_storage_components(request: Request) -> Dict[str, Any]:
-        """Debug endpoint to test storage components (Redis and PostgreSQL)"""
+        """Debug endpoint to test storage components (Redis and PostgreSQL) - Updated"""
         log_request(request, "Storage components debug request")
         
         try:
