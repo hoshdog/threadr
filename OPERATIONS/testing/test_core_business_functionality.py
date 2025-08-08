@@ -67,6 +67,20 @@ class ThreadrBusinessTester:
         
         logger.info(f"Initializing Threadr Business Tester - Base URL: {self.base_url}")
     
+    def safe_json_parse(self, response: httpx.Response) -> Dict[str, Any]:
+        """Safely parse JSON response with proper error handling"""
+        try:
+            data = response.json()
+            if isinstance(data, str):
+                # If we get a string instead of dict, wrap it as an error
+                return {"success": False, "error": f"Unexpected string response: {data[:200]}"}
+            return data
+        except (json.JSONDecodeError, TypeError) as e:
+            return {
+                "success": False, 
+                "error": f"Invalid JSON response: {response.text[:200] if response.text else 'Empty response'}"
+            }
+    
     async def run_all_tests(self) -> Dict[str, Any]:
         """Run comprehensive test suite and return results"""
         start_time = time.time()
@@ -96,10 +110,10 @@ class ThreadrBusinessTester:
                 category_result = await test_function()
                 category_results[category_name] = category_result
                 category_time = time.time() - category_start
-                logger.info(f"✅ {category_name} completed in {category_time:.2f}s")
+                logger.info(f"[PASS] {category_name} completed in {category_time:.2f}s")
             except Exception as e:
                 category_time = time.time() - category_start
-                logger.error(f"❌ {category_name} failed after {category_time:.2f}s: {str(e)}")
+                logger.error(f"[FAIL] {category_name} failed after {category_time:.2f}s: {str(e)}")
                 category_results[category_name] = {
                     "success": False,
                     "error": str(e),
@@ -516,9 +530,9 @@ class ThreadrBusinessTester:
             )
             
             if response.status_code != 200:
-                raise Exception(f"Content thread generation failed with status {response.status_code}: {response.text}")
+                raise Exception(f"Content thread generation failed with status {response.status_code}: {response.text[:200]}")
             
-            data = response.json()
+            data = self.safe_json_parse(response)
             
             if not data.get("success"):
                 raise Exception(f"Thread generation failed: {data.get('error')}")
@@ -962,7 +976,7 @@ class ThreadrBusinessTester:
                 details=details
             )
             
-            logger.info(f"✅ {test_name} passed in {execution_time:.2f}s")
+            logger.info(f"[PASS] {test_name} passed in {execution_time:.2f}s")
             
         except Exception as e:
             execution_time = time.time() - start_time
@@ -975,7 +989,7 @@ class ThreadrBusinessTester:
                 error_message=str(e)
             )
             
-            logger.error(f"❌ {test_name} failed in {execution_time:.2f}s: {str(e)}")
+            logger.error(f"[FAIL] {test_name} failed in {execution_time:.2f}s: {str(e)}")
         
         self.test_results.append(result)
         return result
@@ -1017,7 +1031,7 @@ class ThreadrBusinessTester:
         
         for category_name, category_data in category_results.items():
             if isinstance(category_data, dict) and not category_data.get("success", True):
-                recommendations.append(f"❌ Fix issues in {category_name} category")
+                recommendations.append(f"[URGENT] Fix issues in {category_name} category")
         
         # Check for specific issues
         infra = category_results.get("Infrastructure Health", {})
@@ -1029,7 +1043,7 @@ class ThreadrBusinessTester:
             recommendations.append("🔐 Fix authentication system - required for revenue features")
         
         if not recommendations:
-            recommendations.append("✅ All systems operational - ready for production traffic")
+            recommendations.append("[SUCCESS] All systems operational - ready for production traffic")
         
         return recommendations
     
@@ -1061,12 +1075,12 @@ def print_test_report(report: Dict[str, Any]):
     
     # Summary
     summary = report["summary"]
-    print(f"\n📊 OVERALL RESULTS:")
+    print(f"\n>> OVERALL RESULTS:")
     print(f"   Total Tests: {summary['total_tests']}")
-    print(f"   Passed: {summary['passed_tests']} ✅")
-    print(f"   Failed: {summary['failed_tests']} ❌")
+    print(f"   Passed: {summary['passed_tests']} [PASS]")
+    print(f"   Failed: {summary['failed_tests']} [FAIL]")
     print(f"   Success Rate: {summary['success_rate']}%")
-    print(f"   Overall Status: {'✅ PASS' if summary['overall_success'] else '❌ FAIL'}")
+    print(f"   Overall Status: {'[PASS]' if summary['overall_success'] else '[FAIL]'}")
     
     # Execution info
     execution = report["test_execution"]
@@ -1080,13 +1094,13 @@ def print_test_report(report: Dict[str, Any]):
     print(f"\n📋 CATEGORY RESULTS:")
     for category_name, category_data in report["categories"].items():
         if isinstance(category_data, dict):
-            status = "✅ PASS" if category_data.get("success", False) else "❌ FAIL"
+            status = "[PASS]" if category_data.get("success", False) else "[FAIL]"
             print(f"   {category_name}: {status}")
             if "summary" in category_data:
                 print(f"      {category_data['summary']}")
     
     # Recommendations
-    print(f"\n🎯 RECOMMENDATIONS:")
+    print(f"\n>> RECOMMENDATIONS:")
     for rec in report["recommendations"]:
         print(f"   {rec}")
     
@@ -1095,8 +1109,8 @@ def print_test_report(report: Dict[str, Any]):
 
 async def main():
     """Main function to run the comprehensive test suite"""
-    print("🚀 Starting Threadr Business Functionality Test Suite...")
-    print(f"📍 Testing against: {os.getenv('BASE_URL', 'https://threadr-pw0s.onrender.com')}")
+    print(">> Starting Threadr Business Functionality Test Suite...")
+    print(f">> Testing against: {os.getenv('BASE_URL', 'https://threadr-pw0s.onrender.com')}")
     
     tester = ThreadrBusinessTester()
     
@@ -1123,7 +1137,7 @@ async def main():
             
     except Exception as e:
         logger.error(f"Test suite execution failed: {e}")
-        print(f"\n💥 Test suite execution failed: {e}")
+        print(f"\n[ERROR] Test suite execution failed: {e}")
         sys.exit(1)
 
 
