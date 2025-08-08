@@ -117,8 +117,12 @@ class AuthService:
             # Create session
             await self._create_session(user, client_ip, access_token)
             
-            # Check premium access
-            premium_info = await self.redis_manager.check_premium_access(client_ip, user.email)
+            # Check premium access (graceful fallback if Redis unavailable)
+            if self.redis_manager:
+                premium_info = await self.redis_manager.check_premium_access(client_ip, user.email)
+            else:
+                logger.info(f"Redis unavailable, defaulting to free tier for: {SecurityUtils.mask_email(user.email)}")
+                premium_info = {"has_premium": False, "expires_at": None}
             
             # Create response
             token_response = TokenResponse(
@@ -145,15 +149,16 @@ class AuthService:
                         client_ip: str) -> TokenResponse:
         """Authenticate user and create session"""
         try:
-            # Check for account lockout
-            if await self._is_account_locked(login_data.email, client_ip):
+            # Check for account lockout (skip if Redis unavailable)
+            if self.redis_manager and await self._is_account_locked(login_data.email, client_ip):
                 logger.warning(f"Login attempt on locked account: {SecurityUtils.mask_email(login_data.email)}")
                 raise AccountSuspendedError("Account temporarily locked due to failed login attempts")
             
             # Get user
             user = await self.get_user_by_email(login_data.email)
             if not user:
-                await self._record_failed_login(login_data.email, client_ip)
+                if self.redis_manager:
+                    await self._record_failed_login(login_data.email, client_ip)
                 logger.warning(f"Login attempt for non-existent user: {SecurityUtils.mask_email(login_data.email)}")
                 raise InvalidCredentialsError("Invalid email or password")
             
@@ -164,14 +169,16 @@ class AuthService:
             
             # Verify password
             if not verify_password(login_data.password, user.password_hash):
-                await self._record_failed_login(login_data.email, client_ip)
+                if self.redis_manager:
+                    await self._record_failed_login(login_data.email, client_ip)
                 await self._increment_failed_attempts(user)
                 logger.warning(f"Invalid password for user: {SecurityUtils.mask_email(user.email)}")
                 raise InvalidCredentialsError("Invalid email or password")
             
             # Reset failed attempts on successful login
             await self._reset_failed_attempts(user)
-            await self._clear_failed_login_records(login_data.email, client_ip)
+            if self.redis_manager:
+                await self._clear_failed_login_records(login_data.email, client_ip)
             
             # Update user login info
             user.last_login_at = datetime.utcnow()
@@ -278,8 +285,15 @@ class AuthService:
         return await loop.run_in_executor(self.redis_manager.executor, _get)
     
     async def get_user_by_email(self, email: str) -> Optional[User]:
-        """Get user by email from Redis"""
+        """Get user by email from Redis with PostgreSQL fallback"""
         email = SecurityUtils.sanitize_email(email)
+        
+        # If Redis is unavailable, use PostgreSQL directly
+        if not self.redis_manager:
+            logger.debug(f"Redis unavailable, using PostgreSQL lookup for: {SecurityUtils.mask_email(email)}")
+            return await self._get_user_by_email_postgres(email)
+        
+        # Try Redis first
         email_index_key = f"{self.user_email_index}{email}"
         
         def _get():
@@ -301,10 +315,19 @@ class AuthService:
                     logger.error(f"Error retrieving user by email {SecurityUtils.mask_email(email)}: {e}")
                     return None
         
-        # Run in thread pool
+        # Try Redis first
         import asyncio
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(self.redis_manager.executor, _get)
+        try:
+            redis_user = await loop.run_in_executor(self.redis_manager.executor, _get)
+            if redis_user:
+                return redis_user
+        except Exception as e:
+            logger.warning(f"Redis lookup failed for {SecurityUtils.mask_email(email)}: {e}")
+        
+        # Fall back to PostgreSQL
+        logger.info(f"Redis lookup failed, trying PostgreSQL for: {SecurityUtils.mask_email(email)}")
+        return await self._get_user_by_email_postgres(email)
     
     async def get_current_user_from_token(self, access_token: str) -> Optional[User]:
         """Get current user from access token"""
@@ -369,7 +392,17 @@ class AuthService:
     
     async def _store_user(self, user: User) -> bool:
         """Store user in Redis with PostgreSQL fallback"""
-        # Try Redis first
+        # If Redis is unavailable, go straight to PostgreSQL
+        if not self.redis_manager:
+            logger.info(f"Redis unavailable, using PostgreSQL directly for: {SecurityUtils.mask_email(user.email)}")
+            postgres_success = await self._store_user_postgres(user)
+            if postgres_success:
+                logger.info(f"User stored in PostgreSQL: {SecurityUtils.mask_email(user.email)}")
+                return True
+            logger.error(f"PostgreSQL storage failed: {SecurityUtils.mask_email(user.email)}")
+            return False
+        
+        # Try Redis first if available
         redis_success = await self._store_user_redis(user)
         if redis_success:
             logger.debug(f"User stored in Redis: {SecurityUtils.mask_email(user.email)}")
@@ -480,7 +513,12 @@ class AuthService:
             return False
     
     async def _create_session(self, user: User, client_ip: str, access_token: str) -> bool:
-        """Create user session in Redis"""
+        """Create user session in Redis (graceful fallback if unavailable)"""
+        # If Redis is unavailable, log and continue (sessions are optional for basic auth)
+        if not self.redis_manager:
+            logger.info(f"Redis unavailable, skipping session creation for: {SecurityUtils.mask_email(user.email)}")
+            return True  # Return True to not block authentication
+        
         session_key = f"{self.session_prefix}{user.user_id}"
         session_data = SecurityUtils.create_session_data(user, client_ip)
         session_data["access_token_hash"] = hash(access_token)  # Store token hash for validation
@@ -501,10 +539,19 @@ class AuthService:
         # Run in thread pool
         import asyncio
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(self.redis_manager.executor, _create)
+        try:
+            return await loop.run_in_executor(self.redis_manager.executor, _create)
+        except Exception as e:
+            logger.warning(f"Session creation failed for {SecurityUtils.mask_email(user.email)}: {e}")
+            return True  # Don't block authentication if sessions fail
     
     async def _is_account_locked(self, email: str, client_ip: str) -> bool:
         """Check if account is locked due to failed attempts"""
+        # If Redis is unavailable, account lockout is disabled
+        if not self.redis_manager:
+            logger.debug(f"Redis unavailable, skipping account lockout check for: {SecurityUtils.mask_email(email)}")
+            return False
+            
         email = SecurityUtils.sanitize_email(email)
         failed_login_key = f"{self.failed_login_prefix}{email}:{client_ip}"
         
@@ -692,9 +739,10 @@ class AuthService:
         # Test PostgreSQL
         if DBUser and get_async_db:
             try:
+                from sqlalchemy import text
                 async for db_session in get_async_db():
                     try:
-                        await db_session.execute("SELECT 1")
+                        await db_session.execute(text("SELECT 1"))
                         results["postgres_connection"] = True
                     except Exception as e:
                         results["postgres_error"] = str(e)
@@ -705,3 +753,51 @@ class AuthService:
                 results["postgres_connection_error"] = str(e)
         
         return results
+    
+    async def _get_user_by_email_postgres(self, email: str) -> Optional[User]:
+        """Get user by email from PostgreSQL"""
+        if not DBUser or not get_async_db:
+            logger.debug(f"PostgreSQL not available for user lookup: {SecurityUtils.mask_email(email)}")
+            return None
+        
+        try:
+            from sqlalchemy import select
+            async for db_session in get_async_db():
+                try:
+                    stmt = select(DBUser).where(DBUser.email == email)
+                    result = await db_session.execute(stmt)
+                    db_user = result.scalar_one_or_none()
+                    
+                    if not db_user:
+                        return None
+                    
+                    # Convert PostgreSQL user to our User model
+                    try:
+                        from ..models.auth import UserRole, UserStatus
+                    except ImportError:
+                        from src.models.auth import UserRole, UserStatus
+                    user = User(
+                        user_id=str(db_user.id),
+                        email=db_user.email,
+                        password_hash=db_user.password_hash,
+                        role=UserRole.PREMIUM if db_user.is_premium else UserRole.USER,
+                        status=UserStatus.ACTIVE if db_user.is_active else UserStatus.SUSPENDED,
+                        created_at=db_user.created_at,
+                        updated_at=db_user.updated_at,
+                        last_login_at=db_user.last_login_at,
+                        is_email_verified=db_user.is_verified,
+                        metadata=getattr(db_user, 'metadata', {}) or {}
+                    )
+                    
+                    logger.debug(f"User found in PostgreSQL: {SecurityUtils.mask_email(email)}")
+                    return user
+                    
+                except Exception as e:
+                    logger.error(f"PostgreSQL user lookup error for {SecurityUtils.mask_email(email)}: {e}")
+                    return None
+                finally:
+                    await db_session.close()
+                    
+        except Exception as e:
+            logger.error(f"PostgreSQL connection error for user lookup {SecurityUtils.mask_email(email)}: {e}")
+            return None
