@@ -493,6 +493,7 @@ class AuthService:
                     db_user = DBUser(
                         id=user_uuid,
                         email=user.email,
+                        username=None,  # Optional field in PostgreSQL model
                         password_hash=user.password_hash,
                         is_active=(user.status == UserStatus.ACTIVE),
                         is_verified=user.is_email_verified,
@@ -699,6 +700,7 @@ class AuthService:
                         db_user = DBUser(
                             id=user_uuid,
                             email=user.email,
+                            username=None,  # Optional field in PostgreSQL model
                             password_hash=user.password_hash,
                             is_active=True,
                             is_verified=False,
