@@ -302,6 +302,15 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
                 detail="Password strength check failed"
             )
     
+    @router.get("/debug/deployment-test")
+    async def deployment_test() -> Dict[str, str]:
+        """Test endpoint to verify deployment changes"""
+        return {
+            "message": "Deployment test endpoint active", 
+            "timestamp": datetime.utcnow().isoformat(),
+            "fix_version": "dual-layer-password-validation-v2"
+        }
+    
     @router.get("/session/status")
     async def get_session_status(
         request: Request,
