@@ -346,6 +346,92 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
                 }
             }
     
+    @router.post("/debug/test-registration")
+    async def debug_test_registration(request: Request, test_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Debug endpoint to test registration flow with detailed error reporting"""
+        log_request(request, "Registration debug test request")
+        
+        try:
+            # Extract test data
+            email = test_data.get("email", "debug@example.com") 
+            password = test_data.get("password", "TestPassword123")
+            confirm_password = test_data.get("confirm_password", "TestPassword123")
+            
+            # Create registration request
+            try:
+                from ..models.auth import UserRegistrationRequest
+            except ImportError:
+                from src.models.auth import UserRegistrationRequest
+                
+            registration_data = UserRegistrationRequest(
+                email=email,
+                password=password, 
+                confirm_password=confirm_password
+            )
+            
+            client_ip = SecurityUtils.get_client_ip(request)
+            
+            # Step-by-step registration debugging
+            debug_steps = {}
+            
+            # Step 1: Check existing user
+            try:
+                existing_user = await auth_service.get_user_by_email(registration_data.email)
+                debug_steps["existing_user_check"] = {
+                    "success": True,
+                    "user_exists": existing_user is not None
+                }
+                if existing_user:
+                    return {
+                        "status": "expected_failure",
+                        "reason": "User already exists", 
+                        "debug_steps": debug_steps
+                    }
+            except Exception as e:
+                debug_steps["existing_user_check"] = {
+                    "success": False,
+                    "error": str(e)
+                }
+            
+            # Step 2: Test user creation
+            try:
+                user, token_response = await auth_service.register_user(registration_data, client_ip)
+                debug_steps["registration"] = {
+                    "success": True,
+                    "user_id": user.user_id,
+                    "email": user.email
+                }
+                
+                return {
+                    "status": "success",
+                    "message": "Registration successful",
+                    "user_id": user.user_id,
+                    "debug_steps": debug_steps
+                }
+                
+            except Exception as e:
+                debug_steps["registration"] = {
+                    "success": False,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                }
+                
+                return {
+                    "status": "failure",
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "debug_steps": debug_steps
+                }
+                
+        except Exception as e:
+            log_request(request, f"Registration debug error: {e}", "error")
+            return {
+                "status": "error",
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+    
     @router.get("/debug/storage")  
     async def debug_storage_components(request: Request) -> Dict[str, Any]:
         """Debug endpoint to test storage components (Redis and PostgreSQL) - Updated"""
