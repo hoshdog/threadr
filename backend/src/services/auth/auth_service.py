@@ -34,6 +34,17 @@ except ImportError:
         generate_user_id
     )
 
+# Database imports for fallback
+try:
+    from ...database import get_async_db, User as DBUser
+except ImportError:
+    try:
+        from src.database import get_async_db, User as DBUser
+    except ImportError:
+        get_async_db = None
+        DBUser = None
+        logger.warning("Database imports not available - PostgreSQL fallback disabled")
+
 logger = logging.getLogger(__name__)
 
 
@@ -346,10 +357,28 @@ class AuthService:
             raise InvalidCredentialsError("Invalid refresh token")
     
     async def _store_user(self, user: User) -> bool:
+        """Store user in Redis with PostgreSQL fallback"""
+        # Try Redis first
+        redis_success = await self._store_user_redis(user)
+        if redis_success:
+            logger.debug(f"User stored in Redis: {SecurityUtils.mask_email(user.email)}")
+            return True
+        
+        # Fall back to PostgreSQL
+        logger.warning(f"Redis storage failed, attempting PostgreSQL fallback: {SecurityUtils.mask_email(user.email)}")
+        postgres_success = await self._store_user_postgres(user)
+        if postgres_success:
+            logger.info(f"User stored in PostgreSQL fallback: {SecurityUtils.mask_email(user.email)}")
+            return True
+        
+        logger.error(f"Both Redis and PostgreSQL storage failed: {SecurityUtils.mask_email(user.email)}")
+        return False
+
+    async def _store_user_redis(self, user: User) -> bool:
         """Store user in Redis with email index"""
         # Check if Redis manager is available
         if not self.redis_manager:
-            logger.error("Redis manager not available - cannot store user")
+            logger.debug("Redis manager not available")
             return False
             
         user_key = f"{self.user_prefix}{user.user_id}"
@@ -359,7 +388,7 @@ class AuthService:
             try:
                 with self.redis_manager._redis_operation() as r:
                     if not r:
-                        logger.error("Redis client not available")
+                        logger.debug("Redis client not available")
                         return False
                     
                     pipe = r.pipeline()
@@ -376,12 +405,12 @@ class AuthService:
                     logger.debug(f"Pipeline results: {results}")
                     return all(results)
             except Exception as e:
-                logger.error(f"Error in _store_user: {e}", exc_info=True)
+                logger.debug(f"Error in Redis _store_user: {e}")
                 return False
         
         # Check if we have an executor
         if not hasattr(self.redis_manager, 'executor'):
-            logger.error("Redis manager missing executor")
+            logger.debug("Redis manager missing executor")
             return False
             
         # Run in thread pool
@@ -390,7 +419,46 @@ class AuthService:
         try:
             return await loop.run_in_executor(self.redis_manager.executor, _store)
         except Exception as e:
-            logger.error(f"Executor error in _store_user: {e}", exc_info=True)
+            logger.debug(f"Executor error in Redis _store_user: {e}")
+            return False
+
+    async def _store_user_postgres(self, user: User) -> bool:
+        """Store user in PostgreSQL as fallback"""
+        if not DBUser or not get_async_db:
+            logger.debug("PostgreSQL not available for user storage")
+            return False
+        
+        try:
+            async for db_session in get_async_db():
+                try:
+                    # Create PostgreSQL user from our User model
+                    db_user = DBUser(
+                        id=user.user_id,
+                        email=user.email,
+                        password_hash=user.password_hash,
+                        is_active=(user.status == UserStatus.ACTIVE),
+                        is_verified=user.is_email_verified,
+                        is_premium=(user.role == UserRole.PREMIUM),
+                        created_at=user.created_at,
+                        updated_at=user.updated_at,
+                        last_login_at=user.last_login_at,
+                        metadata=user.metadata or {}
+                    )
+                    
+                    db_session.add(db_user)
+                    await db_session.commit()
+                    logger.debug(f"User stored in PostgreSQL: {user.user_id}")
+                    return True
+                    
+                except Exception as e:
+                    await db_session.rollback()
+                    logger.error(f"PostgreSQL storage error: {e}")
+                    return False
+                finally:
+                    await db_session.close()
+                    
+        except Exception as e:
+            logger.error(f"PostgreSQL connection error: {e}")
             return False
     
     async def _create_session(self, user: User, client_ip: str, access_token: str) -> bool:
