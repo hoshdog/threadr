@@ -142,8 +142,11 @@ class AuthService:
         except UserAlreadyExistsError:
             raise
         except Exception as e:
-            logger.error(f"Registration error: {e}")
-            raise AuthError("Registration failed")
+            logger.error(f"Registration error - Type: {type(e).__name__}, Message: {e}")
+            # Log the full exception details for debugging
+            import traceback
+            logger.error(f"Registration error full traceback: {traceback.format_exc()}")
+            raise AuthError(f"Registration failed: {type(e).__name__}: {str(e)}")
     
     async def login_user(self, login_data: UserLoginRequest, 
                         client_ip: str) -> TokenResponse:
