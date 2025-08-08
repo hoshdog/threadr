@@ -486,8 +486,12 @@ class AuthService:
             async for db_session in get_async_db():
                 try:
                     # Create PostgreSQL user from our User model
+                    # Convert string UUID to proper UUID if needed
+                    import uuid
+                    user_uuid = user.user_id if isinstance(user.user_id, uuid.UUID) else uuid.UUID(user.user_id)
+                    
                     db_user = DBUser(
-                        id=user.user_id,
+                        id=user_uuid,
                         email=user.email,
                         password_hash=user.password_hash,
                         is_active=(user.status == UserStatus.ACTIVE),
@@ -688,8 +692,12 @@ class AuthService:
             try:
                 async for db_session in get_async_db():
                     try:
+                        # Convert string UUID to proper UUID if needed
+                        import uuid
+                        user_uuid = user.user_id if isinstance(user.user_id, uuid.UUID) else uuid.UUID(user.user_id)
+                        
                         db_user = DBUser(
-                            id=user.user_id,
+                            id=user_uuid,
                             email=user.email,
                             password_hash=user.password_hash,
                             is_active=True,
