@@ -46,8 +46,8 @@ class TokenService:
             "sub": user.user_id,
             "email": user.email,
             "role": user.role.value,
-            "exp": expire,
-            "iat": datetime.utcnow(),
+            "exp": int(expire.timestamp()),
+            "iat": int(datetime.utcnow().timestamp()),
             "type": "access"
         }
         
@@ -71,8 +71,8 @@ class TokenService:
             "sub": user.user_id,
             "email": user.email,
             "role": user.role.value,
-            "exp": expire,
-            "iat": datetime.utcnow(),
+            "exp": int(expire.timestamp()),
+            "iat": int(datetime.utcnow().timestamp()),
             "type": "refresh"
         }
         

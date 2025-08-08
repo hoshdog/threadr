@@ -81,7 +81,10 @@ class AuthService:
             )
             
             # Store user in Redis
-            await self._store_user(user)
+            store_success = await self._store_user(user)
+            if not store_success:
+                logger.error(f"Failed to store user in Redis: {SecurityUtils.mask_email(user.email)}")
+                raise AuthError("Failed to create user account")
             
             # Create tokens
             access_token = create_access_token(user)
