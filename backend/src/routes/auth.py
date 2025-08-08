@@ -393,7 +393,7 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
                     "error": str(e)
                 }
             
-            # Step 2: Test user creation
+            # Step 2: Test user creation with detailed exception tracking
             try:
                 user, token_response = await auth_service.register_user(registration_data, client_ip)
                 debug_steps["registration"] = {
@@ -410,10 +410,13 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
                 }
                 
             except Exception as e:
+                # Get detailed exception info
+                import traceback
                 debug_steps["registration"] = {
                     "success": False,
                     "error": str(e),
-                    "error_type": type(e).__name__
+                    "error_type": type(e).__name__,
+                    "traceback": traceback.format_exc()
                 }
                 
                 return {
