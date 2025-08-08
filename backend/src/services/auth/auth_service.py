@@ -37,15 +37,18 @@ except ImportError:
 # Database imports for fallback
 try:
     from ...database import get_async_db, User as DBUser
+    logger = logging.getLogger(__name__)
+    logger.info("PostgreSQL database components imported successfully")
 except ImportError:
     try:
         from src.database import get_async_db, User as DBUser
+        logger = logging.getLogger(__name__)
+        logger.info("PostgreSQL database components imported successfully (fallback path)")
     except ImportError:
+        logger = logging.getLogger(__name__)
         get_async_db = None
         DBUser = None
         logger.warning("Database imports not available - PostgreSQL fallback disabled")
-
-logger = logging.getLogger(__name__)
 
 
 class AuthService:
@@ -91,13 +94,21 @@ class AuthService:
                 }
             )
             
-            # Store user in Redis
+            # Store user (try both Redis and PostgreSQL)
             logger.info(f"Attempting to store user: {SecurityUtils.mask_email(user.email)}")
             store_success = await self._store_user(user)
             logger.info(f"User storage result: {store_success}")
             if not store_success:
-                logger.error(f"Failed to store user in Redis: {SecurityUtils.mask_email(user.email)}")
-                raise AuthError("Failed to create user account")
+                logger.error(f"All storage methods failed for user: {SecurityUtils.mask_email(user.email)}")
+                
+                # Create emergency fallback - basic user creation that always works
+                logger.info(f"Attempting emergency user creation fallback for: {SecurityUtils.mask_email(user.email)}")
+                emergency_success = await self._emergency_user_creation(user)
+                if not emergency_success:
+                    logger.error(f"Emergency user creation also failed for: {SecurityUtils.mask_email(user.email)}")
+                    raise AuthError("Failed to create user account - all storage methods failed")
+                else:
+                    logger.info(f"Emergency user creation succeeded for: {SecurityUtils.mask_email(user.email)}")
             
             # Create tokens
             access_token = create_access_token(user)
@@ -378,7 +389,7 @@ class AuthService:
         """Store user in Redis with email index"""
         # Check if Redis manager is available
         if not self.redis_manager:
-            logger.debug("Redis manager not available")
+            logger.error("Redis manager not available for user storage")
             return False
             
         user_key = f"{self.user_prefix}{user.user_id}"
@@ -388,47 +399,54 @@ class AuthService:
             try:
                 with self.redis_manager._redis_operation() as r:
                     if not r:
-                        logger.debug("Redis client not available")
+                        logger.error("Redis client not available")
                         return False
                     
-                    pipe = r.pipeline()
-                    
-                    # Store user data (2 year expiry)
-                    user_ttl = 2 * 365 * 24 * 3600
+                    # Try simple set operations first (more reliable than pipeline)
+                    user_ttl = 2 * 365 * 24 * 3600  # 2 years
                     user_json = user.model_dump_json()
-                    logger.debug(f"Storing user data: {len(user_json)} bytes")
+                    logger.info(f"Attempting to store user data: {len(user_json)} bytes for {SecurityUtils.mask_email(user.email)}")
                     
-                    pipe.setex(user_key, user_ttl, user_json)
-                    pipe.setex(email_index_key, user_ttl, user.user_id)
+                    # Store user data
+                    user_result = r.setex(user_key, user_ttl, user_json)
+                    logger.info(f"User data storage result: {user_result}")
                     
-                    results = pipe.execute()
-                    logger.debug(f"Pipeline results: {results}")
-                    return all(results)
+                    # Store email index
+                    email_result = r.setex(email_index_key, user_ttl, user.user_id)
+                    logger.info(f"Email index storage result: {email_result}")
+                    
+                    success = user_result and email_result
+                    logger.info(f"Redis storage overall success: {success}")
+                    return success
+                    
             except Exception as e:
-                logger.debug(f"Error in Redis _store_user: {e}")
+                logger.error(f"Redis storage error for {SecurityUtils.mask_email(user.email)}: {type(e).__name__}: {e}")
                 return False
         
         # Check if we have an executor
-        if not hasattr(self.redis_manager, 'executor'):
-            logger.debug("Redis manager missing executor")
+        if not hasattr(self.redis_manager, 'executor') or self.redis_manager.executor is None:
+            logger.error("Redis manager missing or invalid executor")
             return False
             
         # Run in thread pool
         import asyncio
         loop = asyncio.get_event_loop()
         try:
-            return await loop.run_in_executor(self.redis_manager.executor, _store)
+            result = await loop.run_in_executor(self.redis_manager.executor, _store)
+            logger.info(f"Redis executor completed for {SecurityUtils.mask_email(user.email)}: {result}")
+            return result
         except Exception as e:
-            logger.debug(f"Executor error in Redis _store_user: {e}")
+            logger.error(f"Executor error in Redis storage for {SecurityUtils.mask_email(user.email)}: {type(e).__name__}: {e}")
             return False
 
     async def _store_user_postgres(self, user: User) -> bool:
         """Store user in PostgreSQL as fallback"""
         if not DBUser or not get_async_db:
-            logger.debug("PostgreSQL not available for user storage")
+            logger.warning(f"PostgreSQL not available for user storage (DBUser={DBUser is not None}, get_async_db={get_async_db is not None})")
             return False
         
         try:
+            logger.info(f"Attempting PostgreSQL storage for {SecurityUtils.mask_email(user.email)}")
             async for db_session in get_async_db():
                 try:
                     # Create PostgreSQL user from our User model
@@ -447,18 +465,18 @@ class AuthService:
                     
                     db_session.add(db_user)
                     await db_session.commit()
-                    logger.debug(f"User stored in PostgreSQL: {user.user_id}")
+                    logger.info(f"User stored successfully in PostgreSQL: {SecurityUtils.mask_email(user.email)}")
                     return True
                     
                 except Exception as e:
                     await db_session.rollback()
-                    logger.error(f"PostgreSQL storage error: {e}")
+                    logger.error(f"PostgreSQL storage error for {SecurityUtils.mask_email(user.email)}: {type(e).__name__}: {e}")
                     return False
                 finally:
                     await db_session.close()
                     
         except Exception as e:
-            logger.error(f"PostgreSQL connection error: {e}")
+            logger.error(f"PostgreSQL connection error for {SecurityUtils.mask_email(user.email)}: {type(e).__name__}: {e}")
             return False
     
     async def _create_session(self, user: User, client_ip: str, access_token: str) -> bool:
@@ -592,3 +610,98 @@ class AuthService:
         user.last_failed_login = None
         user.updated_at = datetime.utcnow()
         return await self._store_user(user)
+    
+    async def _emergency_user_creation(self, user: User) -> bool:
+        """Emergency user creation that bypasses complex storage methods"""
+        logger.info(f"Emergency user creation for: {SecurityUtils.mask_email(user.email)}")
+        
+        # Try basic Redis storage without executor or pipeline
+        if self.redis_manager:
+            try:
+                with self.redis_manager._redis_operation() as r:
+                    if r:
+                        user_key = f"{self.user_prefix}{user.user_id}"
+                        email_index_key = f"{self.user_email_index}{user.email}"
+                        user_json = user.model_dump_json()
+                        
+                        # Simple set operations
+                        r.set(user_key, user_json, ex=365*24*3600)  # 1 year expiry
+                        r.set(email_index_key, user.user_id, ex=365*24*3600)
+                        
+                        logger.info(f"Emergency Redis storage successful for: {SecurityUtils.mask_email(user.email)}")
+                        return True
+            except Exception as e:
+                logger.error(f"Emergency Redis storage failed: {e}")
+        
+        # Try direct PostgreSQL if available
+        if DBUser and get_async_db:
+            try:
+                async for db_session in get_async_db():
+                    try:
+                        db_user = DBUser(
+                            id=user.user_id,
+                            email=user.email,
+                            password_hash=user.password_hash,
+                            is_active=True,
+                            is_verified=False,
+                            is_premium=False,
+                            created_at=user.created_at,
+                            updated_at=user.updated_at
+                        )
+                        db_session.add(db_user)
+                        await db_session.commit()
+                        logger.info(f"Emergency PostgreSQL storage successful for: {SecurityUtils.mask_email(user.email)}")
+                        return True
+                    except Exception as e:
+                        await db_session.rollback()
+                        logger.error(f"Emergency PostgreSQL storage failed: {e}")
+                        return False
+                    finally:
+                        await db_session.close()
+            except Exception as e:
+                logger.error(f"Emergency PostgreSQL connection failed: {e}")
+        
+        # If all else fails, log the user data for manual recovery
+        logger.critical(f"ALL STORAGE METHODS FAILED - Manual recovery needed for user: {user.model_dump_json()}")
+        return False
+    
+    async def test_storage_components(self) -> dict:
+        """Test all storage components to diagnose issues"""
+        results = {
+            "redis_manager": bool(self.redis_manager),
+            "redis_client": False,
+            "redis_executor": False,
+            "postgres_dbuser": DBUser is not None,
+            "postgres_get_async_db": get_async_db is not None,
+            "postgres_connection": False
+        }
+        
+        # Test Redis
+        if self.redis_manager:
+            try:
+                with self.redis_manager._redis_operation() as r:
+                    results["redis_client"] = r is not None
+                    if r:
+                        r.ping()
+                        results["redis_ping"] = True
+            except Exception as e:
+                results["redis_error"] = str(e)
+            
+            results["redis_executor"] = hasattr(self.redis_manager, 'executor') and self.redis_manager.executor is not None
+        
+        # Test PostgreSQL
+        if DBUser and get_async_db:
+            try:
+                async for db_session in get_async_db():
+                    try:
+                        await db_session.execute("SELECT 1")
+                        results["postgres_connection"] = True
+                    except Exception as e:
+                        results["postgres_error"] = str(e)
+                    finally:
+                        await db_session.close()
+                        break
+            except Exception as e:
+                results["postgres_connection_error"] = str(e)
+        
+        return results

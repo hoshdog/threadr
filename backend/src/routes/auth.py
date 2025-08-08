@@ -346,6 +346,33 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
                 }
             }
     
+    @router.get("/debug/storage")
+    async def debug_storage_components(request: Request) -> Dict[str, Any]:
+        """Debug endpoint to test storage components (Redis and PostgreSQL)"""
+        log_request(request, "Storage components debug request")
+        
+        try:
+            # Test storage components
+            results = await auth_service.test_storage_components()
+            
+            # Add timestamp and request info
+            results["timestamp"] = datetime.utcnow().isoformat()
+            results["client_ip"] = SecurityUtils.get_client_ip(request)
+            
+            log_request(request, f"Storage debug completed: Redis={results.get('redis_client', False)}, PostgreSQL={results.get('postgres_connection', False)}")
+            
+            return {
+                "status": "success",
+                "storage_diagnostics": results
+            }
+        except Exception as e:
+            log_request(request, f"Storage debug error: {e}", "error")
+            return {
+                "status": "error",
+                "error": str(e),
+                "timestamp": datetime.utcnow().isoformat()
+            }
+    
     return router
 
 
